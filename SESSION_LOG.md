@@ -7,6 +7,22 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — E1 executed: Reactive lifecycle + Cancelled CONTROLLED VERIFIED
+
+Jobs 00000053 (lifecycle) and 00000054 (cancel) created via the admin
+quick-add form (RAISE JOB modal - the OD-005 answer: Urgency* required
+there, SLA applied; reporter wizard remains SLA-less). Verified against
+configuration, one action per step: RH01->With Helpdesk with EXACT
+Standard-hours SLA arithmetic (P2: response Fri 14:30 = 24 working hrs
+from Wed 08:30; completion Mon 08:30 = 3 working days); RH02->WMT-R with
+tag 01 auto-added; RH03 self-loop with tag 01->03 swap; RH10->Work
+Complete - R with actual-response capture and tag ->08; G004->Closed;
+G003->Cancelled with the Reactive-tasks toolbar button disappearing.
+U-002 largely resolved (Cancelled = terminal non-complete tab; type
+counts include Closed/Cancelled). Evidence:
+evidence/experiments/E1-reactive-lifecycle.md. Fixtures retained.
+STOPPED before E2 per authorisation.
+
 ## 2026-08-19 — E0 executed: TextMatch CONTROLLED VERIFIED (positive)
 
 First authorised persistence. Fixtures: tag "ZZ TEST textmatch tag"
