@@ -1,0 +1,22 @@
+# Secrets and authentication material — never commit
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*credentials*
+*secrets*
+
+# Browser / runtime artefacts
+*.har
+browser-profile/
+session-storage/
+cookies*
+
+# Local scratch and OS noise
+scratch/
+tmp/
+Thumbs.db
+.DS_Store
+__pycache__/
+*.pyc
