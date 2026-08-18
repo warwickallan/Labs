@@ -41,6 +41,7 @@ EVIDENCE = [
     ("E-013", "evidence/helpdesk-admin/006-add-forms-core-objects.md", "Blank Add forms: Status, Operative status, Tag, Response category"),
     ("E-014", "evidence/helpdesk-admin/007-add-forms-batch2-and-gm05.md", "Add forms batch 2; GM05 edit view; conditional-UI finding"),
     ("E-015", "evidence/reactive-helpdesk/actions/004-per-action-config-all-50.md", "Per-action configuration: all 50 action forms read individually"),
+    ("E-016", "evidence/helpdesk-admin/008-quote-action-configurator.md", "Quote action configurator + RE05: the quote-to-job bridge (U-005)"),
 ]
 
 DISCOVERY_PHASE = (

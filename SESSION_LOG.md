@@ -7,6 +7,27 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-18 (session 2) — All 50 action configs read; quote→job bridge found
+
+Re-signed-in session. Batched form_view extraction captured the Edit-form
+configuration of every one of the 50 actions individually (E-015): per-
+action triggers (order-status trigger map now explicit), mobile constraint
+chains (Accept→Travel/Start→Hold/Complete), action routing (G005/GM02→
+G001), per-action default order projects, and anomalies (VI-007: LM01
+grouped-view mismatch; PH05 available from a Reactive status; RH10/RH11
+and PH02/PH02a config-identical).
+
+Quote action configurator inventoried (~90 controls) and RE05 read
+(E-016): **"Action to be triggered against the original job" = RH03b —
+U-005 (top blocker) RESOLVED structurally; VI-003 downgraded to by-design
++ visualiser limitation.** All forms cancelled unsaved. Model rebuilt (16
+evidence files), validator green, pushed to GitHub.
+
+Remaining safe residuals: tag colours per record, email template bodies,
+Roles/Action-route/Quote-process small Add forms, T03/T05/T06/T07/RH03b
+trigger sources (no visible trigger field — likely engine-internal;
+experiment E2/E3). EXPERIMENT programme still awaiting approval.
+
 ## 2026-08-18 (remote) — GitHub adopted as canonical remote
 
 Safety scrub run (pattern scan for passwords/keys/tokens/cookies/private

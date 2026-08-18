@@ -77,6 +77,11 @@ owner of Vanilla.
 - **Reproduction:** Actions grouped view → Quote Requested - R group.
 - **Suggested correction:** TBD after Quote-family discovery (U-005).
 - **Correction verified?** No.
+- **Update (E-016): DOWNGRADED to by-design + visualiser limitation.**
+  RE05 "Raise Order" fires RH03b against the parent job (quote engine →
+  With Contractor - R). RH03b is machine-fired, hence unallocated. The
+  residual issue is only that the Action map does not render quote-engine
+  firings. Runtime confirmation = experiment E3.
 
 ## VI-005 — No default Response category (SLA) [CONFIGURATION INCONSISTENCY]
 
@@ -116,4 +121,19 @@ owner of Vanilla.
   RH03b may render nowhere.
 - **Evidence:** E-006.
 - **Confidence:** VERIFIED — OBSERVED (the state); INFERRED (the cause).
+- **Correction verified?** No.
+
+## VI-007 — Grouped-view / form-truth mismatches [CONFIGURATION INCONSISTENCY]
+
+- **Configuration area:** Actions.
+- **Observed state (E-015):** LM01's Edit form ticks With Maintenance Team
+  and With Maintenance Team - R, yet the grouped Actions view lists LM01
+  under "Not allocated". PH05 (Planned-only) is available from the
+  Reactive-only status With Helpdesk. RH10 vs RH11, and PH02 vs PH02a, are
+  indistinguishable in every captured configuration field.
+- **Why it appears problematic:** view/form disagreement suggests either a
+  rendering defect or an additional hidden condition; duplicate-config
+  actions suggest copy-editing leftovers in Vanilla.
+- **Evidence:** E-005, E-015.
+- **Confidence:** CONFIGURATION INCONSISTENCY (observed); causes unknown.
 - **Correction verified?** No.

@@ -47,6 +47,11 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
 
 ## Open
 
+*(U-005 resolved 2026-08-18, second session: RE05 "Raise Order" carries
+"Action to be triggered against the original job" = RH03b. Quote Ordered —
+the quote engine fires RH03b, moving the job to With Contractor - R.
+E-016. Runtime confirmation = experiment E3.)*
+
 ## U-002 — How do jobs terminate via Cancelled? [IMPORTANT]
 
 - **Question:** Only "Closed" carries the Complete flag; "Cancelled" does
@@ -57,16 +62,6 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
 - **Safest experiment:** cancel a disposable ZZ TEST job in the EXPERIMENT
   phase and observe its open/closed reporting state.
 - **Blocks automated build:** no.
-
-## U-003 — Are operative statuses shared across Helpdesk Types? [IMPORTANT]
-
-- **Question:** The same 9 records return under both Type filters — genuinely
-  shared, or is the filter ignored on that tab?
-- **Current evidence:** E-004.
-- **Confidence:** UNKNOWN (shared is INFERRED).
-- **Safest experiment:** open one operative-status record read-only and look
-  for a Type field.
-- **Blocks automated build:** no (but affects model shape).
 
 ## U-004 — What does "Not allocated" mean for an action? [IMPORTANT]
 
@@ -79,19 +74,6 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
   its "Statuses in which this action can be selected" field.
 - **Blocks automated build:** no.
 
-## U-005 — How do jobs leave "Quote Requested - R" and "Business Case - R"? [BLOCKING]
-
-- **Question:** Neither status offers any action in the grouped view, yet
-  RH03b (Quote Ordered) → With Contractor - R exists unallocated, and the
-  Quote* admin tabs (Quote actions/rules/status…) suggest a parallel quote
-  workflow.
-- **Current evidence:** E-005, E-002 (quote tabs), E-007.
-- **Confidence:** UNKNOWN.
-- **Safest experiment:** read the Quote actions / Quote rules / Helpdesk
-  rules tabs (read-only) and the RH03b/T-actions record views.
-- **Blocks automated build:** yes — a customer Reactive workflow cannot be
-  reproduced without knowing how the quote path advances jobs.
-
 ## U-007 — Unreachability warnings vs drawn edges [NICE TO KNOW]
 
 - **Question:** The Action map warns "New PPM" and "Business Case - R" are
@@ -101,18 +83,6 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
 - **Confidence:** UNKNOWN.
 - **Safest experiment:** none needed; ask Concerto support or read map help.
 - **Blocks automated build:** no.
-
-## U-008 — What does "suppressed / hidden" mean in the Action map? [IMPORTANT]
-
-- **Question:** 26 of 50 actions (mostly mobile groups) appear only when
-  "Show suppressed / hidden" is ticked. Which config field drives this?
-- **Current evidence:** E-007.
-- **Confidence:** UNKNOWN.
-- **Safest experiment:** compare a suppressed action's record view with a
-  visible one (read-only) — candidate: the RH04 "Status: Web page only"
-  field (E-008).
-- **Blocks automated build:** yes — visibility rules are part of a faithful
-  customer build.
 
 ## U-009 — Tag automation semantics [IMPORTANT]
 
@@ -125,20 +95,6 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
   T-action record view (read-only).
 - **Blocks automated build:** yes — the reactive contractor loop appears to
   run on tags.
-
-## U-010 — Configurator field inventory not yet performed [BLOCKING]
-
-- **Question:** What does every tab/section/control of the Add/Edit Action
-  screen contain (Phase 2d)? Also: enumerate values of the action "Status"
-  field (seen: "Web page only"), timers/expiry, role restrictions,
-  note/file requirements, bulk availability.
-- **Current evidence:** E-008 (record-view summary only; Update button not
-  yet followed into the edit form).
-- **Confidence:** UNKNOWN.
-- **Safest experiment:** open the Update form read-only next session and
-  inventory every control without saving.
-- **Blocks automated build:** yes — the configurator is where a customer
-  build would be entered.
 
 ## U-012 — Action "Constraints" semantics [IMPORTANT]
 
