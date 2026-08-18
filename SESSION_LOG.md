@@ -7,6 +7,30 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — Operational Helpdesk surface discovery (E-019..E-021)
+
+Warwick paused E0/E1 and commissioned mapping of the runtime Helpdesk UI.
+Read-only throughout; Raise Job wizard walked to CONFIRM with transient
+values then CANCELLED; job counts verified unchanged (16/19).
+
+Landing: Reactive/Planned type tabs with per-status tab counts exactly
+matching the frozen model; search filters mapped to admin families
+(Response time is Type-filtered; Tag shows Helpdesk-type tags only); new
+unexplained vocabularies: PPM discipline, Statutory PPM (OD-004). Row
+Options menus for three statuses EXACTLY match configured availability
+minus hidden/wrong-type actions (OD-002 positive validation); in-job
+surface renders action GROUPS as toolbar dropdowns with identical sets.
+Job detail exposes a v2 REST endpoint (GET /api/helpdesk/v2/job/<guid>),
+asbestos banner, SLA-computed targets, and a passively observed "Email
+failed to send" on RH01 (OD-006). Raise Job wizard: 9 steps, mandatory
+location/description/access details, nested classification tiles, NO
+urgency/call-type/assignment (OD-005 - wizard-raised jobs arrive without
+SLA). Planned creation = list ACTIONS -> PH01 (no wizard).
+
+New registers: OPERATIONAL-DISCREPANCIES.md (OD-001..OD-007).
+EXPERIMENT-PROGRAMME.md revised (Rev 2). Model provenance now 21 evidence
+files; validator green. STOPPED - awaiting EXPERIMENT-mode authority.
+
 ## 2026-08-18 (freeze) — Residual reads complete; structural baseline v1 frozen
 
 Residual safe-read tail closed (E-017): all 20 tags VALUE COMPLETE (no

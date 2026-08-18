@@ -1,5 +1,17 @@
 # Controlled Experiment Programme — Vanilla Helpdesk (proposed, NOT authorised)
 
+> **Rev 2 (2026-08-19), after operational-surface discovery E-019..E-021:**
+> E1 job creation uses the Raise Job wizard (site → block → classification
+> tiles → describe → H&S → access details → CONFIRM) — it collects NO
+> urgency, so E1 doubles as the first half of E6 (wizard-raised job should
+> have no SLA targets; verify, then apply RH07 Amend SLA to add one).
+> Planned creation (E1-P extension) uses the Planned list toolbar ACTIONS →
+> PH01, NOT a wizard — treat separately. E2's email observation has a head
+> start: "Email failed to send" is already passively recorded on RH01
+> (OD-006); E2 must capture the failure mode. Actions are invoked from
+> either the row Options menu or the in-job group buttons (equivalent sets,
+> E-020) — use the in-job surface for evidence-richer timelines.
+
 Prepared 2026-08-18 against structural baseline `VANILLA-HELPDESK-STRUCTURAL-v1`.
 **No experiment may run until Warwick explicitly approves entering
 EXPERIMENT mode.** Global rules for every experiment:

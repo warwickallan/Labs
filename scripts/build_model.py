@@ -44,12 +44,15 @@ EVIDENCE = [
     ("E-016", "evidence/helpdesk-admin/008-quote-action-configurator.md", "Quote action configurator + RE05: the quote-to-job bridge (U-005)"),
     ("E-017", "evidence/helpdesk-admin/009-residual-value-reads.md", "Residual values: tags, templates, roles, routes, quote process, SLA records"),
     ("E-018", "evidence/helpdesk-admin/010-classification-taxonomy.md", "Nested classification taxonomy (16 parents, ~85 children)"),
+    ("E-019", "evidence/helpdesk-runtime/001-operational-surface.md", "Operational Helpdesk landing: types, status tabs, filters, columns"),
+    ("E-020", "evidence/helpdesk-runtime/002-action-surfaces-and-job-detail.md", "Row-menu + in-job action surfaces validated; job detail; v2 API; email-fail observation"),
+    ("E-021", "evidence/helpdesk-runtime/003-raise-job-wizard.md", "Raise Job wizard (Reactive) and Planned creation route"),
 ]
 
 DISCOVERY_PHASE = (
     "Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, "
     "14 configurator schemas + all 50 action configs + record values captured. "
-    "Controlled EXPERIMENT phase not started."
+    "Operational surface mapped (E-019..E-021). Controlled EXPERIMENT phase not started."
 )
 
 # ---- statuses (E-003). type: R / P / both. "With AMO" excluded: user-declared non-Vanilla addition.

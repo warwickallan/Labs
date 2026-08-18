@@ -3,8 +3,8 @@
     "modelVersion": 1,
     "environment": "https://warwick.concertodemo.co.uk",
     "mode": "DISCOVER",
-    "generatedAt": "2026-08-18",
-    "notes": "Built by scripts/build_model.py from evidence E-001..E-018 (18 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Controlled EXPERIMENT phase not started. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys."
+    "generatedAt": "2026-08-19",
+    "notes": "Built by scripts/build_model.py from evidence E-001..E-021 (21 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Operational surface mapped (E-019..E-021). Controlled EXPERIMENT phase not started. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys."
   },
   "sharedConfiguration": [
     {
@@ -2959,6 +2959,24 @@
       "path": "evidence/helpdesk-admin/010-classification-taxonomy.md",
       "capturedAt": "2026-08-18",
       "description": "Nested classification taxonomy (16 parents, ~85 children)"
+    },
+    {
+      "id": "E-019",
+      "path": "evidence/helpdesk-runtime/001-operational-surface.md",
+      "capturedAt": "2026-08-18",
+      "description": "Operational Helpdesk landing: types, status tabs, filters, columns"
+    },
+    {
+      "id": "E-020",
+      "path": "evidence/helpdesk-runtime/002-action-surfaces-and-job-detail.md",
+      "capturedAt": "2026-08-18",
+      "description": "Row-menu + in-job action surfaces validated; job detail; v2 API; email-fail observation"
+    },
+    {
+      "id": "E-021",
+      "path": "evidence/helpdesk-runtime/003-raise-job-wizard.md",
+      "capturedAt": "2026-08-18",
+      "description": "Raise Job wizard (Reactive) and Planned creation route"
     }
   ]
 }
