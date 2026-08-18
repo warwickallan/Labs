@@ -13,9 +13,9 @@
 > E-020) — use the in-job surface for evidence-richer timelines.
 
 Prepared 2026-08-18 against structural baseline `VANILLA-HELPDESK-STRUCTURAL-v1`.
-**Authorisation state (2026-08-19): E0 and E1 ONLY are authorised, under
-the containment rules below. Commit E0 independently, then E1
-independently; STOP after E1 and report before E2.**
+**Authorisation state (2026-08-19, post-E1): E0 and E1 are COMPLETE and
+closed. E2-E6 are NOT authorised. Stop point held; the next step requires
+Warwick's explicit word.**
 
 Governing rule (Warwick's wording): **Never modify Vanilla configuration.
 Disposable ZZ TEST configuration/master-data fixtures may be created only
@@ -44,7 +44,7 @@ gate. Global rules for every experiment:
 - Failure = any observation contradicting the structural model → recorded
   in VANILLA-ISSUES/UNKNOWNS, never "fixed" silently.
 
-## E0 — Tag TextMatch behaviour (smallest, isolates one mechanism)
+## E0 — Tag TextMatch behaviour — **COMPLETE (2026-08-19, evidence/experiments/E0-textmatch.md)**
 
 - **Objects:** 1 ZZ TEST site; 1 ZZ TEST tag (`ZZ TEST textmatch`,
   Type=Helpdesk, TextMatch="zzmatchphrase"); 1 ZZ TEST job.
@@ -58,7 +58,7 @@ gate. Global rules for every experiment:
 - **Success:** tag attaches ⇒ capability confirmed (Vanilla leaves it
   unused — E-017). **Resolves:** TextMatch behaviour gate.
 
-## E1 — Core Reactive lifecycle + separate Cancelled case
+## E1 — Core Reactive lifecycle + Cancelled — **COMPLETE (2026-08-19, evidence/experiments/E1-reactive-lifecycle.md)**
 
 - **Objects:** ZZ TEST site; ZZ TEST job A (lifecycle), job B (cancel).
 - **Initial:** both jobs raised via RH01 (default action) → With Helpdesk.
@@ -73,7 +73,7 @@ gate. Global rules for every experiment:
 - **Success:** all transitions match the model. **Resolves:** U-002;
   BEHAVIOUR gate for statuses/actions core.
 
-## E2 — Contractor/order/tag trigger engine
+## E2 — Contractor/order/tag trigger engine — **AWAITING AUTHORITY (do not begin)**
 
 - **Objects:** ZZ TEST job; ZZ TEST supplier (non-routable email).
 - **Initial:** job at With Helpdesk.

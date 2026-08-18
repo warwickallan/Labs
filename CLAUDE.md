@@ -24,13 +24,17 @@ No product code lives here. The deliverables are the machine-readable model
 (`docs/VANILLA-HELPDESK-DISCOVERY.md`), the unknowns register (`UNKNOWNS.md`)
 and the evidence tree (`evidence/`).
 
-## Operating mode: DISCOVER MODE (safety invariants — breaking any is stop-and-ask)
+## Operating mode
 
-1. **Read-only.** Never click Save. Never create, delete or edit records or
-   configuration. Never trigger actions against live jobs. Never alter
-   statuses, actions, roles, defaults, timers or workflow settings.
-2. If a page cannot be understood without changing something, record that
-   limitation in `UNKNOWNS.md` and stop — do not experiment.
+**Current mode, phase and authorisation boundary live in
+[CURRENT_STATE.md](CURRENT_STATE.md) — read it first; this file is the
+durable contract only.** Standing invariants regardless of mode:
+
+1. **Vanilla configuration is immutable.** Disposable ZZ TEST
+   configuration/master-data fixtures may be created only where explicitly
+   required by an experiment Warwick has authorised.
+2. If something cannot be understood safely within the current
+   authorisation, record it in `UNKNOWNS.md` and stop — do not improvise.
 3. **Claude never enters credentials.** A human signs in. If the session is
    logged out, stop and ask.
 4. The TEST environment is authoritative for what currently exists. Do not
@@ -147,8 +151,9 @@ the model, run the validator, commit everything of value; (2) update the
 durable docs that changed truth this session and append a `SESSION_LOG.md`
 entry (what was done, evidence locations, what is open); (3) note any
 known-bad state honestly; (4) report **"safe to clear"** plus the final HEAD
-SHA. The next session starts from `CLAUDE.md` → `SESSION_LOG.md` →
-`INVESTIGATION_PLAN.md` → `git log`, not from memory.
+SHA. The next session starts from `CLAUDE.md` → `CURRENT_STATE.md` →
+`SESSION_LOG.md` → relevant evidence/registers → `git log`, not from
+memory.
 
 ## What Claude may do autonomously
 
@@ -165,9 +170,9 @@ Admin.
 
 ## Continuation checklist
 
-1. Read `SESSION_LOG.md` — what happened, where evidence is, what is open.
-2. `git log`/`status`; compare with the docs' claims.
-3. Run `scripts/validate_model.py`; confirm the model is green.
-4. Check `UNKNOWNS.md` for BLOCKING items.
+1. Read `CURRENT_STATE.md` — current phase, authority, fixtures, next step.
+2. Read `SESSION_LOG.md` — what happened, where evidence is, what is open.
+3. Read the evidence/registers CURRENT_STATE points at; then `git log`.
+4. Run `scripts/validate_model.py`; confirm the model is green.
 5. Confirm the browser session is signed in (ask Warwick if not).
 6. Ask what Warwick wants; do not resume half-remembered plans.

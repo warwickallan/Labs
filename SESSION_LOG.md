@@ -7,6 +7,22 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 (checkpoint) — Durability/reorientation convergence before E2
+
+Warwick-directed rotate-grade checkpoint without clearing. Added
+CURRENT_STATE.md as the single short-lived wayfinder (phase, baseline tag,
+fixtures, authorisation boundary, read order); CLAUDE.md reduced to the
+durable contract pointing at CURRENT_STATE for mode/authority (standing
+invariant: Vanilla immutable, ZZ fixtures only under authorised
+experiments); README reconciled; UNKNOWNS reconciled (stale open blocks
+for resolved items removed, U-002 updated from E1 with history preserved);
+EXPERIMENT-PROGRAMME marks E0/E1 COMPLETE and E2 AWAITING AUTHORITY.
+New machine-readable behaviour layer model/VERIFIED-BEHAVIOURS.json
+(B-001..B-013, graded PASSIVELY_OBSERVED / CONTROLLED_VERIFIED, evidence-
+referenced) kept separate from the frozen structural model. Continuation
+order now CLAUDE.md -> CURRENT_STATE.md -> SESSION_LOG.md -> evidence/
+registers -> git log. Validator green. E2 NOT begun.
+
 ## 2026-08-19 — E1 executed: Reactive lifecycle + Cancelled CONTROLLED VERIFIED
 
 Jobs 00000053 (lifecycle) and 00000054 (cancel) created via the admin

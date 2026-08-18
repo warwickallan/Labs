@@ -5,12 +5,14 @@ Helpdesk configuration of Concerto, performed read-only against the supplied
 TEST environment. Concerto remains the authoritative system; this repository
 observes it and never changes it.
 
-> **Phase: safe read-only discovery COMPLETE (2026-08-18).** All 43
-> Helpdesk admin tabs crawled; the Action configurator and 11 further
-> Add/Edit configurators inventoried; nothing was ever saved. See
-> [`docs/VANILLA-HELPDESK-DISCOVERY.md`](docs/VANILLA-HELPDESK-DISCOVERY.md)
-> for the completion report and the proposed EXPERIMENT programme
-> (E1–E6, awaiting explicit approval).
+> **Phase: EXPERIMENT mode (suspended between experiments).** Structural
+> discovery is complete and frozen at tag `VANILLA-HELPDESK-STRUCTURAL-v1`;
+> the operational Helpdesk surface is mapped; experiments **E0 and E1 are
+> CONTROLLED VERIFIED** (TextMatch; full Reactive lifecycle + Cancelled).
+> E2+ await explicit authority. Current truth: [`CURRENT_STATE.md`](CURRENT_STATE.md).
+> Reports: [`docs/VANILLA-HELPDESK-DISCOVERY.md`](docs/VANILLA-HELPDESK-DISCOVERY.md) ·
+> [`docs/EXPERIMENT-PROGRAMME.md`](docs/EXPERIMENT-PROGRAMME.md) ·
+> behaviours: [`model/VERIFIED-BEHAVIOURS.json`](model/VERIFIED-BEHAVIOURS.json).
 
 **TEST environment:** https://warwick.concertodemo.co.uk/login.aspx
 

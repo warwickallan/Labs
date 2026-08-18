@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "description": "Machine-readable behavioural evidence layer. Contains ONLY behaviour claims graded PASSIVELY_OBSERVED or CONTROLLED_VERIFIED, each with evidence references. Deliberately separate from the frozen structural model (VANILLA-HELPDESK.json, tag VANILLA-HELPDESK-STRUCTURAL-v1) — structural truth and behaviour truth must not be mixed.",
+    "grades": {
+      "PASSIVELY_OBSERVED": "Footprint found in situ without a controlled experiment; causation not isolated.",
+      "CONTROLLED_VERIFIED": "Confirmed by a controlled experiment (single variable, before/after captured)."
+    },
+    "updated": "2026-08-19",
+    "environment": "https://warwick.concertodemo.co.uk"
+  },
+  "behaviours": [
+    {
+      "id": "B-001",
+      "claim": "A Helpdesk-type tag with TextMatch auto-attaches to a new job whose description contains the phrase, at creation time.",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E0-textmatch.md"],
+      "fixtures": ["tag ZZ TEST textmatch tag", "job 00000052"],
+      "residuals": ["case-sensitivity", "re-trigger on edit", "quote-side matching"]
+    },
+    {
+      "id": "B-002",
+      "claim": "RH01 creates Reactive jobs in With Helpdesk (type creation default).",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E0-textmatch.md", "evidence/experiments/E1-reactive-lifecycle.md"]
+    },
+    {
+      "id": "B-003",
+      "claim": "SLA targets are computed on the Response category's working-hours clock: P2 raised Wed 00:29 out-of-hours yields required response Fri 14:30 (24 working hours from Wed 08:30) and completion Mon 08:30 (3 working days) on Standard hours Mon-Fri 08:30-17:30.",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E1-reactive-lifecycle.md"]
+    },
+    {
+      "id": "B-004",
+      "claim": "RH02 moves With Helpdesk -> With Maintenance Team - R and auto-adds tag '01. Team assigned'.",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E1-reactive-lifecycle.md"]
+    },
+    {
+      "id": "B-005",
+      "claim": "RH03 keeps the job in With Maintenance Team - R (configured self-loop) and swaps tags 01 -> '03. Engineer assigned'.",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E1-reactive-lifecycle.md"]
+    },
+    {
+      "id": "B-006",
+      "claim": "RH10 moves WMT-R -> Work Complete - R, records the actual response date entered, and advances tags to '08. Awaiting AFP/invoicing'.",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E1-reactive-lifecycle.md"]
+    },
+    {
+      "id": "B-007",
+      "claim": "G004 moves Work Complete - R -> Closed; job tag section clears.",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E1-reactive-lifecycle.md"]
+    },
+    {
+      "id": "B-008",
+      "claim": "G003 moves a job to Cancelled; the Reactive-tasks action group button disappears from the job toolbar (rendering follows availability).",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E1-reactive-lifecycle.md"]
+    },
+    {
+      "id": "B-009",
+      "claim": "Cancelled is a terminal, non-complete state: own status tab; included in the type-level job count; only Closed carries the complete flag.",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E1-reactive-lifecycle.md"],
+      "residuals": ["report-level 'open jobs' definitions unexamined"]
+    },
+    {
+      "id": "B-010",
+      "claim": "The admin quick-add form requires Urgency (SLA applied at creation); the reporter Raise Job wizard collects no urgency and its jobs carry no SLA targets.",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E1-reactive-lifecycle.md", "evidence/experiments/E0-textmatch.md", "evidence/helpdesk-runtime/003-raise-job-wizard.md"]
+    },
+    {
+      "id": "B-011",
+      "claim": "Web action surfaces render exactly the configured-available actions minus hide_from_use and wrong-PPM-type, partitioned by action group on the job toolbar (sampled: 3 statuses, administrator session).",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/helpdesk-runtime/002-action-surfaces-and-job-detail.md", "evidence/experiments/E1-reactive-lifecycle.md"],
+      "residuals": ["role filtering", "mobile Constraints", "unsampled statuses"]
+    },
+    {
+      "id": "B-012",
+      "claim": "Action email flags fire real email attempts; delivery fails in this environment ('Email failed to send' timeline entries after RH01).",
+      "grade": "PASSIVELY_OBSERVED",
+      "evidence": ["evidence/helpdesk-runtime/002-action-surfaces-and-job-detail.md"],
+      "residuals": ["cause not isolated: empty templates (VI-008) vs SMTP absence — E2 observes"]
+    },
+    {
+      "id": "B-013",
+      "claim": "Classification parent/child cascades into the admin form and auto-fills the short description ('Electrical : Socket').",
+      "grade": "CONTROLLED_VERIFIED",
+      "evidence": ["evidence/experiments/E1-reactive-lifecycle.md"]
+    }
+  ]
+}

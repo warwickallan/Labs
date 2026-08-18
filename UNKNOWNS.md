@@ -60,27 +60,16 @@ postback map.)*
 the quote engine fires RH03b, moving the job to With Contractor - R.
 E-016. Runtime confirmation = experiment E3.)*
 
-## U-002 — How do jobs terminate via Cancelled? [IMPORTANT]
+## U-002 — How do jobs terminate via Cancelled? [LARGELY RESOLVED 2026-08-19]
 
-- **Question:** Only "Closed" carries the Complete flag; "Cancelled" does
-  not. Does a cancelled job count as open? What closes it?
-- **Current evidence:** E-003 (flags), E-005 (G003 → Cancelled; only G001
-  available from Cancelled).
-- **Confidence:** UNKNOWN.
-- **Safest experiment:** cancel a disposable ZZ TEST job in the EXPERIMENT
-  phase and observe its open/closed reporting state.
-- **Blocks automated build:** no.
-
-## U-004 — What does "Not allocated" mean for an action? [IMPORTANT]
-
-- **Question:** RH03b, T09, T06, LM01 sit under "Not allocated" in the
-  grouped view. Unreachable? Fired by tags/quotes/other modules?
-- **Current evidence:** E-005; E-007 (T06/T09 have user-selects edges, RH03b
-  a sets edge, so they are not inert).
-- **Confidence:** UNKNOWN.
-- **Safest experiment:** inspect each action's record view (read-only) for
-  its "Statuses in which this action can be selected" field.
-- **Blocks automated build:** no.
+- **Current state:** E1 controlled evidence: G003 -> Cancelled; Cancelled
+  is a terminal, NON-complete state with its own tab, included in
+  type-level counts; only Closed carries the complete flag; no workflow
+  actions offered from Cancelled (G001 only). Residual: report-level
+  "open jobs" definitions unexamined (minor).
+- **History:** originally asked whether a cancelled job counts as open and
+  what closes it (E-003 flags, E-005 availability). Answered by
+  evidence/experiments/E1-reactive-lifecycle.md.
 
 ## U-007 — Unreachability warnings vs drawn edges [NICE TO KNOW]
 
@@ -115,31 +104,3 @@ E-016. Runtime confirmation = experiment E3.)*
   its Constraints ticks may reveal the pattern; help text if any.
 - **Blocks automated build:** yes (mobile flows).
 
-## U-013 — Status-expiry / timed-transition mechanism [IMPORTANT]
-
-- **Question:** The map legend includes "Auto-fires on status expiry", but
-  no action-form field configures expiry. Status rules (Name · Hub ·
-  Original status · Status to be changed to) is the likely home — and is
-  empty in Vanilla. Is that the whole mechanism?
-- **Current evidence:** E-007, E-009, E-010.
-- **Confidence:** INFERRED (Status rules = the expiry/transition surface).
-- **Safest experiment:** open Status rules → Add New and inventory the
-  blank configurator (authorised, then Cancel).
-- **Blocks automated build:** no for Vanilla (empty), yes for customers.
-
-## U-014 — Conditional UI map of the action configurator [IMPORTANT]
-
-- **Question:** Which controls show/hide/enable others (e.g. Resulting
-  type → filters the resulting-status list, observed E-009)?
-- **Safest experiment:** vary unsaved controls in an open form and record
-  appear/disappear behaviour (authorised; classify as structural UI truth).
-- **Blocks automated build:** partially — needed to enter config reliably.
-
-## U-015 — Add/Edit forms of non-Action objects [IMPORTANT]
-
-- **Question:** Field-level inventories for Status, Operative status, Tag,
-  Response category, Quote action, Helpdesk job type, Email template, etc.
-  (list-level only so far).
-- **Safest experiment:** open each object's record/Add form read-only and
-  inventory (authorised, Cancel after).
-- **Blocks automated build:** yes — these are the remaining build surfaces.
