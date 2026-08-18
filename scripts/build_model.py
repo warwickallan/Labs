@@ -42,11 +42,13 @@ EVIDENCE = [
     ("E-014", "evidence/helpdesk-admin/007-add-forms-batch2-and-gm05.md", "Add forms batch 2; GM05 edit view; conditional-UI finding"),
     ("E-015", "evidence/reactive-helpdesk/actions/004-per-action-config-all-50.md", "Per-action configuration: all 50 action forms read individually"),
     ("E-016", "evidence/helpdesk-admin/008-quote-action-configurator.md", "Quote action configurator + RE05: the quote-to-job bridge (U-005)"),
+    ("E-017", "evidence/helpdesk-admin/009-residual-value-reads.md", "Residual values: tags, templates, roles, routes, quote process, SLA records"),
+    ("E-018", "evidence/helpdesk-admin/010-classification-taxonomy.md", "Nested classification taxonomy (16 parents, ~85 children)"),
 ]
 
 DISCOVERY_PHASE = (
-    "Safe read-only discovery complete (list-level crawl of all 43 tabs; "
-    "Action configurator + 9 further Add/Edit configurators inventoried). "
+    "Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, "
+    "14 configurator schemas + all 50 action configs + record values captured. "
     "Controlled EXPERIMENT phase not started."
 )
 

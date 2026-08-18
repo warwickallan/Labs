@@ -47,6 +47,14 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
 
 ## Open
 
+*(U-004 resolved 2026-08-18: "Not allocated" reflects hidden/machine-fired
+actions plus a grouped-view rendering quirk (VI-007); every action's true
+availability is now known from its form (E-015). U-009 sharpened: only the
+T03/T05/T06/T07 trigger sources remain, for E2/E3. Minor residual reads:
+one Lifts child classification (transient 502), classification 'resource'
+grids, remaining classification record forms, root causes p.2, full
+postback map.)*
+
 *(U-005 resolved 2026-08-18, second session: RE05 "Raise Order" carries
 "Action to be triggered against the original job" = RH03b. Quote Ordered —
 the quote engine fires RH03b, moving the job to With Contractor - R.

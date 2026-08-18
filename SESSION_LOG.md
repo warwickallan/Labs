@@ -7,6 +7,30 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-18 (freeze) — Residual reads complete; structural baseline v1 frozen
+
+Residual safe-read tail closed (E-017): all 20 tags VALUE COMPLETE (no
+TextMatch used anywhere; colours/flags captured), all 5 email templates
+are EMPTY SHELLS (VI-008), Roles record + schema, Action route Add schema,
+Quote process values ("approved quote -> create brand new Helpdesk job"),
+all 6 Response-category records (P1 carries description/workspace/order-
+priority link). Per Warwick's steer, Classifications re-examined (E-018):
+they are a NESTED taxonomy - hover expanders reveal "Further
+classifications" child grids; full two-level tree captured (16 parents,
+~85 children; one Lifts child obscured by transient 502); SLA/asset wiring
+unset at both levels (VI-006 extended); a per-row 'resource' grid exists
+(residual).
+
+Completion report rewritten to current truth with THREE reproducibility
+gates (SCHEMA/VALUE/BEHAVIOUR); Action map explicitly demoted to a partial
+view of automation. EXPERIMENT-PROGRAMME.md written (E0-E6 with objects,
+variables, containment, success criteria; order E0-E1-E2-E3-E6-E5-E4).
+Registers reconciled (U-004 resolved; VI-008 added). Model rebuilt on 18
+evidence files; validator green. Tagged VANILLA-HELPDESK-STRUCTURAL-v1.
+
+**STOPPED per stop condition. Awaiting explicit approval to enter
+EXPERIMENT mode. No ZZ TEST records have been created.**
+
 ## 2026-08-18 (session 2) — All 50 action configs read; quote→job bridge found
 
 Re-signed-in session. Batched form_view extraction captured the Edit-form

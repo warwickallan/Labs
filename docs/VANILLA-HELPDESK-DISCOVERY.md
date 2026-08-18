@@ -1,188 +1,149 @@
-# Vanilla Helpdesk — Discovery Completion Report
+# Vanilla Helpdesk — Discovery Completion Report (structural baseline v1)
 
 **Environment:** https://warwick.concertodemo.co.uk (Vanilla Concerto demo,
-build `2026.08.9968-main`) · **Mode:** DISCOVER (read-only; nothing
-persisted) · **Date:** 2026-08-18 · **Author:** Claude (Bellrock Labs),
-under Warwick Allan's expanded discovery authority.
+build `2026.08.9968-main`) · **Mode:** DISCOVER (read-only; nothing ever
+persisted) · **Baseline frozen:** 2026-08-18, tag
+`VANILLA-HELPDESK-STRUCTURAL-v1` · **Author:** Claude (Bellrock Labs) under
+Warwick Allan's expanded discovery authority.
 
-Every claim below traces to evidence files E-001…E-014 in [`evidence/`](../evidence);
-the machine-readable model is [`model/VANILLA-HELPDESK.json`](../model/VANILLA-HELPDESK.json)
-(built by [`scripts/build_model.py`](../scripts/build_model.py), validator green)
-with identities in [`model/IDENTITIES.json`](../model/IDENTITIES.json).
-"With AMO" is excluded throughout (Warwick's non-Vanilla addition).
+Every claim traces to evidence **E-001…E-018** in [`evidence/`](../evidence).
+Machine-readable outputs: [`model/VANILLA-HELPDESK.json`](../model/VANILLA-HELPDESK.json)
+(generated, validator green) and [`model/IDENTITIES.json`](../model/IDENTITIES.json)
+(environment-observed GUIDs + canonical-key scheme). "With AMO" is excluded
+throughout (Warwick's non-Vanilla addition). This report supersedes the
+pre-E-015 edition; historical interpretations that later evidence revised
+are stated only in their revised form (the registers keep the audit trail).
 
 ## 1. Complete Helpdesk Admin inventory
 
-One admin page (`helpdesk_admin.aspx`) with a Reactive/Planned Type filter
-and **43 tabs**, all visited:
+One admin page, Reactive/Planned Type filter, **43 tabs, all visited**;
+17 populated, 18 empty (every rule/automation surface — Status rules,
+Helpdesk rules, Appointment rules, Action routes, Email rules, Quote
+rules/roles — ships EMPTY; Vanilla's only automation lives inside the
+Action, Status and Quote-action objects themselves).
 
-- **Populated (17):** Action groups (8) · Actions (50 live, 0 archived) ·
-  Audit status (5) · Call types (3) · Contact methods (5) · Classifications
-  (16) · Complaint status (2) · Email templates (5) · Helpdesk job types
-  (2) · Operative statuses (9) · Operatives and sites (4) · Quote actions
-  (8) / categories (2) / priorities (3) / processes (1) / Request statuses
-  (5) / statuses (2) · Response categories (6) · Roles (1) · Root causes
-  (20) · Satisfaction surveys (1) · Statuses (14 incl. non-Vanilla With
-  AMO) · Tags (20) · Working time (1).
-- **Empty (18):** Status rules · Helpdesk rules · Appointment rules ·
-  Action routes/Overrides · Email rules · Quote rules · Quote roles ·
-  Approvers · Areas · Assignees · Audit bandings · CAPEX codes · FM task
-  types · Hubs · Non working days · Notes/Warnings · SLA fail reasons ·
-  Short titles · Trading affected.
-
-**Every rule/automation surface ships empty.** Vanilla's only automation is
-what is embedded in the Action and Status objects themselves.
+**A key correction from later evidence: the Action map is NOT a complete
+representation of automation.** Cross-engine paths (quote engine → job
+action; order-status triggers; AFP/approval triggers; creation defaults)
+are invisible to it. Its "unreachable" warnings and "Not allocated"
+grouping must be read with that limitation (VI-001/VI-002/VI-003/VI-007).
 
 ## 2–3. Configurators mapped and control counts
 
-| Configurator | Mode | Controls |
-| --- | --- | --- |
-| Action (RH04) | Edit | 211 |
-| Action (GM05) | Edit | 225 (composition varies by action) |
-| Helpdesk job type | Add | 57 |
-| Status | Add | 51 |
-| Classification | Add | 31 |
-| Response category | Add | 31 |
-| Email rule | Add | 10 |
-| Working time | Add | 10 |
-| Tag | Add | 7 |
-| Status rule | Add | 5 |
-| Appointment rule | Add | 5 selects |
-| Operative status | Add | 4 |
-| Action group | Add | 3 |
-
-All Add/Edit forms were cancelled; the closing session logout discarded the
-final unsaved form. Not inventoried (small residuals): Roles, Quote
-action/process/status forms, Action route, Call type, Contact method, Audit
-status, Complaint status, Root cause, Email template body.
+14 configurator schemas inventoried: Action (211–225 controls; composition
+varies per action) · Helpdesk job type (57) · Status (51) · Classification
+(31, nested-capable) · Response category (31) · Quote action (~90) · Email
+rule (10) · Working time (10) · Tag (7) · Email template (subject+rich
+body+13 merge tags) · Status rule (5) · Appointment rule (5) · Operative
+status (4) · Action group (3) · Roles (6) · Action route/Override (4).
 
 ## 4. Reactive Vanilla baseline
 
-- **Statuses (9):** With Helpdesk (default) · With Maintenance Team - R ·
-  Awaiting Order Approval - R · With Contractor - R · Quote Requested - R ·
-  Business Case - R · Work Complete - R · Closed* · Cancelled* (*shared).
-- **Entry:** job type Reactive (the default type) creates via **RH01. New
-  Reactive Task** → With Helpdesk; RH01 is the only default-for-user/
-  helpdesk action.
-- **Actions:** 39 applicable (Non-planned-only + All-jobs), including the
-  RH-series workflow, RM/GM/LM mobile series, G-series generals and
-  T-series tag/auto actions. Full attribute matrix in E-006.
-- **SLED/SLA:** Response categories P1–P4 (2h/24h/48h/72h response; 1/3/5/7
-  day repair) on Standard hours (Mon–Fri 08:30–17:30) — none default.
-- **Contractor loop (configuration truth):** RH04 assigns supplier, emails
-  them, adds tag "01. Awaiting acceptance", and its trigger field fires on
-  orders reaching "Awaiting acceptance"; T-actions mirror the 11-value
-  order-status vocabulary; RH05 approves orders from Awaiting Order
-  Approval - R.
+9 statuses (With Helpdesk default; Closed/Cancelled shared), 39 applicable
+actions **each individually configuration-mapped (E-015)**, entry via RH01
+(the type default), SLA P1–P4 (2/24/48/72h; P1 linked to order priority
+P1), the contractor loop driven by **order-status triggers** (Awaiting
+acceptance→RH04-tagging, Accepted→T02, Appointment Made→T04,
+Cancelled→G003, Closed→G004, order-approval→RH05, AFP-approval→T09) plus
+the numbered Helpdesk tag ladder (01–09, colours captured), and the
+**quote path closed**: RH06 → Quote Requested - R; quote engine RE01…RE05;
+**RE05 fires RH03b against the original job → With Contractor - R**
+(E-016). T03/T05/T06/T07 firing sources are not visible in configuration
+(engine-internal; experiment E2/E3).
 
 ## 5. Planned Vanilla baseline
 
-- **Statuses (6):** New PPM · With Maintenance Team · With Contractor ·
-  PPM Complete · Closed* · Cancelled*.
-- **Entry:** job type Planned creates via **PH01. New PPM** → New PPM.
-- **Actions:** 36 applicable (Planned-only PH/PM series + All-jobs).
-  Structure mirrors Reactive (assign team/contractor → complete → close);
-  no quote/business-case path, no hold statuses (hold is a flag not a
-  status in both types).
-- **Parity verdict:** Planned follows the same structural model as Reactive
-  with a smaller vocabulary; differences are data (fewer statuses/actions),
-  not architecture. VERIFIED — STRUCTURAL.
+6 statuses, 36 applicable actions (PH/PM series + shared), entry via PH01
+(type creation default — the source of the map's misleading "New PPM
+unreachable" warning), same structural model as Reactive with a smaller
+vocabulary; PPM-visit statuses set by PH03/PH06/PH07/PM01/PM02
+(Ordered/Complete/Complete - Remedial). Planned orders default to project
+(00002); Reactive to (00001).
 
 ## 6. Shared configuration
 
-Statuses Closed and Cancelled (single records, both Type boxes ticked);
-all 9 operative statuses (the object has no Type dimension at all);
-the 50-action pool (partitioned only by PPM-applicability); action groups;
-tags; order-status and PPM-visit vocabularies; working time; SLA table
-(per-record Type checkboxes); audit/complaint/contact/call-type reference
-data.
+Closed/Cancelled statuses; all 9 operative statuses (object has no Type
+dimension); the 50-action pool (partitioned by PPM applicability); 8
+action groups; 20 tags (typed Helpdesk/Order/QuoteRequest — all
+value-complete, **no TextMatch used anywhere**); order-status (11) and
+PPM-visit (8) vocabularies; working time (Standard hours Mon–Fri
+08:30–17:30); quote configuration; reference data.
 
-## 7. Vanilla issue register (current)
+## 7. Vanilla issue register (current classifications)
 
-See [`VANILLA-ISSUES.md`](../VANILLA-ISSUES.md): VI-001 New PPM
-"unreachable" (downgraded: creation-default path exists; residual =
-visualiser limitation) · VI-002 Business Case - R unreachable AND without
-exit actions (strong anomaly) · VI-003 Quote Requested - R has no exit
-actions; RH03b unallocated (possible defect, needs experiment) · VI-004
-action naming/sequence gaps; RH03b has no button group · VI-005 no default
-SLA row · VI-006 classification→SLA wiring exists but is entirely unset.
+- VI-001 New PPM "unreachable" — **visualiser limitation** (creation
+  default exists).
+- VI-002 Business Case - R unreachable AND exitless — **strong anomaly**
+  (T07 reaches it but nothing leaves it; E3 extension investigates).
+- VI-003 Quote Requested - R — **downgraded: by-design cross-engine path +
+  visualiser limitation** (RE05→RH03b).
+- VI-004 action naming/sequence gaps; RH03b groupless — configuration
+  inconsistency.
+- VI-005 no default Response category — configuration inconsistency /
+  possible defect (E6 tests consequence).
+- VI-006 classification→SLA/asset wiring entirely unset — at BOTH levels
+  of the classification tree (E-018).
+- VI-007 grouped-view/form mismatches (LM01; PH05-from-With-Helpdesk;
+  RH10≡RH11, PH02≡PH02a config twins) — configuration inconsistency.
+- VI-008 **all five email templates are empty shells** (no subject, no
+  body) — apparently unwired capability; if actions' email flags fire,
+  content source is unknown (E2 observes).
 
 ## 8. Resolved unknowns
 
-U-001 (With AMO = user addition) · U-003 (operative statuses type-agnostic)
-· U-006 (no archived actions) · U-008 (Suppress vs Hide fields; mobile
-actions use Hide) · U-010 (configurator inventoried) · U-011 (all tabs
-visited) · U-013 (expiry lives on Status: `target_days` +
-`status_expiry_action_id`; Status rules are hub remaps) · U-014
-(status-list filtering is server-side render-time from saved Resulting
-type) · U-015 (9 further configurators inventoried).
+U-001 (With AMO), U-003 (operative statuses type-agnostic), U-004 ("Not
+allocated" = hidden/machine-fired actions + VI-007 rendering), U-005
+(quote→job bridge = RE05→RH03b), U-006 (no archived actions), U-008
+(Suppress vs Hide; mobile uses Hide), U-010 (configurator inventoried),
+U-011 (all tabs), U-013 (expiry lives on Status), U-014 (server-side
+render-time conditionality), U-015 (non-Action configurators).
 
-## 9. Remaining unknowns
+## 9. Remaining unknowns (all behavioural or minor)
 
-U-002 (Cancelled jobs' open/closed semantics) · U-004 ("Not allocated"
-actions' reachability) · **U-005 (the quote-workflow → job-status bridge —
-top blocker)** · U-007 (map warning logic) · U-009 residual (runtime tag
-mechanics) · U-012 residual (Constraints semantics — observed GM05 requires
-GM01+GM04; prerequisite reading is inferred) · residual small Add forms.
+U-002 (Cancelled open/closed semantics — E1) · U-007 (map warning logic —
+NICE TO KNOW) · U-009 residual (T03/T05/T06/T07 trigger sources — E2/E3) ·
+U-012 residual (constraints=prerequisites inference — E5) · minor residual
+reads: one Lifts child classification (transient 502), classification
+'resource' expander grids, remaining 8 parent + all child classification
+forms (uniform pattern expected), full postback-dependency map.
 
-## 10. Reproducibility matrix (Blank Helpdesk → deterministic Vanilla build)
+## 10. Reproducibility matrix — three gates
 
-| Object | Classification | Basis / gap |
-| --- | --- | --- |
-| Helpdesk job types | REPRODUCIBLE | Full Add form + both records' values known |
-| Statuses | REPRODUCIBLE | 51-field form; flags/sort/type/expiry known per record (per-record role ticks unverified) |
-| Operative statuses | REPRODUCIBLE | 4-field object; 9 names known (colours unverified per record) |
-| Action groups | REPRODUCIBLE | 3-field object; 8 names known (sort orders unverified) |
-| Actions | PARTIALLY REPRODUCIBLE | Full schema + list attributes + 2 records in depth; remaining 48 records' full form values not read individually |
-| Tags | REPRODUCIBLE | 7-field object; 20 records with types (colours/TextMatch per record unverified) |
-| Response categories | REPRODUCIBLE | Full form + all 6 records' core values |
-| Classifications | PARTIALLY REPRODUCIBLE | Full form; 16 records' names known, per-record fields (budget etc.) unread |
-| Working time | REPRODUCIBLE | Form + the single record |
-| Quote family | PARTIALLY REPRODUCIBLE | List-level values; Add forms not inventoried |
-| Rule surfaces (7 kinds) | REPRODUCIBLE | Empty in Vanilla — "create nothing" + schemas captured |
-| Reference data (audit/call/contact/root/complaint/templates) | PARTIALLY REPRODUCIBLE | Names/flags known; per-record detail (template bodies!) unread |
-| Behavioural semantics | NOT YET REPRODUCIBLE | Requires EXPERIMENT phase |
+Gates: **SCHEMA** (how Concerto exposes it) · **VALUE** (actual Vanilla
+record values) · **BEHAVIOUR** (runtime effect directly observed).
 
-Overall: the **structural skeleton of Vanilla is now largely reproducible**;
-the gaps are per-record field values for the long tail (readable safely in
-a future session) and all runtime semantics.
+| Object family | SCHEMA | VALUE | BEHAVIOUR |
+| --- | --- | --- | --- |
+| Helpdesk job types | ✔ | ✔ | ✘ (E1) |
+| Statuses | ✔ | ✔ (list+form flags; per-record role ticks unread) | ✘ (E1/E4) |
+| Operative statuses | ✔ | ✔ (names; colours unread per record) | ✘ (E5) |
+| Actions (50) | ✔ | ✔ (all 50 individually) | ✘ (E1/E2/E5) |
+| Action groups | ✔ | ✔ (names; sort orders unread) | ✘ |
+| Tags (20) | ✔ | ✔ (complete incl. colours/flags) | ✘ (E0/E2) |
+| Response categories (SLA) | ✔ | ✔ (all 6 records) | ✘ (E6) |
+| Classifications | ✔ (incl. nesting) | ◐ (tree complete; 8/16 parent forms read; children unread but uniform) | ✘ (E6) |
+| Quote family | ✔ (action+process) | ✔ (RE05 + process + statuses; RE01–RE04/06/07 forms unread) | ✘ (E3) |
+| Email templates | ✔ | ✔ (empty shells) | ✘ (E2) |
+| Email/Status/Appointment/Helpdesk/Quote rules, Action routes | ✔ | ✔ (empty) | n/a (empty) |
+| Roles | ✔ | ✔ | ✘ |
+| Working time | ✔ | ✔ | ✘ (E6) |
+| Reference data (audit/call/contact/root/complaint) | ✔ | ✔ (root causes 15/20 paged) | ✘ |
 
-## 11. Items now requiring persisted experimentation
+**Position:** the structural skeleton is SCHEMA+VALUE complete for every
+family that materially affects reproduction, with small enumerated
+residuals. **No family is BEHAVIOUR VERIFIED** — that is precisely the
+EXPERIMENT programme's scope.
 
-Quote-path progression (does completing the quote lifecycle move the job?
-does RH03b fire?) · order-status triggers actually firing T-actions · tag
-add/remove at runtime · status expiry firing `status_expiry_action_id` ·
-email despatch (rules/templates) · mobile Constraints enforcement ·
-pause/travel clock behaviour · Cancelled-job reporting state · default-SLA
-behaviour when none is flagged (VI-005).
+## 11. Items requiring persisted experimentation
 
-## 12. Proposed Controlled Experiment programme (ordered by value ÷ risk)
+See [`EXPERIMENT-PROGRAMME.md`](EXPERIMENT-PROGRAMME.md): E0 TextMatch ·
+E1 lifecycle+Cancelled · E2 order/tag trigger engine · E3 quote bridge ·
+E6 SLA defaulting · E5 mobile constraints · E4 status expiry (the only one
+touching config — via a disposable ZZ status). Execution order
+E0→E1→E2→E3→E6→E5→E4. **None may run without explicit approval.**
 
-All experiments on disposable `ZZ TEST` site/jobs, one variable at a time,
-evidence captured before/after, **each requires Warwick's explicit
-approval before any record is saved**:
+## 12. Stop state
 
-1. **E1 — Reactive lifecycle walk-through** (highest value, low risk):
-   create one ZZ TEST job, run RH01→RH02→RH03→RH10→G004; verify statuses,
-   tags, timeline. Resolves U-002 partially, validates the core model.
-2. **E2 — Contractor/order loop:** RH04 on a ZZ job with a ZZ supplier; observe
-   order creation, order-status changes, T-action firing, tag movement
-   (resolves U-009, VI-002 partially). Medium risk (emails — use a dead
-   supplier email).
-3. **E3 — Quote path:** RH06 then drive the RE-actions; observe whether/how
-   the job leaves Quote Requested - R and whether RH03b fires (resolves
-   U-005/VI-003).
-4. **E4 — Status expiry:** set `target_days=0→1` on a ZZ-only test status
-   (or observe an existing one) with a harmless expiry action (needs a
-   dedicated ZZ status to avoid touching Vanilla records).
-5. **E5 — Mobile constraints:** on Orchestrate, attempt GM05 before/after
-   GM01/GM04 (resolves U-012).
-6. **E6 — SLA defaulting:** raise ZZ jobs with/without classification and
-   observe target dates (resolves VI-005/VI-006 consequence).
-
----
-
-*Session end note: discovery stopped when the demo environment logged the
-session out (safe — unsaved state discarded). Residual safe-discovery
-items (per-record value reads, small Add forms, quote-action forms) can be
-finished in a future session before E1.*
+Structural baseline frozen at tag `VANILLA-HELPDESK-STRUCTURAL-v1`.
+Vanilla defects preserved as-is; no normalisation applied. Awaiting
+Warwick's authority to enter EXPERIMENT mode.

@@ -137,3 +137,17 @@ owner of Vanilla.
 - **Evidence:** E-005, E-015.
 - **Confidence:** CONFIGURATION INCONSISTENCY (observed); causes unknown.
 - **Correction verified?** No.
+
+## VI-008 — All email templates are empty shells [APPARENTLY UNWIRED CONFIGURATION]
+
+- **Configuration area:** Email templates.
+- **Observed state:** All five templates (originator new/progress/
+  completes, Quote declined, Quote submitted) have empty subject AND empty
+  body (E-017). Merge-tag vocabulary exists ({date raised} … {link}).
+- **Why it appears problematic:** Actions carry email flags (originator/
+  supplier/operative) but the content templates are blank — despatched
+  emails would be empty or fall back to unknown system defaults.
+- **Operational consequence:** Unknown until E2 observes a despatch.
+- **Evidence:** E-012, E-017.
+- **Confidence:** APPARENTLY UNWIRED CONFIGURATION.
+- **Correction verified?** No.
