@@ -5,10 +5,12 @@ Helpdesk configuration of Concerto, performed read-only against the supplied
 TEST environment. Concerto remains the authoritative system; this repository
 observes it and never changes it.
 
-> **Phase: DISCOVER MODE — not started.** The scaffold, schemas, evidence
-> structure and rules exist; no discovery evidence has been captured yet.
-> Discovery cannot begin until a human signs in to the TEST environment
-> (Claude never enters credentials).
+> **Phase: safe read-only discovery COMPLETE (2026-08-18).** All 43
+> Helpdesk admin tabs crawled; the Action configurator and 11 further
+> Add/Edit configurators inventoried; nothing was ever saved. See
+> [`docs/VANILLA-HELPDESK-DISCOVERY.md`](docs/VANILLA-HELPDESK-DISCOVERY.md)
+> for the completion report and the proposed EXPERIMENT programme
+> (E1–E6, awaiting explicit approval).
 
 **TEST environment:** https://warwick.concertodemo.co.uk/login.aspx
 
@@ -43,11 +45,11 @@ identically named objects are identically configured across types.
 
 | Deliverable | Location | Status |
 | --- | --- | --- |
-| Machine-readable Vanilla model | [`model/VANILLA-HELPDESK.json`](model/VANILLA-HELPDESK.json) | skeleton |
+| Machine-readable Vanilla model | [`model/VANILLA-HELPDESK.json`](model/VANILLA-HELPDESK.json) | populated (2 types, 75 actions, 137 relationships) |
 | Model schema | [`schemas/vanilla-helpdesk.schema.json`](schemas/vanilla-helpdesk.schema.json) | v1 |
-| Human-readable discovery report | `docs/VANILLA-HELPDESK-DISCOVERY.md` | not started |
-| Unknowns register | [`UNKNOWNS.md`](UNKNOWNS.md) | empty |
-| Evidence repository | [`evidence/`](evidence) | empty tree |
+| Human-readable discovery report | [`docs/VANILLA-HELPDESK-DISCOVERY.md`](docs/VANILLA-HELPDESK-DISCOVERY.md) | complete |
+| Unknowns register | [`UNKNOWNS.md`](UNKNOWNS.md) | 5 resolved, 7 open |
+| Evidence repository | [`evidence/`](evidence) | E-001..E-014 |
 | Round-trip / schema validator | [`scripts/validate_model.py`](scripts/validate_model.py) | working |
 
 ## Repository map
