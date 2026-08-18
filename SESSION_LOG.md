@@ -7,6 +7,16 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — E0 executed: TextMatch CONTROLLED VERIFIED (positive)
+
+First authorised persistence. Fixtures: tag "ZZ TEST textmatch tag"
+(Helpdesk, TextMatch=zzmatchphrase) and job 00000052 (wizard-raised on
+demo site Aintree - deviation: no ZZ site created, noted in evidence).
+Result: the tag AUTO-ATTACHED to the job at creation ("Helpdesk Tags"
+section on the job). Job also confirms wizard-raised jobs carry no SLA
+fields. Evidence: evidence/experiments/E0-textmatch.md. Fixtures left in
+place pending cleanup approval.
+
 ## 2026-08-19 — Operational Helpdesk surface discovery (E-019..E-021)
 
 Warwick paused E0/E1 and commissioned mapping of the runtime Helpdesk UI.
