@@ -7,6 +7,15 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-18 (remote) — GitHub adopted as canonical remote
+
+Safety scrub run (pattern scan for passwords/keys/tokens/cookies/private
+keys: zero hits; all 40 tracked files are discovery artefacts). .gitignore
+added. Remote `origin` = github.com/warwickallan/Labs (public); the
+repository's auto-generated initial commit merged in (local README kept),
+full local history preserved and pushed to `main`. Nothing excluded from
+publication; no secrets present.
+
 ## 2026-08-18 (final) — Add-form sweep, GM05/constraints, conditional UI; safe discovery complete
 
 U-015 executed: blank Add forms inventoried and cancelled for Status (51

@@ -111,8 +111,12 @@ committed.
 
 Work directly on `main` for evidence and model growth (this is a document
 repository, not a codebase). Logical commits with honest messages; commit
-evidence and the model changes it supports together. Never push without
-Warwick's say-so; no remote is configured.
+evidence and the model changes it supports together. **Canonical remote:
+`origin` = github.com/warwickallan/Labs (PUBLIC — Warwick adopted it
+2026-08-18 as the durable source for other agents to inspect). Push every
+meaningful checkpoint.** Before any push, verify no secrets/auth material/
+browser artefacts are staged (.gitignore bars the known classes; the
+repository must only ever contain discovery evidence).
 
 ## Discovery gates (all must be proven before calling Vanilla discovery complete)
 
