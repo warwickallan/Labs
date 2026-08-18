@@ -4,9 +4,2861 @@
     "environment": "https://warwick.concertodemo.co.uk",
     "mode": "DISCOVER",
     "generatedAt": "2026-08-18",
-    "notes": "Skeleton only. No discovery evidence has been captured yet; helpdeskTypes and evidence are empty by design — the model grows only from discovered evidence."
+    "notes": "Built by scripts/build_model.py from evidence E-001..E-008 (Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Phase 2d (Add/Edit Action configurator field inventory) not yet performed."
   },
-  "sharedConfiguration": [],
-  "helpdeskTypes": [],
-  "evidence": []
+  "sharedConfiguration": [
+    {
+      "statement": "Helpdesk Types are exactly Reactive and Planned; one Helpdesk admin page with 43 configuration tabs serves both.",
+      "confidence": "VERIFIED — OBSERVED",
+      "evidence": [
+        "E-002"
+      ]
+    },
+    {
+      "statement": "Statuses 'Closed' and 'Cancelled' are single records shared by both Helpdesk Types (returned by both Type filters).",
+      "confidence": "VERIFIED — STRUCTURAL",
+      "evidence": [
+        "E-003"
+      ]
+    },
+    {
+      "statement": "The 9 operative statuses are common to both Type filters (shared, or the filter does not apply — U-003).",
+      "confidence": "VERIFIED — STRUCTURAL",
+      "evidence": [
+        "E-004"
+      ]
+    },
+    {
+      "statement": "No action has any operative-status relationship and nothing auto-fires on status expiry in Vanilla (Action map renders zero such edges; Operative status column blank on all 50 actions).",
+      "confidence": "VERIFIED — OBSERVED",
+      "evidence": [
+        "E-006",
+        "E-007"
+      ]
+    },
+    {
+      "statement": "Action map warnings: 'New PPM' and 'Business Case - R' are unreachable — no live action moves jobs into them (system's own validation; anomaly vs drawn edges recorded as U-007).",
+      "confidence": "VERIFIED — OBSERVED",
+      "evidence": [
+        "E-007"
+      ]
+    },
+    {
+      "statement": "8 action groups exist: Reactive Helpdesk Tasks, Planned Helpdesk Tasks, General Mobile, Lead Mobile, Mobile Reactive, Mobile Planned, General Actions, Tag/Auto Actions.",
+      "confidence": "VERIFIED — OBSERVED",
+      "evidence": [
+        "E-002"
+      ]
+    }
+  ],
+  "helpdeskTypes": [
+    {
+      "name": "Reactive",
+      "confidence": "VERIFIED — OBSERVED",
+      "evidence": [
+        "E-002"
+      ],
+      "notes": "Type filter GUID ba98cba4-bb06-4347-a70a-86555149cb7c. Actions attributed to this type by their PPM/Non-PPM applicability (All-jobs actions appear under both types) — attribution rule is structural, not a system statement.",
+      "statuses": [
+        {
+          "name": "With Helpdesk",
+          "isDefault": true,
+          "ordering": 10,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "With Maintenance Team - R",
+          "isDefault": false,
+          "ordering": 20,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "Awaiting Order Approval - R",
+          "isDefault": false,
+          "ordering": 25,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "With Contractor - R",
+          "isDefault": false,
+          "ordering": 30,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "Quote Requested - R",
+          "isDefault": false,
+          "ordering": 55,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "Business Case - R",
+          "isDefault": false,
+          "ordering": 56,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "Work Complete - R",
+          "isDefault": false,
+          "ordering": 60,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "Closed",
+          "isDefault": false,
+          "ordering": 70,
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-003"
+          ],
+          "notes": "Flagged \"Complete\" in the Statuses tab (the only one). Returned by both the Reactive and Planned Type filters (single record)."
+        },
+        {
+          "name": "Cancelled",
+          "isDefault": false,
+          "ordering": 110,
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-003"
+          ],
+          "notes": "Returned by both the Reactive and Planned Type filters (single record)."
+        }
+      ],
+      "operativeStatuses": [
+        {
+          "name": "Called away",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Waiting for parts",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Paused",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "In progress",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Finished shift (pause)",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "On site",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "On break",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Travelling",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Complete",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        }
+      ],
+      "actions": [
+        {
+          "name": "G001. Add a note, photo or document",
+          "code": "G001",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Job type: All jobs. Flags: attachments."
+        },
+        {
+          "name": "G002. Permit to work request",
+          "code": "G002",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Available in any status (no availability restriction) per the Action map."
+        },
+        {
+          "name": "G003. Cancel job",
+          "code": "G003",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Flags: email_supplier, email_originator, admin_only."
+        },
+        {
+          "name": "G004. Close job",
+          "code": "G004",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Flags: email_originator, admin_only, status_complete."
+        },
+        {
+          "name": "G005. Stock request",
+          "code": "G005",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Job type: All jobs."
+        },
+        {
+          "name": "G006. Consumable order",
+          "code": "G006",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions."
+        },
+        {
+          "name": "GM01. Accept job",
+          "code": "GM01",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: General Mobile. Job type: All jobs."
+        },
+        {
+          "name": "GM02. Start Travel",
+          "code": "GM02",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock."
+        },
+        {
+          "name": "GM03. Stop Travel",
+          "code": "GM03",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: stop_clock."
+        },
+        {
+          "name": "GM04. Start job",
+          "code": "GM04",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock."
+        },
+        {
+          "name": "GM05. Place Job on hold",
+          "code": "GM05",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: stop_clock, pause_status:Paused."
+        },
+        {
+          "name": "GM06. Take off hold",
+          "code": "GM06",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock, pause_status:Restart."
+        },
+        {
+          "name": "GM07. Complete Time on job",
+          "code": "GM07",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs."
+        },
+        {
+          "name": "LM01. Stock request",
+          "code": "LM01",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Lead Mobile. Job type: All jobs. Not allocated to any status in the grouped view (U-004)."
+        },
+        {
+          "name": "LM02. Consumable order",
+          "code": "LM02",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Lead Mobile. Job type: All jobs."
+        },
+        {
+          "name": "LM03. Assign/Change Lead",
+          "code": "LM03",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: Lead Mobile. Job type: All jobs."
+        },
+        {
+          "name": "LM04. Request assistance",
+          "code": "LM04",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Lead Mobile. Job type: All jobs."
+        },
+        {
+          "name": "LM05. Assign to Contractor",
+          "code": "LM05",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Lead Mobile. Job type: All jobs. Flags: supplier_assignment, email_supplier, orchestrate_only."
+        },
+        {
+          "name": "RH01. New Reactive Task",
+          "code": "RH01",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks. Flags: default_for_user, default_for_helpdesk, email_originator."
+        },
+        {
+          "name": "RH02. Assign to Maintenance team",
+          "code": "RH02",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks. Flags: resource_team_assignment, email_originator."
+        },
+        {
+          "name": "RH03. Assign Operative",
+          "code": "RH03",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks. Flags: resource_team_assignment, resource_assignment."
+        },
+        {
+          "name": "RH03b. Quote Ordered",
+          "code": "RH03b",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "No button group assigned. Not allocated to any status in the grouped view (U-004)."
+        },
+        {
+          "name": "RH04. Assign to contractor",
+          "code": "RH04",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007",
+            "E-008"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks. Flags: supplier_assignment, email_supplier. Record view (E-008): Resulting type Reactive; Status 'Web page only'; who can carry out: both lead and sub operatives; adds tag '01. Awaiting acceptance', removes tag '02. Supplier rejected'."
+        },
+        {
+          "name": "RH05. Approve Order",
+          "code": "RH05",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks."
+        },
+        {
+          "name": "RH06. Quote Request",
+          "code": "RH06",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks."
+        },
+        {
+          "name": "RH07. Amend SLA",
+          "code": "RH07",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks. Flags: email."
+        },
+        {
+          "name": "RH08. Place On Hold",
+          "code": "RH08",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks. Flags: admin_only."
+        },
+        {
+          "name": "RH09. Take off hold",
+          "code": "RH09",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks."
+        },
+        {
+          "name": "RH10. Work Complete",
+          "code": "RH10",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks."
+        },
+        {
+          "name": "RH11. Work Complete - Follow up",
+          "code": "RH11",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks."
+        },
+        {
+          "name": "RM01. Work Complete - no further work required",
+          "code": "RM01",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Mobile Reactive. Job type: All jobs. Flags: email_originator, stop_clock."
+        },
+        {
+          "name": "RM02. Work Complete - Follow up",
+          "code": "RM02",
+          "active": true,
+          "applicability": "Non-planned only",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Mobile Reactive. Job type: All jobs. Flags: stop_clock."
+        },
+        {
+          "name": "T02. Accepted",
+          "code": "T02",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T03. Rejected",
+          "code": "T03",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T04. Appointment Made/Operative Assigned",
+          "code": "T04",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T05. In progress",
+          "code": "T05",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T06. On hold",
+          "code": "T06",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: Tag/Auto Actions. Not allocated to any status in the grouped view (U-004)."
+        },
+        {
+          "name": "T07. Cost uplift request",
+          "code": "T07",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T09. AFP approved",
+          "code": "T09",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: Tag/Auto Actions. Not allocated to any status in the grouped view (U-004)."
+        }
+      ],
+      "relationships": [
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH01. New Reactive Task",
+          "fromStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G003. Cancel job",
+          "fromStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH04. Assign to contractor",
+          "fromStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH02. Assign to Maintenance team",
+          "fromStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH05. Take off hold",
+          "fromStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH06. Quote Request",
+          "fromStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH07. Amend SLA",
+          "fromStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RM01. Work Complete - no further work required",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G003. Cancel job",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH04. Assign to contractor",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM04. Start job",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM01. Accept job",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH08. Place On Hold",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM05. Place Job on hold",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM06. Take off hold",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RM02. Work Complete - Follow up",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH10. Work Complete",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH11. Work Complete - Follow up",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH03. Assign Operative",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T05. In progress",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM02. Start Travel",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM03. Stop Travel",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "LM03. Assign/Change Lead",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "LM04. Request assistance",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "LM02. Consumable order",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G005. Stock request",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM07. Complete Time on job",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G006. Consumable order",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH07. Amend SLA",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "LM05. Assign to Contractor",
+          "fromStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH05. Approve Order",
+          "fromStatus": "Awaiting Order Approval - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G003. Cancel job",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH04. Assign to contractor",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH08. Place On Hold",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH09. Take off hold",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH10. Work Complete",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH11. Work Complete - Follow up",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T02. Accepted",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T04. Appointment Made/Operative Assigned",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T03. Rejected",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T05. In progress",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T07. Cost uplift request",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH07. Amend SLA",
+          "fromStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G004. Close job",
+          "fromStatus": "Work Complete - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "Work Complete - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T07. Cost uplift request",
+          "fromStatus": "Work Complete - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "Closed",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "Cancelled",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "G003. Cancel job",
+          "toStatus": "Cancelled",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "G004. Close job",
+          "toStatus": "Closed",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "LM05. Assign to Contractor",
+          "toStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RH01. New Reactive Task",
+          "toStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RH02. Assign to Maintenance team",
+          "toStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RH03. Assign Operative",
+          "toStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RH03b. Quote Ordered",
+          "toStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RH04. Assign to contractor",
+          "toStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RH05. Approve Order",
+          "toStatus": "With Contractor - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RH06. Quote Request",
+          "toStatus": "Quote Requested - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RH10. Work Complete",
+          "toStatus": "Work Complete - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RH11. Work Complete - Follow up",
+          "toStatus": "Work Complete - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RM01. Work Complete - no further work required",
+          "toStatus": "Work Complete - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "RM02. Work Complete - Follow up",
+          "toStatus": "Work Complete - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "T03. Rejected",
+          "toStatus": "With Helpdesk",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "T07. Cost uplift request",
+          "toStatus": "Business Case - R",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "GM01. Accept job",
+          "toStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "GM04. Start job",
+          "toStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "LM03. Assign/Change Lead",
+          "toStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "PH05. Take off hold",
+          "toStatus": "With Helpdesk",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "T06. On hold",
+          "toStatus": "With Maintenance Team - R",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "T06. On hold",
+          "toStatus": "With Contractor - R",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "T09. AFP approved",
+          "toStatus": "Work Complete - R",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        }
+      ],
+      "defaults": [
+        {
+          "statement": "RH01. New Reactive Task is flagged 'Default for user' and 'Default for helpdesk'; With Helpdesk is the default job status.",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003",
+            "E-006"
+          ]
+        }
+      ],
+      "unknowns": [
+        "U-002",
+        "U-003",
+        "U-004",
+        "U-005",
+        "U-007",
+        "U-008",
+        "U-009",
+        "U-010"
+      ]
+    },
+    {
+      "name": "Planned",
+      "confidence": "VERIFIED — OBSERVED",
+      "evidence": [
+        "E-002"
+      ],
+      "notes": "Type filter GUID cf54e0a3-359e-4df3-bdfc-e53ba614f441. Actions attributed to this type by their PPM/Non-PPM applicability (All-jobs actions appear under both types) — attribution rule is structural, not a system statement.",
+      "statuses": [
+        {
+          "name": "New PPM",
+          "isDefault": false,
+          "ordering": 10,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "With Maintenance Team",
+          "isDefault": false,
+          "ordering": 20,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "With Contractor",
+          "isDefault": false,
+          "ordering": 30,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "PPM Complete",
+          "isDefault": false,
+          "ordering": 60,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-003"
+          ]
+        },
+        {
+          "name": "Closed",
+          "isDefault": false,
+          "ordering": 70,
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-003"
+          ],
+          "notes": "Flagged \"Complete\" in the Statuses tab (the only one). Returned by both the Reactive and Planned Type filters (single record)."
+        },
+        {
+          "name": "Cancelled",
+          "isDefault": false,
+          "ordering": 110,
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-003"
+          ],
+          "notes": "Returned by both the Reactive and Planned Type filters (single record)."
+        }
+      ],
+      "operativeStatuses": [
+        {
+          "name": "Called away",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Waiting for parts",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Paused",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "In progress",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Finished shift (pause)",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "On site",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "On break",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Travelling",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        },
+        {
+          "name": "Complete",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-004"
+          ],
+          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+        }
+      ],
+      "actions": [
+        {
+          "name": "G001. Add a note, photo or document",
+          "code": "G001",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Job type: All jobs. Flags: attachments."
+        },
+        {
+          "name": "G002. Permit to work request",
+          "code": "G002",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Available in any status (no availability restriction) per the Action map."
+        },
+        {
+          "name": "G003. Cancel job",
+          "code": "G003",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Flags: email_supplier, email_originator, admin_only."
+        },
+        {
+          "name": "G004. Close job",
+          "code": "G004",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Flags: email_originator, admin_only, status_complete."
+        },
+        {
+          "name": "G005. Stock request",
+          "code": "G005",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions. Job type: All jobs."
+        },
+        {
+          "name": "G006. Consumable order",
+          "code": "G006",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Actions."
+        },
+        {
+          "name": "GM01. Accept job",
+          "code": "GM01",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: General Mobile. Job type: All jobs."
+        },
+        {
+          "name": "GM02. Start Travel",
+          "code": "GM02",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock."
+        },
+        {
+          "name": "GM03. Stop Travel",
+          "code": "GM03",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: stop_clock."
+        },
+        {
+          "name": "GM04. Start job",
+          "code": "GM04",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock."
+        },
+        {
+          "name": "GM05. Place Job on hold",
+          "code": "GM05",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: stop_clock, pause_status:Paused."
+        },
+        {
+          "name": "GM06. Take off hold",
+          "code": "GM06",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock, pause_status:Restart."
+        },
+        {
+          "name": "GM07. Complete Time on job",
+          "code": "GM07",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: General Mobile. Job type: All jobs."
+        },
+        {
+          "name": "LM01. Stock request",
+          "code": "LM01",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Lead Mobile. Job type: All jobs. Not allocated to any status in the grouped view (U-004)."
+        },
+        {
+          "name": "LM02. Consumable order",
+          "code": "LM02",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Lead Mobile. Job type: All jobs."
+        },
+        {
+          "name": "LM04. Request assistance",
+          "code": "LM04",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Lead Mobile. Job type: All jobs."
+        },
+        {
+          "name": "PH01. New PPM",
+          "code": "PH01",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Planned Helpdesk Tasks."
+        },
+        {
+          "name": "PH02. Assign to maintenance team",
+          "code": "PH02",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Planned Helpdesk Tasks. Flags: resource_team_assignment."
+        },
+        {
+          "name": "PH02a. Bulk assign to team",
+          "code": "PH02a",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Planned Helpdesk Tasks. Flags: resource_team_assignment."
+        },
+        {
+          "name": "PH02b. Assign operative",
+          "code": "PH02b",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Planned Helpdesk Tasks. Flags: resource_assignment."
+        },
+        {
+          "name": "PH03. Assign to contractor",
+          "code": "PH03",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Planned Helpdesk Tasks. Flags: supplier_assignment, email_supplier."
+        },
+        {
+          "name": "PH04. Place on hold",
+          "code": "PH04",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Planned Helpdesk Tasks."
+        },
+        {
+          "name": "PH05. Take off hold",
+          "code": "PH05",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: Planned Helpdesk Tasks."
+        },
+        {
+          "name": "PH06. PPM complete",
+          "code": "PH06",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Planned Helpdesk Tasks."
+        },
+        {
+          "name": "PH07. PPM Complete - with remedials",
+          "code": "PH07",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Planned Helpdesk Tasks."
+        },
+        {
+          "name": "PM01. PPM complete",
+          "code": "PM01",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Mobile Planned. Job type: All jobs. Flags: stop_clock."
+        },
+        {
+          "name": "PM02. PPM Complete - with Remedials",
+          "code": "PM02",
+          "active": true,
+          "applicability": "Planned only",
+          "mobileAvailable": true,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Mobile Planned. Job type: Single operative job. Flags: stop_clock."
+        },
+        {
+          "name": "RH03b. Quote Ordered",
+          "code": "RH03b",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "No button group assigned. Not allocated to any status in the grouped view (U-004)."
+        },
+        {
+          "name": "RH07. Amend SLA",
+          "code": "RH07",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Reactive Helpdesk Tasks. Flags: email."
+        },
+        {
+          "name": "T02. Accepted",
+          "code": "T02",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T03. Rejected",
+          "code": "T03",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T04. Appointment Made/Operative Assigned",
+          "code": "T04",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T05. In progress",
+          "code": "T05",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T06. On hold",
+          "code": "T06",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: Tag/Auto Actions. Not allocated to any status in the grouped view (U-004)."
+        },
+        {
+          "name": "T07. Cost uplift request",
+          "code": "T07",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "notes": "Button group: Tag/Auto Actions."
+        },
+        {
+          "name": "T09. AFP approved",
+          "code": "T09",
+          "active": true,
+          "applicability": "All jobs",
+          "mobileAvailable": false,
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-006",
+            "E-007"
+          ],
+          "userSelectsResultingStatus": true,
+          "notes": "Button group: Tag/Auto Actions. Not allocated to any status in the grouped view (U-004)."
+        }
+      ],
+      "relationships": [
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "New PPM",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G003. Cancel job",
+          "fromStatus": "New PPM",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH01. New PPM",
+          "fromStatus": "New PPM",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH02. Assign to maintenance team",
+          "fromStatus": "New PPM",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH03. Assign to contractor",
+          "fromStatus": "New PPM",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH04. Place on hold",
+          "fromStatus": "New PPM",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH02a. Bulk assign to team",
+          "fromStatus": "New PPM",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G003. Cancel job",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM04. Start job",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM01. Accept job",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM05. Place Job on hold",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM06. Take off hold",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH03. Assign to contractor",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH04. Place on hold",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH05. Take off hold",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH06. PPM complete",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH07. PPM Complete - with remedials",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PM01. PPM complete",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PM02. PPM Complete - with Remedials",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "RH06. Quote Request",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T05. In progress",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH02b. Assign operative",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM02. Start Travel",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM03. Stop Travel",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "LM03. Assign/Change Lead",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "LM04. Request assistance",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "LM02. Consumable order",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G005. Stock request",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "GM07. Complete Time on job",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G006. Consumable order",
+          "fromStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G003. Cancel job",
+          "fromStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH03. Assign to contractor",
+          "fromStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH04. Place on hold",
+          "fromStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH05. Take off hold",
+          "fromStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH06. PPM complete",
+          "fromStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "PH07. PPM Complete - with remedials",
+          "fromStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T04. Appointment Made/Operative Assigned",
+          "fromStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "T05. In progress",
+          "fromStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G004. Close job",
+          "fromStatus": "PPM Complete",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "PPM Complete",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "Closed",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-available-in-status",
+          "action": "G001. Add a note, photo or document",
+          "fromStatus": "Cancelled",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-005",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "G003. Cancel job",
+          "toStatus": "Cancelled",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "G004. Close job",
+          "toStatus": "Closed",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "PH01. New PPM",
+          "toStatus": "New PPM",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "PH02. Assign to maintenance team",
+          "toStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "PH02a. Bulk assign to team",
+          "toStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "PH02b. Assign operative",
+          "toStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "PH03. Assign to contractor",
+          "toStatus": "With Contractor",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "PH06. PPM complete",
+          "toStatus": "PPM Complete",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "PH07. PPM Complete - with remedials",
+          "toStatus": "PPM Complete",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "PM01. PPM complete",
+          "toStatus": "PPM Complete",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-sets-job-status",
+          "action": "PM02. PPM Complete - with Remedials",
+          "toStatus": "PPM Complete",
+          "confidence": "VERIFIED — OBSERVED",
+          "evidence": [
+            "E-006",
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "GM01. Accept job",
+          "toStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "GM04. Start job",
+          "toStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "LM03. Assign/Change Lead",
+          "toStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "PH05. Take off hold",
+          "toStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "PH05. Take off hold",
+          "toStatus": "With Contractor",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "T06. On hold",
+          "toStatus": "With Maintenance Team",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "T06. On hold",
+          "toStatus": "With Contractor",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        },
+        {
+          "kind": "action-user-selects-status",
+          "action": "T09. AFP approved",
+          "toStatus": "PPM Complete",
+          "confidence": "VERIFIED — STRUCTURAL",
+          "evidence": [
+            "E-007"
+          ]
+        }
+      ],
+      "defaults": [],
+      "unknowns": [
+        "U-003",
+        "U-007",
+        "U-008",
+        "U-010"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E-001",
+      "path": "evidence/helpdesk-admin/001-helpdesk-menu-navigation.md",
+      "capturedAt": "2026-08-18",
+      "description": "Helpdesk main-menu structure"
+    },
+    {
+      "id": "E-002",
+      "path": "evidence/helpdesk-admin/002-helpdesk-admin-structure.md",
+      "capturedAt": "2026-08-18",
+      "description": "Helpdesk admin: Types, 43 config tabs, action groups"
+    },
+    {
+      "id": "E-003",
+      "path": "evidence/reactive-helpdesk/statuses/001-statuses-tab-inventory.md",
+      "capturedAt": "2026-08-18",
+      "description": "Job status inventory with Type attribution"
+    },
+    {
+      "id": "E-004",
+      "path": "evidence/reactive-helpdesk/operative-statuses/001-operative-statuses-inventory.md",
+      "capturedAt": "2026-08-18",
+      "description": "Operative status inventory"
+    },
+    {
+      "id": "E-005",
+      "path": "evidence/reactive-helpdesk/actions/001-actions-by-status-simple-list.md",
+      "capturedAt": "2026-08-18",
+      "description": "Status → available actions grouped view"
+    },
+    {
+      "id": "E-006",
+      "path": "evidence/reactive-helpdesk/actions/002-actions-full-list-matrix.md",
+      "capturedAt": "2026-08-18",
+      "description": "Action attribute matrix (50 records)"
+    },
+    {
+      "id": "E-007",
+      "path": "evidence/reactive-helpdesk/actions/003-action-status-map.md",
+      "capturedAt": "2026-08-18",
+      "description": "Action/status map: edges, warnings, legend"
+    },
+    {
+      "id": "E-008",
+      "path": "evidence/reactive-helpdesk/action-configurator/001-rh04-summary-view.md",
+      "capturedAt": "2026-08-18",
+      "description": "RH04 record view: summary fields, tag automation"
+    }
+  ]
 }
