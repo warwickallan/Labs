@@ -1,0 +1,84 @@
+{
+  "_meta": {
+    "description": "Stable Concerto GUIDs behind displayed names, harvested from DOM control ids and nav calls (E-002, E-009). These are the identities a deterministic rebuild/validation would key on.",
+    "capturedAt": "2026-08-18",
+    "environment": "https://warwick.concertodemo.co.uk"
+  },
+  "helpdeskTypes": {
+    "Reactive": "ba98cba4-bb06-4347-a70a-86555149cb7c",
+    "Planned": "cf54e0a3-359e-4df3-bdfc-e53ba614f441"
+  },
+  "statuses": {
+    "New PPM": "b26d995e-f490-41b5-b50c-6b4a566f0a93",
+    "With Helpdesk": "fb3fdaff-23c8-49e9-b9be-8d47d7d9bbc7",
+    "With Maintenance Team": "67beb8ad-4d05-4cd0-8c2a-7f2aaeb78280",
+    "With Maintenance Team - R": "bf16c9e8-383f-4ce1-a9d5-d4695c51dcf4",
+    "Awaiting Order Approval - R": "03445865-b675-467d-bdbc-f317436f2bc3",
+    "With Contractor": "ad2c10ac-2e1b-41fd-96d0-81b8fab89c33",
+    "With Contractor - R": "89f9ca13-86e2-47a3-a0c9-fccf8ca4025c",
+    "Quote Requested - R": "70252158-9c03-4597-bc69-885c9efef403",
+    "Business Case - R": "86492784-a930-4968-8d22-7c61e1bd2e33",
+    "PPM Complete": "31f9d1fb-ef5f-43ad-a72b-34b1ed0b378e",
+    "Work Complete - R": "0c26c8c0-9dc5-4d11-809a-4c059254fc77",
+    "Closed": "c30e7f53-4d8a-46a4-9282-ea607210f59a",
+    "Cancelled": "67dd25ce-3b49-4d79-90e2-b7b05367ff81"
+  },
+  "operativeStatuses": {
+    "Called away": "bd1c6cca-edab-4ea1-9b6a-56d8f1f498c8",
+    "Complete": "36436be2-9829-4f0e-b2f0-ec2417c3fe64",
+    "Finished shift (pause)": "915e5aae-61ae-4d65-8783-9381de041196",
+    "In progress": "8745189e-c4ed-4ee4-a109-6e8d2f506feb",
+    "On break": "6ad79e59-ee2a-4d18-b275-a7dccd32521e",
+    "On site": "859f2171-d1f2-4a7c-bdad-a48671ca1bd7",
+    "Paused": "21c52bb3-7b96-4ee4-a09c-63acfef74c13",
+    "Travelling": "bdccb617-5bf1-4cb3-b1a7-d971784c96c7",
+    "Waiting for parts": "b483cb97-aeda-4a96-a675-5b0fcc0145da"
+  },
+  "securityRoles": {
+    "[Concerto] Administrator": "9df46c9a-710e-4f27-9556-8459a66f23cd",
+    "Assurance Administrator": "a345c10a-82b4-43c3-9cef-ec4dc3aab5cf",
+    "Common Functions": "b5c9e573-4681-4233-bdfc-bdcb3dab6e75",
+    "End User": "d92bf68c-4e95-4b67-bbc2-68d756a5b858",
+    "Estates Surveyor": "867b7b64-6ae7-4907-8bc4-ed6df41309d6",
+    "Facilities Manager": "12b247c1-b3b2-4c29-8931-a652935986cb",
+    "Helpdesk Administrator": "fbf8893d-aa8b-4a8b-815d-fa21d5be0529",
+    "Maintenance operative": "bd891452-073c-412a-bdc4-92be388a930d",
+    "Property Information Officer": "1b62afc9-7e22-4f2f-a1a7-75baaddd5b92",
+    "Reporting Administrator": "03f3d5d4-063e-4224-9c06-e32f6d40c157",
+    "Sites Administrator": "5e8cd0c5-cc37-45e4-89a1-b57074cc9c62",
+    "Supplier": "8baff57d-7ca0-4fb0-ac67-f95aa4f8e62b",
+    "Supplier Operative": "1b9d0839-02d2-484d-8584-dfd1a2dc1e59",
+    "System Administrator": "60eacbf9-f6b7-47d1-85f8-db68b300a2b1"
+  },
+  "helpdeskRoles": {
+    "Helpdesk role": "a855dfca-abc0-4f72-a558-df8d3596933e"
+  },
+  "actions": {
+    "RH04. Assign to contractor": "9b0ee52e-c932-4a17-a2a2-ac70a218fa33",
+    "G001. Add a note, photo or document": "029cf198-b823-430f-95e9-1c1b544f64dc",
+    "G005. Stock request": "f1a304b9-0844-4310-8361-d5beda4a4cc8",
+    "GM01. Accept job": "4c790bd2-3b5a-4484-91f1-f42909e7c10b",
+    "GM02. Start Travel": "d0d0e13f-1c37-4b5d-8765-f7be02eab8c6",
+    "GM03. Stop Travel": "3d034efb-26aa-4486-bfd8-b6608daeaac7",
+    "GM04. Start job": "3b6cc8dd-3f5b-4559-b067-d8b392dd99fe",
+    "GM05. Place Job on hold": "e98a7f0f-ae56-42d3-925b-34a1c2c750fa",
+    "GM06. Take off hold": "9586098e-a760-4d65-a421-d59e67d16bb9",
+    "GM07. Complete Time on job": "30476c29-86cd-46fa-ae08-17f7d236ed88",
+    "LM01. Stock request": "dad5120f-c371-4519-aebc-65e9fabc59ff",
+    "LM02. Consumable order": "02f998d8-5eb2-48a6-ada4-b7314d48556b",
+    "LM03. Assign/Change Lead": "0519c056-bf00-481d-a96e-b05f8541a6ef",
+    "LM04. Request assistance": "556f0a89-659a-488c-9c0b-a88806f5bbd4",
+    "LM05. Assign to Contractor": "ee6d5aa7-f7bb-47e3-9263-00e6b3834aab",
+    "PM01. PPM complete": "1828ae05-6695-4661-9ee2-500f70ffbadc",
+    "PM02. PPM Complete - with Remedials": "77fc75e5-85a8-48b4-8f22-1ea12952b230",
+    "RM01. Work Complete - no further work required": "c93969f6-a0f0-45c7-970b-54476a05cdcb",
+    "RM02. Work Complete - Follow up": "9323356d-a5d5-4cf1-aadf-b5c174743d67"
+  },
+  "workspaces": {
+    "A Workspace": "6e277122-dfa5-421b-a1c3-b707e562690d"
+  },
+  "vocabularies": {
+    "orderStatuses": ["Accepted", "Appointment Made/Operative Assigned", "Awaiting acceptance", "Cancelled", "Closed", "Complete - awaiting certificate", "In progress", "In review", "On hold", "Pending quote", "Work complete"],
+    "siteLogbookStatuses": ["Aborted visit", "Appointment made", "Complete", "Complete - Remedial", "Complete with non compliance", "Helpdesk", "Ordered", "Unable to access site"]
+  }
+}
