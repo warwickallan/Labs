@@ -110,7 +110,18 @@ forms (uniform pattern expected), full postback-dependency map.
 ## 10. Reproducibility matrix — three gates
 
 Gates: **SCHEMA** (how Concerto exposes it) · **VALUE** (actual Vanilla
-record values) · **BEHAVIOUR** (runtime effect directly observed).
+record values) · **BEHAVIOUR**, split into **PASSIVELY OBSERVED**
+(footprints: the P2 SLA clock computation, the RH01 email failure) and
+**CONTROLLED VERIFIED** (experiments — none yet).
+
+Two accepted scope refinements (2026-08-19): (1) the operational Helpdesk
+COMPOSES Helpdesk Admin configuration with shared/master configuration
+from Sites, workforce, suppliers and presently-unmapped PPM sources — not
+everything originates in Helpdesk Admin (PPM discipline / Statutory PPM
+have no admin source, OD-004); (2) the action-visibility formula is
+strongly supported by the sampled administrator/web surfaces, NOT
+universally verified until role, Constraints and further contexts are
+tested.
 
 | Object family | SCHEMA | VALUE | BEHAVIOUR |
 | --- | --- | --- | --- |

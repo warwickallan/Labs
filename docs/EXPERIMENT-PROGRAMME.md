@@ -13,8 +13,22 @@
 > E-020) — use the in-job surface for evidence-richer timelines.
 
 Prepared 2026-08-18 against structural baseline `VANILLA-HELPDESK-STRUCTURAL-v1`.
-**No experiment may run until Warwick explicitly approves entering
-EXPERIMENT mode.** Global rules for every experiment:
+**Authorisation state (2026-08-19): E0 and E1 ONLY are authorised, under
+the containment rules below. Commit E0 independently, then E1
+independently; STOP after E1 and report before E2.**
+
+Governing rule (Warwick's wording): **Never modify Vanilla configuration.
+Disposable ZZ TEST configuration/master-data fixtures may be created only
+where explicitly required by an authorised experiment.** (Correction: E4
+is NOT the only experiment touching configuration — E0 creates a persisted
+disposable ZZ TEST Tag with TextMatch. Several experiments create
+disposable jobs/suppliers/fixtures.)
+
+Behaviour evidence has two grades: **BEHAVIOUR — PASSIVELY OBSERVED**
+(footprints found in situ, e.g. the Priority-2 SLA computation and the
+RH01 "Email failed to send" timeline entry) and **BEHAVIOUR — CONTROLLED
+VERIFIED** (a controlled experiment). Only the latter closes a behaviour
+gate. Global rules for every experiment:
 
 - All records created are `ZZ TEST`-prefixed (site, jobs, supplier,
   operative) and are the ONLY records touched. **No Vanilla configuration
