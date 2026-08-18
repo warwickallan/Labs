@@ -33,6 +33,10 @@ EVIDENCE = [
     ("E-006", "evidence/reactive-helpdesk/actions/002-actions-full-list-matrix.md", "Action attribute matrix (50 records)"),
     ("E-007", "evidence/reactive-helpdesk/actions/003-action-status-map.md", "Action/status map: edges, warnings, legend"),
     ("E-008", "evidence/reactive-helpdesk/action-configurator/001-rh04-summary-view.md", "RH04 record view: summary fields, tag automation"),
+    ("E-009", "evidence/reactive-helpdesk/action-configurator/002-rh04-edit-form-inventory.md", "Add/Edit Action configurator: 211 controls, options, GUIDs"),
+    ("E-010", "evidence/helpdesk-admin/003-workflow-config-tabs.md", "Status rules/Helpdesk rules/Roles/Job types/Working time/Appointment rules/Action routes"),
+    ("E-011", "evidence/helpdesk-admin/004-quote-family-tabs.md", "Quote family: processes, actions, statuses, categories, priorities"),
+    ("E-012", "evidence/helpdesk-admin/005-reference-data-tabs.md", "Reference-data and empty tabs; crawl completion"),
 ]
 
 # ---- statuses (E-003). type: R / P / both. "With AMO" excluded: user-declared non-Vanilla addition.
@@ -342,6 +346,40 @@ def build():
                              "Tasks, General Mobile, Lead Mobile, Mobile Reactive, Mobile "
                              "Planned, General Actions, Tag/Auto Actions.",
                 "confidence": OBS, "evidence": ["E-002"],
+            },
+            {
+                "statement": "Helpdesk job types tab defines the two Types with per-type "
+                             "job-creation default actions: Reactive→RH01 (default type), "
+                             "Planned→PH01.",
+                "confidence": OBS, "evidence": ["E-010"],
+            },
+            {
+                "statement": "Rule/automation surfaces are EMPTY in Vanilla: Status rules, "
+                             "Helpdesk rules, Appointment rules, Action routes/Overrides, "
+                             "Email rules, Quote rules, plus Approvers, Areas, Assignees, "
+                             "Audit bandings, CAPEX codes, FM task types, Hubs, Non working "
+                             "days, Notes/Warnings, SLA fail reasons, Short titles, Trading "
+                             "affected.",
+                "confidence": OBS, "evidence": ["E-010", "E-011", "E-012"],
+            },
+            {
+                "statement": "SLA table (Response categories): P1 2h/1d, P2 24h/3d, P3 48h/5d, "
+                             "P4 72h/7d, Planned 0/0, By agreement 0/0 — all on 'Standard "
+                             "hours' (Mon-Fri 08:30-17:30); no default flagged (VI-005).",
+                "confidence": OBS, "evidence": ["E-010", "E-012"],
+            },
+            {
+                "statement": "A parallel quote workflow exists: 1 process ('Standard process'), "
+                             "8 RE-actions, 5 quote-request statuses, 2 quote statuses, "
+                             "2 categories, 3 priorities. Its bridge back to job statuses is "
+                             "unevidenced (U-005).",
+                "confidence": OBS, "evidence": ["E-011"],
+            },
+            {
+                "statement": "20 typed tags (Helpdesk/Order/QuoteRequest) mirror the order-status "
+                             "and T-action vocabularies; actions can add/remove tags and be "
+                             "order-status-triggered (RH04 triggers on 'Awaiting acceptance').",
+                "confidence": OBS, "evidence": ["E-008", "E-009", "E-012"],
             },
         ],
         "helpdeskTypes": types,

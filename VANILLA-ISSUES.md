@@ -32,6 +32,11 @@ owner of Vanilla.
 - **Suggested correction:** None yet — needs understanding of how PPM jobs
   are born (future experiment).
 - **Correction verified?** No.
+- **Update (E-010):** Helpdesk job types names **PH01. New PPM** as
+  Planned's "Default Action when adding new" — so New PPM is reached at job
+  creation, a path the map's reachability check evidently ignores.
+  Downgraded to: *unreachable via status-allocated actions only; the
+  warning itself is the residual anomaly.*
 
 ## VI-002 — "Business Case - R" status is unreachable and a dead end [UNREACHABLE STATE]
 
@@ -71,6 +76,33 @@ owner of Vanilla.
 - **Confidence:** POSSIBLE DEFECT — NEEDS EXPERIMENT.
 - **Reproduction:** Actions grouped view → Quote Requested - R group.
 - **Suggested correction:** TBD after Quote-family discovery (U-005).
+- **Correction verified?** No.
+
+## VI-005 — No default Response category (SLA) [CONFIGURATION INCONSISTENCY]
+
+- **Configuration area:** Response categories.
+- **Observed state:** Six SLA rows (P1 2h/1d · P2 24h/3d · P3 48h/5d ·
+  P4 72h/7d · Planned 0/0 · By agreement 0/0, all on Standard hours) —
+  **none flagged Default**, though the table has a Default column and most
+  other status-like tables set one.
+- **Why it appears problematic:** New jobs may have no SLA unless a
+  classification/call-type supplies one — and every Classification's
+  Urgency column is also blank (E-012).
+- **Operational consequence:** Possibly SLA-less reactive jobs by default.
+  POSSIBLE DEFECT — NEEDS EXPERIMENT.
+- **Evidence:** E-012.
+- **Correction verified?** No.
+
+## VI-006 — Classification/SLA wiring absent [CONFIGURATION INCONSISTENCY]
+
+- **Configuration area:** Classifications, FM task types.
+- **Observed state:** All 16 classifications are Reactive-typed with blank
+  Urgency and zero values; FM task types (which map task type → Response
+  category) is empty.
+- **Why it appears problematic:** The classification layer exists but is
+  unwired to SLAs — consistent with VI-005.
+- **Evidence:** E-012.
+- **Confidence:** CONFIGURATION INCONSISTENCY.
 - **Correction verified?** No.
 
 ## VI-004 — Action naming/sequence gaps [CONFIGURATION INCONSISTENCY]

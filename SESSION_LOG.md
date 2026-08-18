@@ -7,6 +7,49 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-18 (expanded authority) — Configurator inventoried; all 43 admin tabs crawled
+
+Warwick granted expanded discovery authority (open Add/Edit forms, inspect
+options; absolute no-persist boundary — nothing was saved, created,
+deleted or altered; the one Edit form opened was closed via Cancel and
+re-verified unchanged).
+
+**Action configurator (E-009):** RH04 opened in Edit mode — all 211
+controls inventoried across 12 sections with DOM ids, current values and
+full dropdown vocabularies (12 order statuses, 9 PPM-visit statuses, etc.).
+Stable GUIDs harvested for types/statuses/operative statuses/security
+roles/mobile actions → `model/IDENTITIES.json`. Key discoveries: explicit
+Suppress/Hide fields (closes U-008); actions can be order-status-triggered
+(RH04 fires on orders → "Awaiting acceptance") — the contractor loop runs
+on order statuses + tags (U-009 largely resolved structurally); per-action
+timers are start/stop only; expiry lives in Status rules (empty in
+Vanilla).
+
+**Full crawl (E-010..E-012):** every remaining tab visited. Populated:
+Helpdesk job types (Reactive→RH01 default type, Planned→PH01), Working
+time (Standard hours Mon–Fri 08:30–17:30), Roles (1: Helpdesk role), Audit
+status (5), Call types (3), Contact methods (5), Classifications (16 —
+all Reactive, no urgency wiring), Complaint status (2), Email templates
+(5), Operatives and sites (4), Response categories (SLA: P1 2h/1d … P4
+72h/7d — no default), Root causes (20), Satisfaction surveys (1), Tags
+(20, typed Helpdesk/Order/QuoteRequest), Quote family (process/8 RE
+actions/5+2 statuses/2 categories/3 priorities). Empty: Status rules,
+Helpdesk rules, Appointment rules, Action routes/Overrides, Email rules,
+Quote rules/roles, Approvers, Areas, Assignees, Audit bandings, CAPEX,
+FM task types, Hubs, Non working days, Notes/Warnings, SLA fail reasons,
+Short titles, Trading affected.
+
+**Registers:** VANILLA-ISSUES.md created (VI-001..VI-006; VI-001 downgraded
+— PH01 is Planned's creation default). UNKNOWNS updated: U-008/U-010/U-011
+resolved; U-012..U-015 opened (Constraints semantics, expiry mechanism,
+conditional-UI map, non-Action Add/Edit forms). Model rebuilt (evidence
+E-001..E-012), validator green.
+
+**Left open:** U-005 (quote→job-status bridge — top blocker), U-012..U-015,
+Planned parity beyond structure (largely evidenced en route), discovery
+report (Phase 4), controlled-experiment plan. jsonschema still not
+installed (validator uses structural fallback).
+
 ## 2026-08-18 (later) — Phases 0–1 complete; Phase 2 substantially advanced
 
 Warwick signed in; discovery ran read-only throughout (no Save/create/

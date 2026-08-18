@@ -17,6 +17,17 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
 - **U-006 — Do archived actions exist?** Resolved 2026-08-18: the Archived
   actions filter returns zero records; the 50 live actions are the complete
   set (E-006).
+- **U-008 — Meaning of "suppressed / hidden" in the Action map.** Resolved
+  structurally 2026-08-18: the action form carries explicit "Suppress this
+  action" and "Hide this action from the user options" checkboxes (E-009).
+  Which of the two the map keys on remains minor residual unknown.
+- **U-010 — Configurator field inventory.** Resolved 2026-08-18: all 211
+  controls of the Add/Edit Action form inventoried with DOM ids and full
+  option lists (E-009). Conditional-UI mapping (which controls toggle
+  which) remains open as U-014.
+- **U-011 — Remaining admin tabs.** Resolved at list level 2026-08-18: all
+  43 tabs visited (E-010, E-011, E-012). Add/Edit forms of non-Action
+  objects not yet inventoried (U-015).
 
 ## Open
 
@@ -113,15 +124,42 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
 - **Blocks automated build:** yes — the configurator is where a customer
   build would be entered.
 
-## U-011 — Remaining admin tabs uninventoried [IMPORTANT]
+## U-012 — Action "Constraints" semantics [IMPORTANT]
 
-- **Question:** 40 of 43 Helpdesk admin tabs (Status rules, Helpdesk rules,
-  Helpdesk job types, Roles, Working time, Appointment rules, Email rules,
-  SLA-related tabs, Quote* family, …) have not been opened. Which contain
-  Vanilla configuration that participates in the Reactive workflow?
-- **Current evidence:** E-002 (tab list only).
+- **Question:** The configurator's Constraints section lists the 18 mobile
+  actions as checkboxes (all unticked for RH04). Constrains what, exactly —
+  ordering? mutual exclusion? prerequisites?
+- **Current evidence:** E-009.
 - **Confidence:** UNKNOWN.
-- **Safest experiment:** read each tab's list view (read-only), prioritising
-  Status rules, Helpdesk rules, Roles, Working time, Helpdesk job types.
-- **Blocks automated build:** yes for Status rules/Helpdesk rules; unknown
-  for the rest.
+- **Safest experiment:** inspect a mobile action (e.g. GM04) in Edit mode —
+  its Constraints ticks may reveal the pattern; help text if any.
+- **Blocks automated build:** yes (mobile flows).
+
+## U-013 — Status-expiry / timed-transition mechanism [IMPORTANT]
+
+- **Question:** The map legend includes "Auto-fires on status expiry", but
+  no action-form field configures expiry. Status rules (Name · Hub ·
+  Original status · Status to be changed to) is the likely home — and is
+  empty in Vanilla. Is that the whole mechanism?
+- **Current evidence:** E-007, E-009, E-010.
+- **Confidence:** INFERRED (Status rules = the expiry/transition surface).
+- **Safest experiment:** open Status rules → Add New and inventory the
+  blank configurator (authorised, then Cancel).
+- **Blocks automated build:** no for Vanilla (empty), yes for customers.
+
+## U-014 — Conditional UI map of the action configurator [IMPORTANT]
+
+- **Question:** Which controls show/hide/enable others (e.g. Resulting
+  type → filters the resulting-status list, observed E-009)?
+- **Safest experiment:** vary unsaved controls in an open form and record
+  appear/disappear behaviour (authorised; classify as structural UI truth).
+- **Blocks automated build:** partially — needed to enter config reliably.
+
+## U-015 — Add/Edit forms of non-Action objects [IMPORTANT]
+
+- **Question:** Field-level inventories for Status, Operative status, Tag,
+  Response category, Quote action, Helpdesk job type, Email template, etc.
+  (list-level only so far).
+- **Safest experiment:** open each object's record/Add form read-only and
+  inventory (authorised, Cancel after).
+- **Blocks automated build:** yes — these are the remaining build surfaces.
