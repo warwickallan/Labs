@@ -14,6 +14,7 @@ Confidence shorthand used here:
 
 from __future__ import annotations
 
+import datetime as _dt
 import json
 from pathlib import Path
 
@@ -37,7 +38,15 @@ EVIDENCE = [
     ("E-010", "evidence/helpdesk-admin/003-workflow-config-tabs.md", "Status rules/Helpdesk rules/Roles/Job types/Working time/Appointment rules/Action routes"),
     ("E-011", "evidence/helpdesk-admin/004-quote-family-tabs.md", "Quote family: processes, actions, statuses, categories, priorities"),
     ("E-012", "evidence/helpdesk-admin/005-reference-data-tabs.md", "Reference-data and empty tabs; crawl completion"),
+    ("E-013", "evidence/helpdesk-admin/006-add-forms-core-objects.md", "Blank Add forms: Status, Operative status, Tag, Response category"),
+    ("E-014", "evidence/helpdesk-admin/007-add-forms-batch2-and-gm05.md", "Add forms batch 2; GM05 edit view; conditional-UI finding"),
 ]
+
+DISCOVERY_PHASE = (
+    "Safe read-only discovery complete (list-level crawl of all 43 tabs; "
+    "Action configurator + 9 further Add/Edit configurators inventoried). "
+    "Controlled EXPERIMENT phase not started."
+)
 
 # ---- statuses (E-003). type: R / P / both. "With AMO" excluded: user-declared non-Vanilla addition.
 STATUSES = [
@@ -307,11 +316,15 @@ def build():
             "modelVersion": 1,
             "environment": "https://warwick.concertodemo.co.uk",
             "mode": "DISCOVER",
-            "generatedAt": "2026-08-18",
-            "notes": "Built by scripts/build_model.py from evidence E-001..E-008 "
-                     "(Concerto build 2026.08.9968-main). 'With AMO' status excluded: "
-                     "user-declared non-Vanilla addition. Phase 2d (Add/Edit Action "
-                     "configurator field inventory) not yet performed.",
+            "generatedAt": _dt.date.today().isoformat(),
+            "notes": (
+                f"Built by scripts/build_model.py from evidence "
+                f"{EVIDENCE[0][0]}..{EVIDENCE[-1][0]} ({len(EVIDENCE)} files; "
+                "Concerto build 2026.08.9968-main). 'With AMO' status excluded: "
+                f"user-declared non-Vanilla addition. {DISCOVERY_PHASE} "
+                "GUIDs referenced via model/IDENTITIES.json are "
+                "environment-specific observed identities, not portable keys."
+            ),
         },
         "sharedConfiguration": [
             {

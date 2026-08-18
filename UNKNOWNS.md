@@ -28,6 +28,22 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
 - **U-011 — Remaining admin tabs.** Resolved at list level 2026-08-18: all
   43 tabs visited (E-010, E-011, E-012). Add/Edit forms of non-Action
   objects not yet inventoried (U-015).
+- **U-003 — Operative statuses shared?** RESOLVED 2026-08-18: the Add form
+  has no Type field at all — operative statuses are structurally
+  type-agnostic (E-013).
+- **U-013 — Expiry mechanism.** RESOLVED structurally 2026-08-18: expiry is
+  configured on the Status object (`target_days` + `status_expiry_action_id`
+  over all 50 actions); Status rules are hub-conditional remaps instead
+  (E-013, E-014). Runtime firing behaviour still needs the EXPERIMENT phase.
+- **U-014 — Conditional UI.** Substantially resolved: the resulting-status
+  list is filtered server-side at form render from the SAVED Resulting
+  type; no client-side dynamic dependency observed (E-014). Full
+  postback-dependency mapping deferred.
+- **U-015 — Non-Action Add/Edit inventories.** Substantially resolved:
+  9 further configurators inventoried (Status 51 controls, Operative status
+  4, Tag 7, Response category 31, Helpdesk job type 57, Status rule 5,
+  Email rule 10, Appointment rule 5, Action group 3, Classification 31,
+  Working time 10) (E-013, E-014). Residual small forms listed in E-014.
 
 ## Open
 

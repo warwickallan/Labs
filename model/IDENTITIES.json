@@ -1,6 +1,8 @@
 {
   "_meta": {
-    "description": "Stable Concerto GUIDs behind displayed names, harvested from DOM control ids and nav calls (E-002, E-009). These are the identities a deterministic rebuild/validation would key on.",
+    "description": "Concerto GUIDs behind displayed names, harvested from DOM control ids and nav calls (E-002, E-009, E-014).",
+    "identitySemantics": "These GUIDs are ENVIRONMENT-SPECIFIC OBSERVED IDENTITIES of this demo tenant — not portable Vanilla primary keys. A future target environment must resolve canonicalKey -> target GUID at build/validation time; never reuse these GUIDs across environments.",
+    "canonicalKeyScheme": "Canonical keys are '<objectType>:<kebab-case-name>' derived from the Vanilla display name, e.g. 'status:with-helpdesk', 'operative-status:on-site', 'action:rh04-assign-to-contractor', 'security-role:helpdesk-administrator', 'helpdesk-type:reactive'. The display name is the durable Vanilla identity; the action code prefix (rh04) is included for actions because codes are embedded in names.",
     "capturedAt": "2026-08-18",
     "environment": "https://warwick.concertodemo.co.uk"
   },

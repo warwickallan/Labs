@@ -7,6 +7,37 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-18 (final) — Add-form sweep, GM05/constraints, conditional UI; safe discovery complete
+
+U-015 executed: blank Add forms inventoried and cancelled for Status (51
+controls — includes the expiry mechanism `target_days` +
+`status_expiry_action_id`, resolving U-013), Operative status (4 — NO Type
+field: U-003 resolved, genuinely shared), Tag (7 — incl. description
+TextMatch auto-tagging), Response category (31 — full SLA engine),
+Helpdesk job type (57 — Type↔Status binding + SLA bindings + prefixes),
+Status rule (5 — hub-conditional remap, NOT expiry), Email rule (10 —
+action-triggered alerts), Appointment rule (5), Action group (3),
+Classification (31 — the unset classification→SLA wiring of VI-006),
+Working time (10). GM05 inspected in Edit mode (225 controls): mobile
+actions use `hide_from_use` (refines U-008); hold via on/off-hold flag;
+Constraints reference prerequisite actions GM01+GM04 (U-012 semantics
+still inferred). Conditional-UI probe: resulting-status list filters
+server-side at render from SAVED Resulting type (U-014).
+
+Provenance now derived automatically in build_model.py (evidence range,
+phase, date); IDENTITIES.json re-framed as environment-observed GUIDs with
+a canonical-key scheme (per Warwick's mid-session refinements). Model
+rebuilt, validator green (14 evidence files).
+
+**Session ended by server-side logout with an unsaved form open — state
+discarded, nothing persisted at any point.** Discovery Completion Report
+written: docs/VANILLA-HELPDESK-DISCOVERY.md (incl. reproducibility matrix
+and proposed experiment programme E1–E6, awaiting Warwick's approval).
+
+Residual safe items for a future signed-in session: per-record value reads
+(48 action forms, tag colours, template bodies), small Add forms (Roles,
+Quote family, Action route), full postback-dependency mapping.
+
 ## 2026-08-18 (expanded authority) — Configurator inventoried; all 43 admin tabs crawled
 
 Warwick granted expanded discovery authority (open Add/Edit forms, inspect
