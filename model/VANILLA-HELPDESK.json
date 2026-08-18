@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "modelVersion": 1,
+    "environment": "https://warwick.concertodemo.co.uk",
+    "mode": "DISCOVER",
+    "generatedAt": "2026-08-18",
+    "notes": "Skeleton only. No discovery evidence has been captured yet; helpdeskTypes and evidence are empty by design — the model grows only from discovered evidence."
+  },
+  "sharedConfiguration": [],
+  "helpdeskTypes": [],
+  "evidence": []
+}

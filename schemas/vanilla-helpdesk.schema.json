@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bellrock:concerto:vanilla-helpdesk:1",
+  "title": "Vanilla Helpdesk model",
+  "description": "Machine-readable definition of the discovered Vanilla Helpdesk configuration in the Concerto TEST environment. Grows only from evidence: nearly all properties are optional so the model never has to invent values. Every fact object carries a confidence state and evidence references.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["metadata", "helpdeskTypes", "evidence"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modelVersion", "environment", "mode"],
+      "properties": {
+        "modelVersion": { "const": 1 },
+        "environment": { "type": "string", "description": "Base URL of the authoritative TEST environment." },
+        "mode": { "const": "DISCOVER", "description": "This model may only be produced in read-only DISCOVER MODE." },
+        "generatedAt": { "type": "string", "description": "ISO 8601 date of last regeneration." },
+        "notes": { "type": "string" }
+      }
+    },
+    "sharedConfiguration": {
+      "type": "array",
+      "description": "Configuration evidenced as genuinely shared across Helpdesk Types. Do not place anything here without evidence of sharing.",
+      "items": { "$ref": "#/$defs/fact" }
+    },
+    "helpdeskTypes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "confidence", "evidence"],
+        "properties": {
+          "name": { "type": "string", "description": "e.g. Reactive, Planned — as named by the system itself." },
+          "confidence": { "$ref": "#/$defs/confidence" },
+          "evidence": { "$ref": "#/$defs/evidenceRefs" },
+          "notes": { "type": "string" },
+          "statuses": { "type": "array", "items": { "$ref": "#/$defs/status" } },
+          "operativeStatuses": { "type": "array", "items": { "$ref": "#/$defs/operativeStatus" } },
+          "actions": { "type": "array", "items": { "$ref": "#/$defs/action" } },
+          "relationships": { "type": "array", "items": { "$ref": "#/$defs/relationship" } },
+          "defaults": { "type": "array", "items": { "$ref": "#/$defs/fact" } },
+          "roles": { "type": "array", "items": { "$ref": "#/$defs/fact" } },
+          "timers": { "type": "array", "items": { "$ref": "#/$defs/fact" } },
+          "unknowns": {
+            "type": "array",
+            "items": { "type": "string", "description": "U-NNN id from UNKNOWNS.md" }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "description": "The evidence index. Every evidenceRef used elsewhere must resolve to an id here.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^E-[0-9]{3,}$" },
+          "path": { "type": "string", "description": "Repo-relative path under evidence/." },
+          "capturedAt": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "confidence": {
+      "enum": ["VERIFIED — OBSERVED", "VERIFIED — STRUCTURAL", "INFERRED", "UNKNOWN"]
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^E-[0-9]{3,}$" }
+    },
+    "fact": {
+      "type": "object",
+      "description": "A generic discovered fact (defaults, roles, timers, shared configuration).",
+      "additionalProperties": false,
+      "required": ["statement", "confidence", "evidence"],
+      "properties": {
+        "id": { "type": "string" },
+        "statement": { "type": "string" },
+        "configurationTruth": { "type": "string", "description": "What is configured (observed)." },
+        "behaviourTruth": { "type": "string", "description": "What actually happens at runtime — unverified until the EXPERIMENT phase unless safely observed." },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidenceRefs" },
+        "notes": { "type": "string" }
+      }
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "confidence", "evidence"],
+      "properties": {
+        "name": { "type": "string" },
+        "internalId": { "type": "string" },
+        "description": { "type": "string" },
+        "isDefault": { "type": "boolean" },
+        "active": { "type": "boolean" },
+        "ordering": { "type": "integer" },
+        "colour": { "type": "string" },
+        "icon": { "type": "string" },
+        "hasOperativeEquivalent": { "type": "boolean" },
+        "expiryBehaviour": { "type": "string" },
+        "restrictions": { "type": "string" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidenceRefs" },
+        "notes": { "type": "string" }
+      }
+    },
+    "operativeStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "confidence", "evidence"],
+      "properties": {
+        "name": { "type": "string" },
+        "isDefault": { "type": "boolean" },
+        "purpose": { "type": "string" },
+        "mobileRelevant": { "type": "boolean" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidenceRefs" },
+        "notes": { "type": "string" }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "confidence", "evidence"],
+      "properties": {
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "active": { "type": "boolean" },
+        "description": { "type": "string" },
+        "userSelectsResultingStatus": { "type": "boolean" },
+        "userSelectsOperativeStatus": { "type": "boolean" },
+        "mobileAvailable": { "type": "boolean" },
+        "applicability": { "type": "string", "description": "Reactive / PPM applicability as evidenced." },
+        "assignmentBehaviour": { "type": "string" },
+        "roleRestrictions": { "type": "string" },
+        "noteFileCommentRequirements": { "type": "string" },
+        "timerExpiryBehaviour": { "type": "string" },
+        "bulkAvailable": { "type": "boolean" },
+        "hiddenOrSuppressedConditions": { "type": "string" },
+        "configuratorFields": {
+          "type": "array",
+          "description": "Field catalogue rows from the Add/Edit Action screen.",
+          "items": { "$ref": "#/$defs/configuratorField" }
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidenceRefs" },
+        "notes": { "type": "string" }
+      }
+    },
+    "configuratorField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "confidence", "evidence"],
+      "properties": {
+        "label": { "type": "string" },
+        "sectionOrTab": { "type": "string" },
+        "controlType": { "type": "string" },
+        "currentOrDefaultValue": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "domNameOrId": { "type": "string" },
+        "conditional": { "type": "boolean" },
+        "conditionTrigger": { "type": "string", "description": "What causes it to appear/disappear, where observable without editing." },
+        "helpText": { "type": "string" },
+        "probableMeaning": { "type": "string" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidenceRefs" }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "description": "One edge in the normalized relationship map. The kinds mirror the distinct concepts the Dev visualiser evidences — keep them distinct.",
+      "additionalProperties": false,
+      "required": ["kind", "confidence", "evidence"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "action-available-in-status",
+            "action-sets-job-status",
+            "action-user-selects-status",
+            "action-sets-operative-status",
+            "action-user-selects-operative-status",
+            "action-auto-fires-on-status-expiry"
+          ]
+        },
+        "action": { "type": "string" },
+        "fromStatus": { "type": "string" },
+        "toStatus": { "type": "string" },
+        "operativeStatus": { "type": "string" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": { "$ref": "#/$defs/evidenceRefs" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}
