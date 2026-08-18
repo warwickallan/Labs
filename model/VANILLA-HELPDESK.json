@@ -4,7 +4,7 @@
     "environment": "https://warwick.concertodemo.co.uk",
     "mode": "DISCOVER",
     "generatedAt": "2026-08-19",
-    "notes": "Built by scripts/build_model.py from evidence E-001..E-021 (21 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Operational surface mapped (E-019..E-021). Controlled EXPERIMENT phase not started. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys."
+    "notes": "Built by scripts/build_model.py from evidence E-001..E-022 (22 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Operational surface mapped (E-019..E-021). Controlled EXPERIMENT phase not started. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys."
   },
   "sharedConfiguration": [
     {
@@ -88,6 +88,13 @@
         "E-008",
         "E-009",
         "E-012"
+      ]
+    },
+    {
+      "statement": "Mobile (Orchestrate) job visibility is a status-level flag: 'Will jobs in this status appear on the mobile app' is TRUE only for With Maintenance Team and With Maintenance Team - R; false for all other statuses. Jobs enter Awaiting Order Approval - R via the status's unapproved-orders flag; WMT-R is locked (no invoices/orders); row-menu 'Raise order' follows show_add_order_button.",
+      "confidence": "VERIFIED — OBSERVED",
+      "evidence": [
+        "E-022"
       ]
     }
   ],
@@ -2977,6 +2984,12 @@
       "path": "evidence/helpdesk-runtime/003-raise-job-wizard.md",
       "capturedAt": "2026-08-18",
       "description": "Raise Job wizard (Reactive) and Planned creation route"
+    },
+    {
+      "id": "E-022",
+      "path": "evidence/helpdesk-admin/011-status-records-matrix.md",
+      "capturedAt": "2026-08-18",
+      "description": "Per-status record values: mobile-app flags and full flag matrix"
     }
   ]
 }

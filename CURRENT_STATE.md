@@ -4,7 +4,7 @@
 > the evidence/registers named below → `git log`.** This file states the
 > CURRENT truth; history lives in SESSION_LOG and git.
 
-- **Updated:** 2026-08-19 (after E1; before E2).
+- **Updated:** 2026-08-19 (after E1 + status-matrix read E-022; before E2).
 - **Phase/mode:** EXPERIMENT mode, **suspended between experiments**.
   DISCOVER-mode read-only rules no longer apply globally; the persistence
   rule is now: *never modify Vanilla configuration; disposable ZZ TEST
@@ -48,8 +48,8 @@ non-routable email).
 ## Important unresolved items
 
 - U-009 residual: T03/T05/T06/T07 trigger sources (E2/E3).
-- U-012 residual: Constraints=prerequisites inference (E5); per-status
-  `is_operative_status` record values unread (feeds E5).
+- U-012 residual: Constraints=prerequisites inference (E5). Per-status
+  mobile flags now READ (E-022): only WMT and WMT-R download to the app.
 - VI-002 (Business Case - R dead end), VI-005/VI-006 (SLA wiring — E6),
   VI-008 (empty email templates; email delivery fails in this
   environment, OD-006).

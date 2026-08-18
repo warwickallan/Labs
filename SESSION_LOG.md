@@ -7,6 +7,18 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — Status-record matrix read (E-022, read-only)
+
+All 13 Vanilla status records opened/cancelled: 'Will jobs in this status
+appear on the mobile app' is TRUE only for With Maintenance Team and
+With Maintenance Team - R - the status side of the two-flag Orchestrate
+model confirmed. Bonuses: OD-001 confirmed (raise-order button flag
+matches row menus exactly); AOA-R entry mechanism = status
+unapproved-orders flag; WMT-R locked; WC-R work-complete+timesheet;
+Cancelled is the orders-cancelled destination; no expiry or role ticks on
+any status. Evidence: evidence/helpdesk-admin/011-status-records-matrix.md.
+E2/E5 not begun.
+
 ## 2026-08-19 (checkpoint) — Durability/reorientation convergence before E2
 
 Warwick-directed rotate-grade checkpoint without clearing. Added

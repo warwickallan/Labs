@@ -47,6 +47,7 @@ EVIDENCE = [
     ("E-019", "evidence/helpdesk-runtime/001-operational-surface.md", "Operational Helpdesk landing: types, status tabs, filters, columns"),
     ("E-020", "evidence/helpdesk-runtime/002-action-surfaces-and-job-detail.md", "Row-menu + in-job action surfaces validated; job detail; v2 API; email-fail observation"),
     ("E-021", "evidence/helpdesk-runtime/003-raise-job-wizard.md", "Raise Job wizard (Reactive) and Planned creation route"),
+    ("E-022", "evidence/helpdesk-admin/011-status-records-matrix.md", "Per-status record values: mobile-app flags and full flag matrix"),
 ]
 
 DISCOVERY_PHASE = (
@@ -400,6 +401,15 @@ def build():
                              "and T-action vocabularies; actions can add/remove tags and be "
                              "order-status-triggered (RH04 triggers on 'Awaiting acceptance').",
                 "confidence": OBS, "evidence": ["E-008", "E-009", "E-012"],
+            },
+            {
+                "statement": "Mobile (Orchestrate) job visibility is a status-level flag: 'Will "
+                             "jobs in this status appear on the mobile app' is TRUE only for "
+                             "With Maintenance Team and With Maintenance Team - R; false for all "
+                             "other statuses. Jobs enter Awaiting Order Approval - R via the "
+                             "status's unapproved-orders flag; WMT-R is locked (no invoices/"
+                             "orders); row-menu 'Raise order' follows show_add_order_button.",
+                "confidence": OBS, "evidence": ["E-022"],
             },
         ],
         "helpdeskTypes": types,

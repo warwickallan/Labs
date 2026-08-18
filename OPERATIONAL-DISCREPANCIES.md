@@ -9,7 +9,9 @@ Categories: PRESENTATION DIFFERENCE · CONFIGURATION/PRESENTATION MISMATCH
 
 With Helpdesk and Work Complete - R row menus include "Raise order"; the
 WMT-R row menu does not. Candidate driver: the status
-`show_add_order_button` flag (E-013). Not proven. (E-020)
+`show_add_order_button` flag (E-013). (E-020)
+**CONFIRMED structurally 2026-08-19:** per-status record reads show the
+flag set on WH/WC-R and NOT set on WMT-R — exact match (E-022).
 
 ## OD-002 — Action availability rendering: CONFIRMED CONSISTENT [no mismatch]
 
