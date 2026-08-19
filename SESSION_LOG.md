@@ -7,6 +7,20 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — Supplier Portal operational discovery (EO-005, read-only)
+
+Portal mapped as the Orders-side operational surface: dashboard tiles,
+order list (tabs incl. "Waiting to be acknowledged", parent-job columns/
+filters), utility row menu, order detail (statutory PPM activity badges,
+asbestos banner, appointments block), and the toolbar ACTIONS dropdown as
+THE supplier action surface. Identity link recorded (X-018): order number
+= parent job ref + /sequence. Rendering formula VALIDATED orders-side:
+order 40/1 (AMO) shows exactly SP05 + SP07x2 (portal-flagged, in-status).
+HEADLINE: VI-009/VO-002 - the acceptance loop is broken in Vanilla (SP01/
+SP02/ORC10 have portal role flags but not portal visibility; Awaiting-
+acceptance orders offer no accept/reject; confirmed against Warwick's
+experience). E2 not begun; supplier behavioural testing not begun.
+
 ## 2026-08-19 — Orders core-four Add schemas (EO-004)
 
 Per Warwick's 90%% steer: complete blank Add-form schemas captured for

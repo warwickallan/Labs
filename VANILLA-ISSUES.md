@@ -151,3 +151,26 @@ owner of Vanilla.
 - **Evidence:** E-012, E-017.
 - **Confidence:** APPARENTLY UNWIRED CONFIGURATION.
 - **Correction verified?** No.
+
+## VI-009 / VO-002 — Supplier acceptance loop is broken in Vanilla [CONFIGURATION DEFECT (structural) + operational confirmation]
+
+- **Configuration area:** Orders Admin -> Supplier actions; Supplier portal.
+- **Observed state:** SP01 Accept / SP02 Reject (and ORC10 Acknowledge)
+  carry the portal accept/reject role flags but NOT "Show this action on
+  the supplier portal". Operationally an Awaiting-acceptance order offers
+  only "Add an invoice" - no accept/reject/acknowledge anywhere; demo
+  orders have sat in Awaiting acceptance since May; the "Waiting to be
+  acknowledged (2)" tab has no acknowledge affordance. Warwick confirms
+  this matches his lived experience of the portal.
+- **Why it appears problematic:** the entire supplier lifecycle
+  (SP01->T02 ... SP07->RH10) is unreachable from its entry point; every
+  downstream cross-domain trigger is dead on arrival.
+- **Operational consequence:** contractor loop cannot start from the
+  portal; jobs strand in With Contractor(-R) / orders in Awaiting
+  acceptance.
+- **Evidence:** EO-002 (record flags), EO-005 (operational proof).
+- **Confidence:** CONFIGURATION DEFECT (structural) - behavioural
+  confirmation would be E2's first finding.
+- **Suggested correction (NOT applied):** enable portal visibility on
+  SP01/SP02 (+ORC10), or clone as ZZ TEST actions for E2.
+- **Correction verified?** No.

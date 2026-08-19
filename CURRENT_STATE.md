@@ -4,7 +4,7 @@
 > the evidence/registers named below → `git log`.** This file states the
 > CURRENT truth; history lives in SESSION_LOG and git.
 
-- **Updated:** 2026-08-19 (ORDERS ADMIN DISCOVER complete; stopped).
+- **Updated:** 2026-08-19 (Orders Admin + Supplier Portal operational discovery complete; stopped).
 - **Phase/mode:** **ORDERS ADMIN DISCOVER** — structural discovery of the
   Orders configuration domain (read-only: Add/Edit forms opened and
   CANCELLED, transient unsaved probes allowed, nothing persisted).
@@ -48,10 +48,12 @@
 
 ## Next permitted step
 
-Orders Admin crawl COMPLETE (EO-001..EO-003; VANILLA-ORDERS.json;
-CROSS-DOMAIN-RELATIONSHIPS.json X-001..X-017). Awaiting Warwick's word on:
-(a) Supplier Helpdesk operational discovery (proposed, read-only), then
-(b) E2. Both BLOCKED until authorised.
+Orders Admin crawl + core-four schemas + Supplier Portal operational
+discovery COMPLETE (EO-001..EO-005; X-001..X-018). HEADLINE: VI-009/VO-002
+- Vanilla's supplier acceptance loop is broken (SP01/SP02/ORC10 not
+portal-visible). E2 remains BLOCKED and now depends on Warwick's decision:
+fix the portal flags (a Vanilla config change - needs explicit approval)
+or clone ZZ TEST supplier actions.
 
 ## Important unresolved items
 
