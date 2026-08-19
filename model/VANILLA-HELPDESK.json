@@ -4,7 +4,7 @@
     "environment": "https://warwick.concertodemo.co.uk",
     "mode": "DISCOVER",
     "generatedAt": "2026-08-19",
-    "notes": "Built by scripts/build_model.py from evidence E-001..E-022 (22 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Operational surface mapped (E-019..E-021). Controlled EXPERIMENT phase not started. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys."
+    "notes": "Built by scripts/build_model.py from evidence E-001..E-023 (23 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Operational surface mapped (E-019..E-021). Controlled EXPERIMENT phase not started. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys."
   },
   "sharedConfiguration": [
     {
@@ -2990,6 +2990,12 @@
       "path": "evidence/helpdesk-admin/011-status-records-matrix.md",
       "capturedAt": "2026-08-18",
       "description": "Per-status record values: mobile-app flags and full flag matrix"
+    },
+    {
+      "id": "E-023",
+      "path": "evidence/helpdesk-admin/012-core-five-value-completion.md",
+      "capturedAt": "2026-08-18",
+      "description": "Core Five completion: Job Type records, action tag matrix, all 90 classifications"
     }
   ]
 }

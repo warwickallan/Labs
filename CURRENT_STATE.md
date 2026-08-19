@@ -4,7 +4,7 @@
 > the evidence/registers named below → `git log`.** This file states the
 > CURRENT truth; history lives in SESSION_LOG and git.
 
-- **Updated:** 2026-08-19 (after E1 + status-matrix read E-022; before E2).
+- **Updated:** 2026-08-19 (after Core Five completeness audit E-023; before E2).
 - **Phase/mode:** EXPERIMENT mode, **suspended between experiments**.
   DISCOVER-mode read-only rules no longer apply globally; the persistence
   rule is now: *never modify Vanilla configuration; disposable ZZ TEST
@@ -54,6 +54,11 @@ non-routable email).
   VI-008 (empty email templates; email delivery fails in this
   environment, OD-006).
 - Minor residuals listed in UNKNOWNS.md "Open" preamble.
+
+## Core Five status
+
+CORE-FIVE-COMPLETENESS.md: all five families SCHEMA + VALUES + OPERATIONAL
+complete with named residuals; behaviour partial pending E2-E6.
 
 ## Files to read next (by task)
 

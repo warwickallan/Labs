@@ -7,6 +7,22 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — Core Five completeness audit (E-023, read-only)
+
+Warwick prioritised Job Types/Statuses/Actions/Classifications/Response
+Categories as ~85%% of any Helpdesk build. Gaps closed: BOTH Job Type
+records fully read (Reactive binds 9 statuses + default With Helpdesk +
+5 SLA rows + RH01 + button text "Raise job"; Planned hides its add button
+by configuration - "**DO NOT USE**" - binds 6 statuses + Planned SLA +
+PH01, no default status). All 50 actions' record-view TAG AUTOMATION
+lists captured (the complete numbered-tag choreography; a few (+)-flagged
+entries need one re-read). ALL 90 classification records read (16 parents
++ 74 children): 100%% uniform - external-page + Reactive only, everything
+else unwired (VI-006 full scope); children hold explicit values, no live
+inheritance; the "502-obscured Lifts child" was a transient error row -
+Lifts has exactly 3 children (E-018 corrected). CORE-FIVE-COMPLETENESS.md
+matrix added. E2 not begun.
+
 ## 2026-08-19 — Status-record matrix read (E-022, read-only)
 
 All 13 Vanilla status records opened/cancelled: 'Will jobs in this status

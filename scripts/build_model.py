@@ -48,6 +48,7 @@ EVIDENCE = [
     ("E-020", "evidence/helpdesk-runtime/002-action-surfaces-and-job-detail.md", "Row-menu + in-job action surfaces validated; job detail; v2 API; email-fail observation"),
     ("E-021", "evidence/helpdesk-runtime/003-raise-job-wizard.md", "Raise Job wizard (Reactive) and Planned creation route"),
     ("E-022", "evidence/helpdesk-admin/011-status-records-matrix.md", "Per-status record values: mobile-app flags and full flag matrix"),
+    ("E-023", "evidence/helpdesk-admin/012-core-five-value-completion.md", "Core Five completion: Job Type records, action tag matrix, all 90 classifications"),
 ]
 
 DISCOVERY_PHASE = (
