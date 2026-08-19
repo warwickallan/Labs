@@ -1,10 +1,10 @@
 {
   "metadata": {
-    "modelVersion": 1,
+    "modelVersion": 2,
     "environment": "https://warwick.concertodemo.co.uk",
     "mode": "DISCOVER",
     "generatedAt": "2026-08-19",
-    "notes": "Built by scripts/build_model.py from evidence E-001..E-024 (24 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Operational surfaces mapped (Helpdesk E-019..E-021; Supplier Portal EO-005). Experiments E0/E1 complete; E2+ not authorised. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys."
+    "notes": "Built by scripts/build_model.py from evidence E-001..E-024 (24 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Operational surfaces mapped (Helpdesk E-019..E-021; Supplier Portal EO-005). Experiments E0/E1 complete; E2+ not authorised. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys. modelVersion 2 (2026-08-19): per-action structured configuration (availability, resulting type/status, tag automation, triggers, constraints, timers, assignments, emails, hidden, orders effects) promoted from prose notes — EVIDENCE-ONLY transcription of E-015/E-023/E-024; elided evidence lists stay empty with a note. The frozen v1 baseline remains tag VANILLA-HELPDESK-STRUCTURAL-v1."
   },
   "sharedConfiguration": [
     {
@@ -278,6 +278,28 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Actions",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "attachments"
+          ],
+          "availableIn": [
+            "Cancelled",
+            "Closed",
+            "New PPM",
+            "PPM Complete",
+            "With Contractor",
+            "With Contractor - R",
+            "With Helpdesk",
+            "With Maintenance Team",
+            "With Maintenance Team - R",
+            "Work Complete - R"
+          ],
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Actions. Job type: All jobs. Flags: attachments."
         },
         {
@@ -291,6 +313,14 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Actions",
+          "availableIn": [],
+          "availableInAnyStatus": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Actions. Available in any status (no availability restriction) per the Action map."
         },
@@ -306,6 +336,36 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Actions",
+          "flags": [
+            "email_supplier",
+            "email_originator",
+            "admin_only"
+          ],
+          "availableIn": [
+            "New PPM",
+            "With Contractor",
+            "With Contractor - R",
+            "With Helpdesk",
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "resultingStatus": "Cancelled",
+          "orderStatusTrigger": "Cancelled",
+          "ordersEffects": [
+            "sets all non-cancelled orders -> Cancelled",
+            "sets PPM visits -> Aborted visit",
+            "removes operative assignees"
+          ],
+          "emails": [
+            "supplier",
+            "originator"
+          ],
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Actions. Flags: email_supplier, email_originator, admin_only."
         },
         {
@@ -319,6 +379,35 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Actions",
+          "flags": [
+            "email_originator",
+            "admin_only",
+            "status_complete"
+          ],
+          "availableIn": [
+            "PPM Complete",
+            "Work Complete - R"
+          ],
+          "resultingStatus": "Closed",
+          "orderStatusTrigger": "Closed",
+          "emails": [
+            "originator"
+          ],
+          "tagAutomation": {
+            "adds": [],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "clears the working ladder: 01,02,03,05,… (list elided in E-023)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Actions. Flags: email_originator, admin_only, status_complete."
         },
@@ -334,6 +423,19 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Actions",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "routesTo": "G001",
+          "importanceUseFirst": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Actions. Job type: All jobs."
         },
         {
@@ -347,6 +449,27 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Actions",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [
+              "Parts/Stock required"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Actions."
         },
@@ -363,6 +486,36 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "userSelectableStatuses": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "emails": [],
+          "tagAutomation": {
+            "adds": [
+              "02. Job accepted"
+            ],
+            "removes": [
+              "01. Team assigned",
+              "03. Engineer assigned"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Mobile. Job type: All jobs."
         },
         {
@@ -377,6 +530,40 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "start_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01"
+          ],
+          "timer": "Start",
+          "travel": "Start",
+          "routesTo": "G001",
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [
+              "Travelling"
+            ],
+            "removes": [
+              "02. Job accepted"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock."
         },
         {
@@ -390,6 +577,36 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "stop_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM02"
+          ],
+          "timer": "Stop",
+          "travel": "Stop",
+          "tagAutomation": {
+            "adds": [],
+            "removes": [
+              "Travelling"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: stop_clock."
         },
@@ -406,6 +623,42 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "start_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "userSelectableStatuses": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01"
+          ],
+          "timer": "Start",
+          "tagAutomation": {
+            "adds": [
+              "04. In progress"
+            ],
+            "removes": [
+              "02. Job accepted",
+              "Travelling"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock."
         },
         {
@@ -419,6 +672,41 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "stop_clock",
+            "pause_status:Paused"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01",
+            "GM04"
+          ],
+          "timer": "Stop",
+          "hold": "on",
+          "pause": "Pause",
+          "tagAutomation": {
+            "adds": [
+              "05. On hold"
+            ],
+            "removes": [
+              "04. In progress"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: stop_clock, pause_status:Paused."
         },
@@ -434,6 +722,43 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "start_clock",
+            "pause_status:Restart"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01",
+            "GM04",
+            "GM05"
+          ],
+          "timer": "Start",
+          "hold": "off",
+          "pause": "Restart",
+          "tagAutomation": {
+            "adds": [
+              "05. On hold"
+            ],
+            "removes": [
+              "04. In progress"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "IDENTICAL to GM05 despite opposite purpose - VI-010 (E-024 definitive re-read)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock, pause_status:Restart."
         },
         {
@@ -447,6 +772,24 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01",
+            "GM04"
+          ],
+          "importanceUseFirst": true,
+          "whoCanCarryOut": "Sub operative only",
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Mobile. Job type: All jobs."
         },
@@ -462,6 +805,25 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Lead Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [],
+          "hidden": true,
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "NO tag automation (E-024 correction; earlier E-023 entry was stale-panel bleed)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Lead Mobile. Job type: All jobs. Not allocated to any status in the grouped view (U-004)."
         },
         {
@@ -475,6 +837,19 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Lead Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "importanceUseFirst": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Lead Mobile. Job type: All jobs."
         },
@@ -491,6 +866,22 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "Lead Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "userSelectableStatuses": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Lead Mobile. Job type: All jobs."
         },
         {
@@ -504,6 +895,18 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Lead Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Lead Mobile. Job type: All jobs."
         },
@@ -519,6 +922,46 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Lead Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "supplier_assignment",
+            "email_supplier",
+            "orchestrate_only"
+          ],
+          "availableIn": [
+            "With Maintenance Team - R"
+          ],
+          "resultingStatus": "With Contractor - R",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "ordersEffects": [
+            "removes operative assignees"
+          ],
+          "emails": [
+            "supplier"
+          ],
+          "assignment": {
+            "supplier": true
+          },
+          "tagAutomation": {
+            "adds": [
+              "01. Awaiting acceptance"
+            ],
+            "removes": [
+              "01. Team assigned",
+              "03. Engineer assigned"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Lead Mobile. Job type: All jobs. Flags: supplier_assignment, email_supplier, orchestrate_only."
         },
         {
@@ -532,6 +975,26 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "flags": [
+            "default_for_user",
+            "default_for_helpdesk",
+            "email_originator"
+          ],
+          "availableIn": [
+            "With Helpdesk"
+          ],
+          "resultingStatus": "With Helpdesk",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "emails": [
+            "originator"
+          ],
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Reactive Helpdesk Tasks. Flags: default_for_user, default_for_helpdesk, email_originator."
         },
@@ -547,6 +1010,39 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "flags": [
+            "resource_team_assignment",
+            "email_originator"
+          ],
+          "availableIn": [
+            "With Helpdesk"
+          ],
+          "resultingStatus": "With Maintenance Team - R",
+          "resultingType": "Reactive",
+          "emails": [
+            "originator"
+          ],
+          "assignment": {
+            "team": true
+          },
+          "tagAutomation": {
+            "adds": [
+              "01. Team assigned"
+            ],
+            "removes": [
+              "02. Supplier rejected"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Reactive Helpdesk Tasks. Flags: resource_team_assignment, email_originator."
         },
         {
@@ -561,6 +1057,41 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "flags": [
+            "resource_team_assignment",
+            "resource_assignment"
+          ],
+          "availableIn": [
+            "With Maintenance Team - R"
+          ],
+          "resultingStatus": "With Maintenance Team - R",
+          "resultingType": "Reactive",
+          "emails": [
+            "operatives"
+          ],
+          "assignment": {
+            "team": true,
+            "operative": true
+          },
+          "tagAutomation": {
+            "adds": [
+              "03. Engineer assigned"
+            ],
+            "removes": [
+              "01. Team assigned",
+              "02. Supplier rejected"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Reactive Helpdesk Tasks. Flags: resource_team_assignment, resource_assignment."
         },
         {
@@ -574,6 +1105,27 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": null,
+          "availableIn": [],
+          "resultingStatus": "With Contractor - R",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "tagAutomation": {
+            "adds": [
+              "01. Awaiting acceptance"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "E-024 correction (earlier '01. Team assigned' was a stale-panel artifact); fired by the quote engine (RE05, E-016)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "No button group assigned. Not allocated to any status in the grouped view (U-004)."
         },
@@ -590,6 +1142,43 @@
             "E-007",
             "E-008"
           ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "flags": [
+            "supplier_assignment",
+            "email_supplier"
+          ],
+          "availableIn": [
+            "With Contractor - R",
+            "With Helpdesk",
+            "With Maintenance Team - R"
+          ],
+          "resultingStatus": "With Contractor - R",
+          "resultingType": "Reactive",
+          "orderStatusTrigger": "Awaiting acceptance",
+          "defaultOrdersProject": "(00001) Reactive Maintenance",
+          "emails": [
+            "supplier"
+          ],
+          "assignment": {
+            "supplier": true
+          },
+          "tagAutomation": {
+            "adds": [
+              "01. Awaiting acceptance"
+            ],
+            "removes": [
+              "02. Supplier rejected"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Reactive Helpdesk Tasks. Flags: supplier_assignment, email_supplier. Record view (E-008): Resulting type Reactive; Status 'Web page only'; who can carry out: both lead and sub operatives; adds tag '01. Awaiting acceptance', removes tag '02. Supplier rejected'."
         },
         {
@@ -603,6 +1192,28 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "availableIn": [
+            "Awaiting Order Approval - R"
+          ],
+          "resultingStatus": "With Contractor - R",
+          "resultingType": "Reactive",
+          "orderApprovalTrigger": true,
+          "tagAutomation": {
+            "adds": [
+              "01. Awaiting acceptance"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Reactive Helpdesk Tasks."
         },
@@ -618,6 +1229,18 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "availableIn": [
+            "With Helpdesk",
+            "With Maintenance Team"
+          ],
+          "resultingStatus": "Quote Requested - R",
+          "resultingType": "Reactive",
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Reactive Helpdesk Tasks."
         },
         {
@@ -631,6 +1254,28 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "flags": [
+            "email"
+          ],
+          "availableIn": [
+            "With Contractor - R",
+            "With Helpdesk",
+            "With Maintenance Team - R"
+          ],
+          "resultingType": "Reactive",
+          "ordersEffects": [
+            "updates the order priority to the associated helpdesk priority"
+          ],
+          "emails": [
+            "selected users"
+          ],
+          "importanceUseFirst": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Reactive Helpdesk Tasks. Flags: email."
         },
@@ -646,6 +1291,24 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "flags": [
+            "admin_only"
+          ],
+          "availableIn": [
+            "With Contractor - R",
+            "With Maintenance Team - R"
+          ],
+          "resultingType": "Reactive",
+          "ordersEffects": [
+            "orders -> On hold"
+          ],
+          "hold": "on",
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Reactive Helpdesk Tasks. Flags: admin_only."
         },
         {
@@ -659,6 +1322,20 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "availableIn": [
+            "With Contractor - R"
+          ],
+          "resultingType": "Reactive",
+          "ordersEffects": [
+            "orders -> In progress"
+          ],
+          "hold": "off",
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Reactive Helpdesk Tasks."
         },
@@ -674,6 +1351,29 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "availableIn": [
+            "With Contractor - R",
+            "With Maintenance Team - R"
+          ],
+          "resultingStatus": "Work Complete - R",
+          "resultingType": "Reactive",
+          "tagAutomation": {
+            "adds": [
+              "08. Awaiting AFP/invoicing"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "working-ladder clear (list elided in E-023; E1 verified the 08 add)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Reactive Helpdesk Tasks."
         },
         {
@@ -687,6 +1387,29 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "availableIn": [
+            "With Contractor - R",
+            "With Maintenance Team - R"
+          ],
+          "resultingStatus": "Work Complete - R",
+          "resultingType": "Reactive",
+          "tagAutomation": {
+            "adds": [
+              "07. Follow up required/Remedials"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "working-ladder clear / 04. In progress (elided in E-023)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Reactive Helpdesk Tasks."
         },
@@ -702,6 +1425,41 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Mobile Reactive",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "email_originator",
+            "stop_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team - R"
+          ],
+          "resultingStatus": "Work Complete - R",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "constraints": [
+            "GM01",
+            "GM04"
+          ],
+          "timer": "Stop",
+          "emails": [
+            "originator"
+          ],
+          "tagAutomation": {
+            "adds": [],
+            "removes": [
+              "04. In progress"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Mobile Reactive. Job type: All jobs. Flags: email_originator, stop_clock."
         },
         {
@@ -715,6 +1473,38 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Mobile Reactive",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "stop_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team - R"
+          ],
+          "resultingStatus": "Work Complete - R",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "constraints": [
+            "GM01",
+            "GM04"
+          ],
+          "timer": "Stop",
+          "tagAutomation": {
+            "adds": [
+              "07. Follow up required/Remedials"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "working-ladder clear / 04. In progress (elided in E-023)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Mobile Reactive. Job type: All jobs. Flags: stop_clock."
         },
@@ -730,6 +1520,29 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor - R"
+          ],
+          "hidden": true,
+          "orderStatusTrigger": "Accepted",
+          "tagAutomation": {
+            "adds": [
+              "02. Job accepted"
+            ],
+            "removes": [
+              "01. Awaiting acceptance"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Tag/Auto Actions."
         },
         {
@@ -743,6 +1556,30 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor - R"
+          ],
+          "resultingStatus": "With Helpdesk",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "tagAutomation": {
+            "adds": [
+              "02. Supplier rejected"
+            ],
+            "removes": [
+              "01. Awaiting acceptance"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Tag/Auto Actions."
         },
@@ -758,6 +1595,30 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor",
+            "With Contractor - R"
+          ],
+          "hidden": true,
+          "orderStatusTrigger": "Appointment Made/Operative Assigned",
+          "tagAutomation": {
+            "adds": [
+              "03. Appointment made/Operative assigned"
+            ],
+            "removes": [
+              "02. Job accepted"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Tag/Auto Actions."
         },
         {
@@ -771,6 +1632,36 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor",
+            "With Contractor - R",
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [
+              "04. In progress"
+            ],
+            "removes": [
+              "03. Appointment made/Operative assigned",
+              "05. On hold",
+              "07. Follow up required/Remedials",
+              "08. Awaiting AFP/invoicing"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "removes-list transcribed from E-023's abbreviated row (03/05/07/08 ladder)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Tag/Auto Actions."
         },
@@ -787,6 +1678,21 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [],
+          "userSelectableStatuses": [
+            "With Maintenance Team",
+            "With Contractor",
+            "With Maintenance Team - R",
+            "With Contractor - R"
+          ],
+          "hidden": true,
+          "importanceUseFirst": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Tag/Auto Actions. Not allocated to any status in the grouped view (U-004)."
         },
         {
@@ -800,6 +1706,32 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor - R",
+            "Work Complete - R"
+          ],
+          "resultingStatus": "Business Case - R",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [
+              "06. Cost uplift awaiting approval"
+            ],
+            "removes": [
+              "04. In progress"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Tag/Auto Actions."
         },
@@ -816,6 +1748,28 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [],
+          "userSelectableStatuses": [
+            "PPM Complete",
+            "Work Complete - R"
+          ],
+          "hidden": true,
+          "afpTrigger": true,
+          "tagAutomation": {
+            "adds": [],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "NO tag automation (E-024 correction; earlier E-023 entries were stale bleed)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Tag/Auto Actions. Not allocated to any status in the grouped view (U-004)."
         }
       ],
@@ -1727,6 +2681,28 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Actions",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "attachments"
+          ],
+          "availableIn": [
+            "Cancelled",
+            "Closed",
+            "New PPM",
+            "PPM Complete",
+            "With Contractor",
+            "With Contractor - R",
+            "With Helpdesk",
+            "With Maintenance Team",
+            "With Maintenance Team - R",
+            "Work Complete - R"
+          ],
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Actions. Job type: All jobs. Flags: attachments."
         },
         {
@@ -1740,6 +2716,14 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Actions",
+          "availableIn": [],
+          "availableInAnyStatus": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Actions. Available in any status (no availability restriction) per the Action map."
         },
@@ -1755,6 +2739,36 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Actions",
+          "flags": [
+            "email_supplier",
+            "email_originator",
+            "admin_only"
+          ],
+          "availableIn": [
+            "New PPM",
+            "With Contractor",
+            "With Contractor - R",
+            "With Helpdesk",
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "resultingStatus": "Cancelled",
+          "orderStatusTrigger": "Cancelled",
+          "ordersEffects": [
+            "sets all non-cancelled orders -> Cancelled",
+            "sets PPM visits -> Aborted visit",
+            "removes operative assignees"
+          ],
+          "emails": [
+            "supplier",
+            "originator"
+          ],
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Actions. Flags: email_supplier, email_originator, admin_only."
         },
         {
@@ -1768,6 +2782,35 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Actions",
+          "flags": [
+            "email_originator",
+            "admin_only",
+            "status_complete"
+          ],
+          "availableIn": [
+            "PPM Complete",
+            "Work Complete - R"
+          ],
+          "resultingStatus": "Closed",
+          "orderStatusTrigger": "Closed",
+          "emails": [
+            "originator"
+          ],
+          "tagAutomation": {
+            "adds": [],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "clears the working ladder: 01,02,03,05,… (list elided in E-023)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Actions. Flags: email_originator, admin_only, status_complete."
         },
@@ -1783,6 +2826,19 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Actions",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "routesTo": "G001",
+          "importanceUseFirst": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Actions. Job type: All jobs."
         },
         {
@@ -1796,6 +2852,27 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Actions",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [
+              "Parts/Stock required"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Actions."
         },
@@ -1812,6 +2889,36 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "userSelectableStatuses": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "emails": [],
+          "tagAutomation": {
+            "adds": [
+              "02. Job accepted"
+            ],
+            "removes": [
+              "01. Team assigned",
+              "03. Engineer assigned"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Mobile. Job type: All jobs."
         },
         {
@@ -1826,6 +2933,40 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "start_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01"
+          ],
+          "timer": "Start",
+          "travel": "Start",
+          "routesTo": "G001",
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [
+              "Travelling"
+            ],
+            "removes": [
+              "02. Job accepted"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock."
         },
         {
@@ -1839,6 +2980,36 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "stop_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM02"
+          ],
+          "timer": "Stop",
+          "travel": "Stop",
+          "tagAutomation": {
+            "adds": [],
+            "removes": [
+              "Travelling"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: stop_clock."
         },
@@ -1855,6 +3026,42 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "start_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "userSelectableStatuses": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01"
+          ],
+          "timer": "Start",
+          "tagAutomation": {
+            "adds": [
+              "04. In progress"
+            ],
+            "removes": [
+              "02. Job accepted",
+              "Travelling"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock."
         },
         {
@@ -1868,6 +3075,41 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "stop_clock",
+            "pause_status:Paused"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01",
+            "GM04"
+          ],
+          "timer": "Stop",
+          "hold": "on",
+          "pause": "Pause",
+          "tagAutomation": {
+            "adds": [
+              "05. On hold"
+            ],
+            "removes": [
+              "04. In progress"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: stop_clock, pause_status:Paused."
         },
@@ -1883,6 +3125,43 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "start_clock",
+            "pause_status:Restart"
+          ],
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01",
+            "GM04",
+            "GM05"
+          ],
+          "timer": "Start",
+          "hold": "off",
+          "pause": "Restart",
+          "tagAutomation": {
+            "adds": [
+              "05. On hold"
+            ],
+            "removes": [
+              "04. In progress"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "IDENTICAL to GM05 despite opposite purpose - VI-010 (E-024 definitive re-read)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: General Mobile. Job type: All jobs. Flags: start_clock, pause_status:Restart."
         },
         {
@@ -1896,6 +3175,24 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "General Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "constraints": [
+            "GM01",
+            "GM04"
+          ],
+          "importanceUseFirst": true,
+          "whoCanCarryOut": "Sub operative only",
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: General Mobile. Job type: All jobs."
         },
@@ -1911,6 +3208,25 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Lead Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [],
+          "hidden": true,
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "NO tag automation (E-024 correction; earlier E-023 entry was stale-panel bleed)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Lead Mobile. Job type: All jobs. Not allocated to any status in the grouped view (U-004)."
         },
         {
@@ -1924,6 +3240,19 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Lead Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "importanceUseFirst": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Lead Mobile. Job type: All jobs."
         },
@@ -1939,6 +3268,18 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Lead Mobile",
+          "jobTypeScope": "All jobs",
+          "availableIn": [
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Lead Mobile. Job type: All jobs."
         },
         {
@@ -1952,6 +3293,18 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Planned Helpdesk Tasks",
+          "availableIn": [
+            "New PPM"
+          ],
+          "resultingStatus": "New PPM",
+          "resultingType": "Planned",
+          "hidden": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Planned Helpdesk Tasks."
         },
@@ -1967,6 +3320,33 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Planned Helpdesk Tasks",
+          "flags": [
+            "resource_team_assignment"
+          ],
+          "availableIn": [
+            "New PPM"
+          ],
+          "resultingStatus": "With Maintenance Team",
+          "resultingType": "Planned",
+          "assignment": {
+            "team": true
+          },
+          "tagAutomation": {
+            "adds": [
+              "01. Team assigned"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Planned Helpdesk Tasks. Flags: resource_team_assignment."
         },
         {
@@ -1980,6 +3360,33 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Planned Helpdesk Tasks",
+          "flags": [
+            "resource_team_assignment"
+          ],
+          "availableIn": [
+            "New PPM"
+          ],
+          "resultingStatus": "With Maintenance Team",
+          "resultingType": "Planned",
+          "assignment": {
+            "team": true
+          },
+          "tagAutomation": {
+            "adds": [
+              "01. Team assigned"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Planned Helpdesk Tasks. Flags: resource_team_assignment."
         },
@@ -1995,6 +3402,39 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Planned Helpdesk Tasks",
+          "flags": [
+            "resource_assignment"
+          ],
+          "availableIn": [
+            "With Maintenance Team"
+          ],
+          "resultingStatus": "With Maintenance Team",
+          "resultingType": "Planned",
+          "emails": [
+            "operatives"
+          ],
+          "assignment": {
+            "operative": true
+          },
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [
+              "03. Engineer assigned"
+            ],
+            "removes": [
+              "01. Team assigned"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Planned Helpdesk Tasks. Flags: resource_assignment."
         },
         {
@@ -2009,6 +3449,44 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Planned Helpdesk Tasks",
+          "flags": [
+            "supplier_assignment",
+            "email_supplier"
+          ],
+          "availableIn": [
+            "New PPM",
+            "With Contractor",
+            "With Maintenance Team"
+          ],
+          "resultingStatus": "With Contractor",
+          "ordersEffects": [
+            "sets PPM visits -> Ordered"
+          ],
+          "defaultOrdersProject": "(00002) Planned Maintenance",
+          "emails": [
+            "supplier"
+          ],
+          "assignment": {
+            "supplier": true
+          },
+          "tagAutomation": {
+            "adds": [
+              "01. Awaiting acceptance"
+            ],
+            "removes": [
+              "02. Supplier rejected"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Planned Helpdesk Tasks. Flags: supplier_assignment, email_supplier."
         },
         {
@@ -2022,6 +3500,18 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Planned Helpdesk Tasks",
+          "availableIn": [
+            "New PPM",
+            "With Contractor",
+            "With Maintenance Team"
+          ],
+          "hold": "on",
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Planned Helpdesk Tasks."
         },
@@ -2038,6 +3528,23 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "Planned Helpdesk Tasks",
+          "availableIn": [
+            "With Contractor",
+            "With Helpdesk",
+            "With Maintenance Team"
+          ],
+          "userSelectableStatuses": [
+            "With Maintenance Team",
+            "With Contractor",
+            "With Helpdesk"
+          ],
+          "hold": "off",
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Planned Helpdesk Tasks."
         },
         {
@@ -2051,6 +3558,28 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Planned Helpdesk Tasks",
+          "availableIn": [
+            "With Contractor",
+            "With Maintenance Team"
+          ],
+          "resultingStatus": "PPM Complete",
+          "tagAutomation": {
+            "adds": [
+              "08. Awaiting AFP/invoicing"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "working-ladder clear (list elided in E-023)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Planned Helpdesk Tasks."
         },
@@ -2066,6 +3595,32 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Planned Helpdesk Tasks",
+          "availableIn": [
+            "With Contractor",
+            "With Maintenance Team"
+          ],
+          "resultingStatus": "PPM Complete",
+          "resultingType": "Planned",
+          "ordersEffects": [
+            "sets PPM visits -> Complete - Remedial"
+          ],
+          "tagAutomation": {
+            "adds": [
+              "07. Follow up required/Remedials"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "working-ladder clear / 04. In progress (elided in E-023)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Planned Helpdesk Tasks."
         },
         {
@@ -2079,6 +3634,39 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Mobile Planned",
+          "jobTypeScope": "All jobs",
+          "flags": [
+            "stop_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team"
+          ],
+          "resultingStatus": "PPM Complete",
+          "hidden": true,
+          "ordersEffects": [
+            "sets PPM visits -> Complete"
+          ],
+          "constraints": [
+            "GM01",
+            "GM04"
+          ],
+          "timer": "Stop",
+          "tagAutomation": {
+            "adds": [],
+            "removes": [
+              "04. In progress"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Mobile Planned. Job type: All jobs. Flags: stop_clock."
         },
@@ -2094,6 +3682,38 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Mobile Planned",
+          "jobTypeScope": "Single operative job",
+          "flags": [
+            "stop_clock"
+          ],
+          "availableIn": [
+            "With Maintenance Team"
+          ],
+          "resultingStatus": "PPM Complete",
+          "resultingType": "Planned",
+          "hidden": true,
+          "constraints": [
+            "GM01",
+            "GM04"
+          ],
+          "timer": "Stop",
+          "tagAutomation": {
+            "adds": [
+              "07. Follow up required/Remedials"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "working-ladder clear / 04. In progress (elided in E-023)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Mobile Planned. Job type: Single operative job. Flags: stop_clock."
         },
         {
@@ -2107,6 +3727,27 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": null,
+          "availableIn": [],
+          "resultingStatus": "With Contractor - R",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "tagAutomation": {
+            "adds": [
+              "01. Awaiting acceptance"
+            ],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "E-024 correction (earlier '01. Team assigned' was a stale-panel artifact); fired by the quote engine (RE05, E-016)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "No button group assigned. Not allocated to any status in the grouped view (U-004)."
         },
@@ -2122,6 +3763,28 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Reactive Helpdesk Tasks",
+          "flags": [
+            "email"
+          ],
+          "availableIn": [
+            "With Contractor - R",
+            "With Helpdesk",
+            "With Maintenance Team - R"
+          ],
+          "resultingType": "Reactive",
+          "ordersEffects": [
+            "updates the order priority to the associated helpdesk priority"
+          ],
+          "emails": [
+            "selected users"
+          ],
+          "importanceUseFirst": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Reactive Helpdesk Tasks. Flags: email."
         },
         {
@@ -2135,6 +3798,29 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor - R"
+          ],
+          "hidden": true,
+          "orderStatusTrigger": "Accepted",
+          "tagAutomation": {
+            "adds": [
+              "02. Job accepted"
+            ],
+            "removes": [
+              "01. Awaiting acceptance"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Tag/Auto Actions."
         },
@@ -2150,6 +3836,30 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor - R"
+          ],
+          "resultingStatus": "With Helpdesk",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "tagAutomation": {
+            "adds": [
+              "02. Supplier rejected"
+            ],
+            "removes": [
+              "01. Awaiting acceptance"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Tag/Auto Actions."
         },
         {
@@ -2164,6 +3874,30 @@
             "E-006",
             "E-007"
           ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor",
+            "With Contractor - R"
+          ],
+          "hidden": true,
+          "orderStatusTrigger": "Appointment Made/Operative Assigned",
+          "tagAutomation": {
+            "adds": [
+              "03. Appointment made/Operative assigned"
+            ],
+            "removes": [
+              "02. Job accepted"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Tag/Auto Actions."
         },
         {
@@ -2177,6 +3911,36 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor",
+            "With Contractor - R",
+            "With Maintenance Team",
+            "With Maintenance Team - R"
+          ],
+          "hidden": true,
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [
+              "04. In progress"
+            ],
+            "removes": [
+              "03. Appointment made/Operative assigned",
+              "05. On hold",
+              "07. Follow up required/Remedials",
+              "08. Awaiting AFP/invoicing"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "removes-list transcribed from E-023's abbreviated row (03/05/07/08 ladder)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Tag/Auto Actions."
         },
@@ -2193,6 +3957,21 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [],
+          "userSelectableStatuses": [
+            "With Maintenance Team",
+            "With Contractor",
+            "With Maintenance Team - R",
+            "With Contractor - R"
+          ],
+          "hidden": true,
+          "importanceUseFirst": true,
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Tag/Auto Actions. Not allocated to any status in the grouped view (U-004)."
         },
         {
@@ -2206,6 +3985,32 @@
             "E-005",
             "E-006",
             "E-007"
+          ],
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [
+            "With Contractor - R",
+            "Work Complete - R"
+          ],
+          "resultingStatus": "Business Case - R",
+          "resultingType": "Reactive",
+          "hidden": true,
+          "importanceUseFirst": true,
+          "tagAutomation": {
+            "adds": [
+              "06. Cost uplift awaiting approval"
+            ],
+            "removes": [
+              "04. In progress"
+            ],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ]
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
           ],
           "notes": "Button group: Tag/Auto Actions."
         },
@@ -2222,6 +4027,28 @@
             "E-007"
           ],
           "userSelectsResultingStatus": true,
+          "buttonGroup": "Tag/Auto Actions",
+          "availableIn": [],
+          "userSelectableStatuses": [
+            "PPM Complete",
+            "Work Complete - R"
+          ],
+          "hidden": true,
+          "afpTrigger": true,
+          "tagAutomation": {
+            "adds": [],
+            "removes": [],
+            "evidence": [
+              "E-023",
+              "E-024"
+            ],
+            "note": "NO tag automation (E-024 correction; earlier E-023 entries were stale bleed)"
+          },
+          "detailEvidence": [
+            "E-015",
+            "E-023",
+            "E-024"
+          ],
           "notes": "Button group: Tag/Auto Actions. Not allocated to any status in the grouped view (U-004)."
         }
       ],

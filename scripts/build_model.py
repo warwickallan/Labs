@@ -186,6 +186,167 @@ SELECTS = {
     "T09": ["PPM Complete", "Work Complete - R"],
 }
 
+# ---- per-action structured detail promoted from prose (modelVersion 2).
+# EVIDENCE-ONLY: every value below is a transcription of E-015 (per-action
+# Edit forms), E-008/E-009 (RH04), E-023 (tag-automation matrix) and E-024
+# (tag corrections: RH03b adds 01. Awaiting acceptance; LM01 and T09 have
+# NO tag automation; GM06 confirmed = VI-010). Where E-023's remove-lists
+# were elided in the source table ("working-ladder clear", "01,02,03,05,…")
+# the removes list stays EMPTY and tagNote carries the verbatim wording —
+# no invented members. Tag names use the fullest form E-023 itself gives
+# ("07. Follow up required/Remedials", "08. Awaiting AFP/invoicing").
+#
+# Field keys (only present where evidenced):
+#   resultingType, hidden, orderStatusTrigger, orderApprovalTrigger,
+#   afpTrigger, ordersEffects[], constraints[], timer, travel, hold, pause,
+#   defaultOrdersProject, routesTo, emails[], assignment{supplier|team|
+#   operative}, importanceUseFirst, whoCanCarryOut, addsTags[],
+#   removesTags[], tagNote
+DETAIL = {
+    "G001": {},
+    "G002": {"notesExtra": "Is-permit-request."},
+    "G003": {"orderStatusTrigger": "Cancelled",
+             "ordersEffects": ["sets all non-cancelled orders -> Cancelled",
+                                "sets PPM visits -> Aborted visit",
+                                "removes operative assignees"],
+             "emails": ["supplier", "originator"],
+             "removesTags": [], "tagNote": None},
+    "G004": {"orderStatusTrigger": "Closed", "emails": ["originator"],
+             "removesTags": [],
+             "tagNote": "clears the working ladder: 01,02,03,05,… (list elided in E-023)"},
+    "G005": {"routesTo": "G001", "importanceUseFirst": True},
+    "G006": {"importanceUseFirst": True, "addsTags": ["Parts/Stock required"]},
+    "GM01": {"hidden": True, "emails": [],
+             "addsTags": ["02. Job accepted"],
+             "removesTags": ["01. Team assigned", "03. Engineer assigned"]},
+    "GM02": {"hidden": True, "constraints": ["GM01"], "timer": "Start",
+             "travel": "Start", "routesTo": "G001", "importanceUseFirst": True,
+             "addsTags": ["Travelling"], "removesTags": ["02. Job accepted"]},
+    "GM03": {"hidden": True, "constraints": ["GM02"], "timer": "Stop",
+             "travel": "Stop", "removesTags": ["Travelling"]},
+    "GM04": {"hidden": True, "constraints": ["GM01"], "timer": "Start",
+             "addsTags": ["04. In progress"],
+             "removesTags": ["02. Job accepted", "Travelling"]},
+    "GM05": {"hidden": True, "constraints": ["GM01", "GM04"], "timer": "Stop",
+             "hold": "on", "pause": "Pause",
+             "addsTags": ["05. On hold"], "removesTags": ["04. In progress"]},
+    "GM06": {"hidden": True, "constraints": ["GM01", "GM04", "GM05"],
+             "timer": "Start", "hold": "off", "pause": "Restart",
+             "addsTags": ["05. On hold"], "removesTags": ["04. In progress"],
+             "tagNote": "IDENTICAL to GM05 despite opposite purpose - VI-010 (E-024 definitive re-read)"},
+    "GM07": {"hidden": True, "constraints": ["GM01", "GM04"],
+             "whoCanCarryOut": "Sub operative only", "importanceUseFirst": True},
+    "LM01": {"hidden": True, "importanceUseFirst": True,
+             "tagNote": "NO tag automation (E-024 correction; earlier E-023 entry was stale-panel bleed)"},
+    "LM02": {"hidden": True, "importanceUseFirst": True},
+    "LM03": {"hidden": True},
+    "LM04": {"hidden": True},
+    "LM05": {"hidden": True, "resultingType": "Reactive",
+             "emails": ["supplier"],
+             "ordersEffects": ["removes operative assignees"],
+             "assignment": {"supplier": True},
+             "addsTags": ["01. Awaiting acceptance"],
+             "removesTags": ["01. Team assigned", "03. Engineer assigned"]},
+    "PH01": {"hidden": True, "resultingType": "Planned"},
+    "PH02": {"resultingType": "Planned", "assignment": {"team": True},
+             "addsTags": ["01. Team assigned"]},
+    "PH02a": {"resultingType": "Planned", "assignment": {"team": True},
+              "addsTags": ["01. Team assigned"]},
+    "PH02b": {"resultingType": "Planned", "assignment": {"operative": True},
+              "emails": ["operatives"], "importanceUseFirst": True,
+              "addsTags": ["03. Engineer assigned"],
+              "removesTags": ["01. Team assigned"]},
+    "PH03": {"ordersEffects": ["sets PPM visits -> Ordered"],
+             "emails": ["supplier"],
+             "defaultOrdersProject": "(00002) Planned Maintenance",
+             "assignment": {"supplier": True},
+             "addsTags": ["01. Awaiting acceptance"],
+             "removesTags": ["02. Supplier rejected"]},
+    "PH04": {"hold": "on"},
+    "PH05": {"hold": "off"},
+    "PH06": {"addsTags": ["08. Awaiting AFP/invoicing"], "removesTags": [],
+             "tagNote": "working-ladder clear (list elided in E-023)"},
+    "PH07": {"resultingType": "Planned",
+             "ordersEffects": ["sets PPM visits -> Complete - Remedial"],
+             "addsTags": ["07. Follow up required/Remedials"], "removesTags": [],
+             "tagNote": "working-ladder clear / 04. In progress (elided in E-023)"},
+    "PM01": {"hidden": True, "timer": "Stop", "constraints": ["GM01", "GM04"],
+             "ordersEffects": ["sets PPM visits -> Complete"],
+             "removesTags": ["04. In progress"]},
+    "PM02": {"hidden": True, "resultingType": "Planned", "timer": "Stop",
+             "constraints": ["GM01", "GM04"],
+             "addsTags": ["07. Follow up required/Remedials"], "removesTags": [],
+             "tagNote": "working-ladder clear / 04. In progress (elided in E-023)"},
+    "RH01": {"hidden": True, "resultingType": "Reactive",
+             "emails": ["originator"]},
+    "RH02": {"resultingType": "Reactive", "emails": ["originator"],
+             "assignment": {"team": True},
+             "addsTags": ["01. Team assigned"],
+             "removesTags": ["02. Supplier rejected"]},
+    "RH03": {"resultingType": "Reactive", "emails": ["operatives"],
+             "assignment": {"team": True, "operative": True},
+             "addsTags": ["03. Engineer assigned"],
+             "removesTags": ["01. Team assigned", "02. Supplier rejected"]},
+    "RH03b": {"hidden": True, "resultingType": "Reactive",
+              "addsTags": ["01. Awaiting acceptance"],
+              "tagNote": "E-024 correction (earlier '01. Team assigned' was a stale-panel artifact); fired by the quote engine (RE05, E-016)"},
+    "RH04": {"resultingType": "Reactive",
+             "orderStatusTrigger": "Awaiting acceptance",
+             "emails": ["supplier"],
+             "defaultOrdersProject": "(00001) Reactive Maintenance",
+             "assignment": {"supplier": True},
+             "addsTags": ["01. Awaiting acceptance"],
+             "removesTags": ["02. Supplier rejected"]},
+    "RH05": {"resultingType": "Reactive", "orderApprovalTrigger": True,
+             "addsTags": ["01. Awaiting acceptance"]},
+    "RH06": {"resultingType": "Reactive"},
+    "RH07": {"resultingType": "Reactive", "emails": ["selected users"],
+             "ordersEffects": ["updates the order priority to the associated helpdesk priority"],
+             "importanceUseFirst": True},
+    "RH08": {"resultingType": "Reactive", "hold": "on",
+             "ordersEffects": ["orders -> On hold"]},
+    "RH09": {"resultingType": "Reactive", "hold": "off",
+             "ordersEffects": ["orders -> In progress"]},
+    "RH10": {"resultingType": "Reactive",
+             "addsTags": ["08. Awaiting AFP/invoicing"], "removesTags": [],
+             "tagNote": "working-ladder clear (list elided in E-023; E1 verified the 08 add)"},
+    "RH11": {"resultingType": "Reactive",
+             "addsTags": ["07. Follow up required/Remedials"], "removesTags": [],
+             "tagNote": "working-ladder clear / 04. In progress (elided in E-023)"},
+    "RM01": {"hidden": True, "resultingType": "Reactive",
+             "emails": ["originator"], "timer": "Stop",
+             "constraints": ["GM01", "GM04"],
+             "removesTags": ["04. In progress"]},
+    "RM02": {"hidden": True, "resultingType": "Reactive", "timer": "Stop",
+             "constraints": ["GM01", "GM04"],
+             "addsTags": ["07. Follow up required/Remedials"], "removesTags": [],
+             "tagNote": "working-ladder clear / 04. In progress (elided in E-023)"},
+    "T02": {"hidden": True, "orderStatusTrigger": "Accepted",
+            "addsTags": ["02. Job accepted"],
+            "removesTags": ["01. Awaiting acceptance"]},
+    "T03": {"hidden": True, "resultingType": "Reactive",
+            "addsTags": ["02. Supplier rejected"],
+            "removesTags": ["01. Awaiting acceptance"]},
+    "T04": {"hidden": True,
+            "orderStatusTrigger": "Appointment Made/Operative Assigned",
+            "addsTags": ["03. Appointment made/Operative assigned"],
+            "removesTags": ["02. Job accepted"]},
+    "T05": {"hidden": True, "importanceUseFirst": True,
+            "addsTags": ["04. In progress"],
+            "removesTags": ["03. Appointment made/Operative assigned",
+                             "05. On hold", "07. Follow up required/Remedials",
+                             "08. Awaiting AFP/invoicing"],
+            "tagNote": "removes-list transcribed from E-023's abbreviated row (03/05/07/08 ladder)"},
+    "T06": {"hidden": True, "importanceUseFirst": True},
+    "T07": {"hidden": True, "resultingType": "Reactive",
+            "importanceUseFirst": True,
+            "addsTags": ["06. Cost uplift awaiting approval"],
+            "removesTags": ["04. In progress"]},
+    "T09": {"hidden": True, "afpTrigger": True,
+            "tagNote": "NO tag automation (E-024 correction; earlier E-023 entries were stale bleed)"},
+}
+DETAIL_EVIDENCE = ["E-015", "E-023", "E-024"]
+
 
 def status_entry(name, sort, default, complete, shared):
     e = {
@@ -219,6 +380,40 @@ def action_entry(code, type_letter):
     }
     if code in SELECTS:
         e["userSelectsResultingStatus"] = True
+
+    # ---- modelVersion 2: structured configuration promoted from evidence
+    d = DETAIL.get(code, {})
+    e["buttonGroup"] = group  # None for RH03b (VI-004)
+    if jobtype:
+        e["jobTypeScope"] = jobtype
+    if flags:
+        e["flags"] = list(flags)
+    e["availableIn"] = sorted(
+        [s for s, codes in AVAILABILITY.items() if code in codes]
+    )
+    if code in ANY_STATUS:
+        e["availableInAnyStatus"] = True
+    if code in SETS:
+        e["resultingStatus"] = SETS[code]
+    if code in SELECTS:
+        e["userSelectableStatuses"] = list(SELECTS[code])
+    for key in ("resultingType", "hidden", "orderStatusTrigger",
+                "orderApprovalTrigger", "afpTrigger", "ordersEffects",
+                "constraints", "timer", "travel", "hold", "pause",
+                "defaultOrdersProject", "routesTo", "emails", "assignment",
+                "importanceUseFirst", "whoCanCarryOut"):
+        if key in d and d[key] is not None:
+            e[key] = d[key]
+    adds = d.get("addsTags", [])
+    removes = d.get("removesTags", [])
+    tag_note = d.get("tagNote")
+    if adds or removes or tag_note:
+        tag = {"adds": list(adds), "removes": list(removes),
+               "evidence": ["E-023", "E-024"]}
+        if tag_note:
+            tag["note"] = tag_note
+        e["tagAutomation"] = tag
+    e["detailEvidence"] = list(DETAIL_EVIDENCE)
     notes = []
     if group:
         notes.append(f"Button group: {group}.")
@@ -323,7 +518,7 @@ def build():
 
     model = {
         "metadata": {
-            "modelVersion": 1,
+            "modelVersion": 2,
             "environment": "https://warwick.concertodemo.co.uk",
             "mode": "DISCOVER",
             "generatedAt": _dt.date.today().isoformat(),
@@ -333,7 +528,13 @@ def build():
                 "Concerto build 2026.08.9968-main). 'With AMO' status excluded: "
                 f"user-declared non-Vanilla addition. {DISCOVERY_PHASE} "
                 "GUIDs referenced via model/IDENTITIES.json are "
-                "environment-specific observed identities, not portable keys."
+                "environment-specific observed identities, not portable keys. "
+                "modelVersion 2 (2026-08-19): per-action structured configuration "
+                "(availability, resulting type/status, tag automation, triggers, "
+                "constraints, timers, assignments, emails, hidden, orders effects) "
+                "promoted from prose notes — EVIDENCE-ONLY transcription of "
+                "E-015/E-023/E-024; elided evidence lists stay empty with a note. "
+                "The frozen v1 baseline remains tag VANILLA-HELPDESK-STRUCTURAL-v1."
             ),
         },
         "sharedConfiguration": [

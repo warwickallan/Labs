@@ -35,8 +35,11 @@
     else if (/STRUCTURAL/.test(confidence || '')) cls += ' structural';
     return el('span', { class: cls, text: confidence || 'UNKNOWN' });
   }
-  function parsedChip() {
-    return el('span', { class: 'conf-chip parsed', text: 'parsed from notes', title: 'Recovered from build_model.py generated notes prose, not a structured source field' });
+  function provChip(action) {
+    if (action && action.notesProvenance === 'STRUCTURED-V2') {
+      return el('span', { class: 'conf-chip structural', text: 'structured (model v2)', title: 'Explicit evidence-promoted field in the canonical model (E-015/E-023/E-024)' });
+    }
+    return el('span', { class: 'conf-chip parsed', text: 'parsed from notes', title: 'Recovered from generated notes prose, not a structured source field' });
   }
   function evChips(evidence) {
     return el('span', {}, (evidence || []).map(function (id) { return el('span', { class: 'ev-chip', text: id }); }));
@@ -183,16 +186,28 @@
         ['Evidence', evChips(a.evidence)]
       ])]),
       sec('Configuration', [kvTable([
-        ['Button group', el('span', {}, [document.createTextNode(a.buttonGroup || '— none (VI-004 for RH03b)'), document.createTextNode(' '), parsedChip()])],
+        ['Button group', el('span', {}, [document.createTextNode(a.buttonGroup || '— none (VI-004 for RH03b)'), document.createTextNode(' '), provChip(a)])],
         ['Mobile available', a.mobileAvailable ? 'yes (action gate; status gate also required — two-gate model)' : 'no'],
-        a.flags.length ? ['Flags', el('span', {}, [document.createTextNode(a.flags.join(', ') + ' '), parsedChip()])] : null,
-        a.resultingType ? ['Resulting type', el('span', {}, [document.createTextNode(a.resultingType + ' '), parsedChip()])] : null,
+        a.hidden ? ['Hidden from user options', 'yes (renders on-device / engine only)'] : null,
+        a.flags.length ? ['Flags', a.flags.join(', ')] : null,
+        a.resultingType ? ['Resulting type', a.resultingType] : null,
+        (a.constraints && a.constraints.length) ? ['Constraints (prerequisites)', a.constraints.join(', ') + ' — runtime semantics untested (U-012/E5)'] : null,
+        a.timer ? ['Timer', a.timer] : null,
+        a.hold ? ['Hold', a.hold] : null,
+        a.orderStatusTrigger ? ['Fires on orders →', a.orderStatusTrigger] : null,
+        a.orderApprovalTrigger ? ['Fires on order approval', 'yes'] : null,
+        a.afpTrigger ? ['Fires on AFP approval', 'yes'] : null,
+        (a.ordersEffects && a.ordersEffects.length) ? ['Orders effects', a.ordersEffects.join('; ')] : null,
+        (a.emails && a.emails.length) ? ['Emails', a.emails.join(', ')] : null,
+        a.defaultOrdersProject ? ['Default orders project', a.defaultOrdersProject] : null,
+        a.routesTo ? ['Routes to', a.routesTo] : null,
         ['Machine-fired', a.machineFired ? 'yes — no status allocation; fired by an engine or trigger' : 'no']
       ])]),
-      (a.addsTags.length || a.removesTags.length) ? sec('Tag automation', [
+      (a.addsTags.length || a.removesTags.length || a.tagNote) ? sec('Tag automation', [
         el('ul', {}, a.addsTags.map(function (t) { return el('li', { text: '+ adds "' + t + '"' }); })
           .concat(a.removesTags.map(function (t) { return el('li', { text: '− removes "' + t + '"' }); }))),
-        el('div', {}, [parsedChip()])
+        a.tagNote ? el('div', { class: 'insp-notes', text: a.tagNote }) : null,
+        el('div', {}, [provChip(a)])
       ]) : null,
       sec('Available from (' + avail.length + ')', [
         avail.length

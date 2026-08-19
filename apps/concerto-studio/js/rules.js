@@ -136,6 +136,33 @@
       }
     },
     {
+      id: 'R-INVERTED-HOLD-TAGS',
+      register: 'VI-010',
+      category: 'CONFIGURATION INCONSISTENCY',
+      domain: 'Helpdesk',
+      /* computable since model v2 carries structured tag automation */
+      run: function (m) {
+        var out = [];
+        m.helpdesk.actions.forEach(function (a) {
+          if (/take off hold/i.test(a.name) && (a.addsTags || []).some(function (t) { return /on hold/i.test(t); })) {
+            out.push({
+              object: a.name,
+              objectKey: a.key,
+              finding: 'A "take off hold" action ADDS an On-hold tag (' + a.addsTags.join(', ') + ') — identical to the place-on-hold action; its purpose implies the inverse.',
+              why: 'Jobs taken off hold would keep/gain the on-hold tag (runtime effect untested — E5 territory).',
+              evidence: ['E-023', 'E-024'],
+              confidence: 'VERIFIED — OBSERVED (structural); runtime untested',
+              current: 'adds "' + a.addsTags.join(', ') + '", removes "' + a.removesTags.join(', ') + '"',
+              proposed: 'removes "05. On hold" (and arguably adds "04. In progress" — register wording)',
+              fixable: true,
+              fix: { target: a.key, field: 'tagAutomation', from: { adds: a.addsTags, removes: a.removesTags }, to: { adds: [], removes: ['05. On hold'] } }
+            });
+          }
+        });
+        return out;
+      }
+    },
+    {
       id: 'R-DUPLICATE-NAMES',
       register: 'VO-001',
       category: 'STRONG ANOMALY',
@@ -190,7 +217,6 @@
   /* ---- register-known findings the models cannot (yet) compute --------- */
 
   var REGISTER_ONLY = [
-    { register: 'VI-010', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'GM06 Take off hold', finding: 'Tag automation appears inverted — identical to GM05 (adds "05. On hold", removes "04. In progress"); its purpose implies the inverse. Runtime effect untested (E5).', evidence: ['E-023', 'E-024'], note: 'Per-action tag-automation lists are evidenced (E-023/E-024) but not carried in the machine-readable model for most actions — a candidate build_model.py enhancement; becomes a computed rule then.' },
     { register: 'VI-005', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'Response categories', finding: 'No default Response category — reporter-wizard jobs arrive with NO SLA (CONTROLLED VERIFIED, B-010).', evidence: ['E-012', 'E1'], note: 'Response-category records are not yet carried in the machine-readable model; quoted from the register.' },
     { register: 'VI-006', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'Classifications (all 90)', finding: 'Classification → SLA/asset/budget wiring entirely unset at both levels.', evidence: ['E-012', 'E-023'], note: 'Classification records not yet in the model.' },
     { register: 'VI-007', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'LM01 · PH05 · RH10/RH11 · PH02/PH02a', finding: 'Grouped-view vs record-form mismatches; config-identical action pairs.', evidence: ['E-005', 'E-015'], note: 'Record-form values not yet in the model.' },

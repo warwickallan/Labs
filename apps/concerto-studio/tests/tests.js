@@ -333,19 +333,15 @@
 
       assert(byRule('R-DUPLICATE-NAMES').length === 1, 'VO-001 duplicate Default priority found');
 
-      /* VI-010 (GM06 inverted tags) is register-only: the canonical model
-       * does not carry per-action tag automation for GM06 — the Studio
-       * must not fabricate a computed finding for it. */
-      assert(window.StudioRules.REGISTER_ONLY.some(function (f) { return f.register === 'VI-010'; }),
-        'VI-010 quoted from the register, not computed');
+      /* VI-010 is computable since model v2 carries structured tag automation */
+      var vi010 = byRule('R-INVERTED-HOLD-TAGS');
+      assert(vi010.length === 1 && vi010[0].object.indexOf('GM06') === 0, 'VI-010 GM06 computed from structured tags');
 
-      /* four VI-009 field changes total: SP01 + ORC10 portal, SP02 portal?
-       * (SP02 is not AWA-available so not caught by the portal rule) + SP02
-       * availability — the fix patch for all fixable = 3 operations here;
-       * SP02's portal-visibility gap becomes computable once when-to-show
-       * is carried in the model. Assert the patch compiles deterministically. */
+      /* fixable: SP01+ORC10 portal visibility, SP02 availability, GM06 tag
+       * automation = 4 operations. SP02's portal-visibility gap becomes
+       * computable once when-to-show is carried in the orders model. */
       var patch = window.StudioRules.compileFixPatch(findings);
-      assert(patch.operations.length === 3, '3 fixable operations, got ' + patch.operations.length);
+      assert(patch.operations.length === 4, '4 fixable operations, got ' + patch.operations.length);
       assert(patch.operations.every(function (op) { return op.target && op.field; }), 'ops well-formed');
     });
   });

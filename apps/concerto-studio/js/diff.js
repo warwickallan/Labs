@@ -15,7 +15,9 @@
    * confidence, provenance) is metadata, not configuration — never diffed. */
   var STATUS_FIELDS = ['types', 'isDefaultFor', 'displayOrder'];
   var ACTION_FIELDS = ['code', 'active', 'applicability', 'mobileAvailable', 'types',
-    'buttonGroup', 'flags', 'addsTags', 'removesTags', 'resultingType'];
+    'buttonGroup', 'flags', 'addsTags', 'removesTags', 'resultingType',
+    'hidden', 'constraints', 'timer', 'hold', 'orderStatusTrigger',
+    'ordersEffects', 'emails', 'defaultOrdersProject', 'routesTo'];
 
   function indexBy(list, keyFn) {
     var m = {};

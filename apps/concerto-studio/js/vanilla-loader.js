@@ -74,7 +74,10 @@
       t.actions.forEach(function (a) {
         var rec = actionByName[a.name];
         if (!rec) {
-          var parsed = S.parseActionNotes(a.notes);
+          /* modelVersion 2 carries structured per-action configuration
+           * (evidence-promoted); v1 falls back to parsing generated notes */
+          var v2 = 'buttonGroup' in a || a.tagAutomation;
+          var parsed = v2 ? null : S.parseActionNotes(a.notes);
           rec = {
             key: S.canonicalKey('hd', 'action', a.name),
             name: a.name,
@@ -83,13 +86,29 @@
             applicability: a.applicability,
             mobileAvailable: a.mobileAvailable,
             types: [],
-            buttonGroup: parsed.buttonGroup,
-            flags: parsed.flags,
-            addsTags: parsed.addsTags,
-            removesTags: parsed.removesTags,
-            resultingType: parsed.resultingType,
-            notesProvenance: 'PARSED-FROM-NOTES',
-            rawNotes: parsed.rawNotes,
+            buttonGroup: v2 ? (a.buttonGroup || null) : parsed.buttonGroup,
+            flags: (v2 ? a.flags : parsed.flags) || [],
+            addsTags: v2 ? (a.tagAutomation ? a.tagAutomation.adds.slice() : []) : parsed.addsTags,
+            removesTags: v2 ? (a.tagAutomation ? a.tagAutomation.removes.slice() : []) : parsed.removesTags,
+            tagNote: v2 && a.tagAutomation ? (a.tagAutomation.note || null) : null,
+            resultingType: v2 ? (a.resultingType || null) : parsed.resultingType,
+            hidden: !!a.hidden,
+            orderStatusTrigger: a.orderStatusTrigger || null,
+            orderApprovalTrigger: !!a.orderApprovalTrigger,
+            afpTrigger: !!a.afpTrigger,
+            ordersEffects: (a.ordersEffects || []).slice(),
+            constraints: (a.constraints || []).slice(),
+            timer: a.timer || null,
+            hold: a.hold || null,
+            defaultOrdersProject: a.defaultOrdersProject || null,
+            routesTo: a.routesTo || null,
+            emails: (a.emails || []).slice(),
+            assignment: a.assignment || {},
+            importanceUseFirst: !!a.importanceUseFirst,
+            availableInAnyStatus: !!a.availableInAnyStatus,
+            availableIn: (a.availableIn || []).slice(),
+            notesProvenance: v2 ? 'STRUCTURED-V2' : 'PARSED-FROM-NOTES',
+            rawNotes: a.notes || '',
             machineFired: false, /* derived below */
             confidence: a.confidence,
             evidence: a.evidence.slice()
@@ -176,6 +195,7 @@
 
     var model = {
       meta: {
+        modelVersion: hd.metadata.modelVersion,
         environment: hd.metadata.environment,
         generatedAt: {
           helpdesk: hd.metadata.generatedAt,
@@ -297,6 +317,35 @@
 
     check('18 cross-domain edges (X-001..X-018)', m.crossDomain.length === 18, String(m.crossDomain.length));
     check('13 graded behaviours (B-001..B-013)', m.behaviours.length === 13, String(m.behaviours.length));
+
+    check('Model version supported (1 or 2)',
+      m.meta.modelVersion === 1 || m.meta.modelVersion === 2,
+      'v' + m.meta.modelVersion);
+
+    if (m.meta.modelVersion >= 2) {
+      /* structured per-action availableIn must agree with the relationship
+       * edges — same truth, two projections */
+      var availByAction = {};
+      hd.availability.forEach(function (e) {
+        (availByAction[e.action] = availByAction[e.action] || {})[e.status] = true;
+      });
+      check('v2 structured availableIn agrees with relationship edges',
+        hd.actions.every(function (a) {
+          var fromEdges = Object.keys(availByAction[a.name] || {}).sort().join('|');
+          return a.availableIn.slice().sort().join('|') === fromEdges;
+        }));
+
+      var gm06 = hd.actions.filter(function (a) { return a.code === 'GM06'; })[0];
+      check('v2 carries structured tag automation (GM06 = VI-010 computable)',
+        gm06 && gm06.addsTags.indexOf('05. On hold') !== -1 &&
+        gm06.removesTags.indexOf('04. In progress') !== -1,
+        gm06 ? '+' + gm06.addsTags.join(',') + ' −' + gm06.removesTags.join(',') : 'GM06 missing');
+
+      var rh04v2 = hd.actions.filter(function (a) { return a.code === 'RH04'; })[0];
+      check('v2 structured triggers/constraints present (RH04 order trigger, GM02→GM01 constraint)',
+        rh04v2 && rh04v2.orderStatusTrigger === 'Awaiting acceptance' &&
+        hd.actions.some(function (a) { return a.code === 'GM02' && a.constraints.indexOf('GM01') !== -1; }));
+    }
 
     var idStatuses = Object.keys(m.identities.statuses || {});
     check('IDENTITIES status names match the 13 model statuses',

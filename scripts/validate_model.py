@@ -81,8 +81,8 @@ def _fallback_structural(model: dict) -> None:
     meta = model.get("metadata", {})
     if meta.get("mode") != "DISCOVER":
         errors.append("metadata.mode must be 'DISCOVER' (read-only discovery only).")
-    if meta.get("modelVersion") != 1:
-        errors.append("metadata.modelVersion must be 1.")
+    if meta.get("modelVersion") not in (1, 2):
+        errors.append("metadata.modelVersion must be 1 or 2.")
     _walk_facts(model.get("helpdeskTypes", []), "helpdeskTypes")
     _walk_facts(model.get("sharedConfiguration", []), "sharedConfiguration")
 
