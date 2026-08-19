@@ -18,6 +18,9 @@ cookies*
 apps/concerto-studio/data/
 apps/concerto-studio/snapshots/
 apps/concerto-studio/receipts/
+# Customer PROJECT data (instance URLs, configuration evidence, findings,
+# change receipts for real customers) must never enter this PUBLIC repo.
+apps/concerto-studio/projects/
 
 # Local scratch and OS noise
 scratch/

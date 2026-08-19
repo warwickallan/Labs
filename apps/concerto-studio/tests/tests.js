@@ -466,6 +466,173 @@
     });
   });
 
+  /* ---- projects: persistence + current-project context ------------------ */
+
+  var PROJECTS_KEY = 'concerto-studio-projects-v1';
+  var INSTANCE_KEY = 'concerto-studio-instance-v1';
+
+  function syntheticSnapshot(res) {
+    /* the same raw model shapes the crawler emits (see 'snapshot round-trip') */
+    return {
+      kind: 'INSTANCE-SNAPSHOT', snapshotVersion: 1,
+      meta: { targetUrl: 'x', crawledAt: '2026-08-19T00:00:00', counts: {}, warnings: [], notCrawled: [] },
+      identities: res.raw.identities,
+      helpdesk: res.raw.helpdesk,
+      orders: res.raw.orders
+    };
+  }
+
+  test('projects: create / list / open / close / addChange round-trip through localStorage', function () {
+    var P = window.StudioProject;
+    localStorage.removeItem(PROJECTS_KEY);
+    try {
+      var rec = P.create({ name: 'ZZ Test Customer', instanceUrl: 'https://zz.example', domains: ['Reactive Helpdesk'] });
+      assert(rec.formatVersion === 1 && rec.key === 'zz-test-customer', 'record created with version + slug key');
+      assert(P.list().length === 1 && P.list()[0].name === 'ZZ Test Customer', 'list finds it');
+      assert(P.get(rec.key).instanceUrl === 'https://zz.example', 'get reads it back');
+      assert(P.current() === null, 'no current project before open');
+
+      var opened = P.open(rec.key);
+      assert(opened && opened.lastOpenedAt, 'open stamps lastOpenedAt');
+      assert(P.current() && P.current().key === rec.key, 'open sets currentKey');
+
+      P.addChange('did a thing');
+      P.addChange({ text: 'did another', kind: 'design' });
+      assert(P.current().changeLog.length === 2, 'changes appended');
+      assert(P.current().changeLog.every(function (c) { return c.at; }), 'entries stamped');
+
+      /* the raw localStorage payload carries everything */
+      var raw = JSON.parse(localStorage.getItem(PROJECTS_KEY));
+      assert(raw.currentKey === rec.key && raw.projects[rec.key].changeLog.length === 2, 'store persisted');
+
+      P.close();
+      assert(P.current() === null, 'close clears currentKey');
+      assert(P.list().length === 1, 'close keeps the record');
+    } finally {
+      localStorage.removeItem(PROJECTS_KEY);
+    }
+  });
+
+  test('projects: captureContext stores instance + desired state; open() restores both', function () {
+    return loadedPromise.then(function (res) {
+      var P = window.StudioProject, M = window.StudioModel;
+      var prevApp = window.StudioApp;
+      var prevInstanceLS = localStorage.getItem(INSTANCE_KEY);
+      localStorage.removeItem(PROJECTS_KEY);
+      M.discard();
+      try {
+        var snap = syntheticSnapshot(res);
+        var instModel = window.VanillaLoader.normaliseSnapshot(snap);
+        window.StudioApp = { model: res.model, instance: null };
+
+        var rec = P.create({ name: 'ZZ Context', instanceUrl: 'https://ctx.example', domains: ['Reactive Helpdesk'] });
+        P.open(rec.key);
+
+        /* build a live context: instance record + desired-state fork with one edit */
+        window.StudioApp.instance = { snapshotId: 't', meta: snap.meta, model: instModel };
+        M.fork(res.model);
+        M.addStatus('ZZ Project Status', ['Reactive']);
+
+        var saved = P.captureContext();
+        assert(saved.instance && saved.instance.snapshotId === 't', 'instance captured');
+        assert(saved.desiredHelpdesk && saved.desiredHelpdesk.kind === 'CUSTOMER-DESIRED-STATE', 'desired state captured as the model.js export');
+        assert(saved.lastCrawlAt === snap.meta.crawledAt, 'lastCrawlAt stamped from the snapshot meta');
+        assert(S.deepEqual(saved.basedOnVanilla, res.model.meta.sourceFingerprints), 'Vanilla fingerprints pinned');
+
+        /* wipe the live context, then open() must restore it */
+        window.StudioApp.instance = null;
+        M.discard();
+        assert(!M.hasFork(), 'context wiped');
+        P.open(rec.key);
+        assert(window.StudioApp.instance && window.StudioApp.instance.snapshotId === 't', 'open restores the instance record');
+        assert(M.hasFork(), 'open restores the desired-state fork');
+        assert(M.desired().helpdesk.statuses.some(function (s) { return s.name === 'ZZ Project Status'; }), 'the design edit survived the round-trip');
+        assert(window.StudioDiff.compare(res.model, M.desired()).statuses.added.length === 1, 'deviation recomputes identically');
+
+        /* opening a project WITHOUT context must clear, not throw */
+        var bare = P.create({ name: 'ZZ Bare', instanceUrl: '', domains: [] });
+        P.open(bare.key);
+        assert(window.StudioApp.instance === null, 'bare project clears the instance context');
+        assert(!M.hasFork(), 'bare project clears the design fork');
+      } finally {
+        M.discard();
+        window.StudioApp = prevApp;
+        if (prevInstanceLS === null) localStorage.removeItem(INSTANCE_KEY);
+        else { try { localStorage.setItem(INSTANCE_KEY, prevInstanceLS); } catch (e) { /* */ } }
+        localStorage.removeItem(PROJECTS_KEY);
+      }
+    });
+  });
+
+  test('projects: exportProject / importProject identity', function () {
+    var P = window.StudioProject;
+    localStorage.removeItem(PROJECTS_KEY);
+    try {
+      var rec = P.create({ name: 'ZZ Export', instanceUrl: 'https://exp.example', domains: ['Reactive Helpdesk'] });
+      P.save(rec.key, { notes: 'hello', changeLog: [{ at: '2026-08-19T00:00:00Z', text: 'x' }] });
+      var text = P.exportProject(rec.key);
+      var parsed = JSON.parse(text);
+      assert(parsed.kind === 'CONCERTO-STUDIO-PROJECT' && parsed.formatVersion === 1, 'file envelope');
+      assert(parsed.project.key === rec.key && parsed.project.notes === 'hello', 'record carried');
+
+      localStorage.removeItem(PROJECTS_KEY);
+      var imported = P.importProject(text);
+      assert(imported.key === rec.key, 'import returns the record');
+      assert(JSON.stringify(P.get(rec.key)) === JSON.stringify(parsed.project), 'record identical after import');
+      assert(JSON.stringify(JSON.parse(P.exportProject(rec.key)).project) === JSON.stringify(parsed.project), 'export → import → export identity');
+
+      var threw = false;
+      try { P.importProject('{"kind":"WRONG"}'); } catch (e) { threw = true; }
+      assert(threw, 'wrong kind rejected');
+    } finally {
+      localStorage.removeItem(PROJECTS_KEY);
+    }
+  });
+
+  test('projects: delete clears the record and currentKey (files untouched by design)', function () {
+    var P = window.StudioProject;
+    localStorage.removeItem(PROJECTS_KEY);
+    try {
+      var rec = P.create({ name: 'ZZ Doomed', instanceUrl: '', domains: [] });
+      P.open(rec.key);
+      assert(P.current() && P.current().key === rec.key, 'open before delete');
+      assert(P.remove(rec.key) === true, 'remove reports success');
+      assert(P.get(rec.key) === null, 'record gone');
+      assert(P.current() === null, 'currentKey cleared with it');
+      assert(P.remove(rec.key) === false, 'second remove is a safe no-op');
+    } finally {
+      localStorage.removeItem(PROJECTS_KEY);
+    }
+  });
+
+  test('Projects view: cards render; deviation/findings counts guard an absent instance', function () {
+    return loadedPromise.then(function (res) {
+      var P = window.StudioProject;
+      localStorage.removeItem(PROJECTS_KEY);
+      try {
+        P.create({ name: 'ZZ No Instance', instanceUrl: 'https://a.example', domains: ['Reactive Helpdesk'] });
+        var b = P.create({ name: 'ZZ With Instance', instanceUrl: 'https://b.example', domains: ['Reactive Helpdesk'] });
+        var snap = syntheticSnapshot(res);
+        P.save(b.key, { instance: { snapshotId: 's', meta: snap.meta, model: window.VanillaLoader.normaliseSnapshot(snap) } });
+
+        window.StudioProjects.render(sandbox(), res.model);
+        var cards = document.querySelectorAll('#sandbox .project-card');
+        assert(cards.length === 2, '2 project cards, got ' + cards.length);
+        function cardFor(name) {
+          return Array.prototype.filter.call(cards, function (c) { return c.textContent.indexOf(name) !== -1; })[0];
+        }
+        var noInst = cardFor('ZZ No Instance');
+        assert(noInst.querySelector('.proj-dev').textContent === '—', 'no instance → deviations show —');
+        assert(noInst.querySelector('.proj-findings').textContent === '—', 'no instance → findings show —');
+        var withInst = cardFor('ZZ With Instance');
+        assert(withInst.querySelector('.proj-dev').textContent === '0', 'Vanilla-identical instance → 0 deviations');
+        assert(/^\d+$/.test(withInst.querySelector('.proj-findings').textContent), 'findings computed live from the instance model');
+      } finally {
+        localStorage.removeItem(PROJECTS_KEY);
+      }
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');

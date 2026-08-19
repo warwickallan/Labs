@@ -116,6 +116,18 @@ header#topbar {
 }
 #topbar .src-chip b { color: var(--ok); font-weight: 600; }
 #topbar .src-chip.bad b { color: var(--danger); }
+#topbar .project-chip {
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#topbar .project-chip.empty { color: var(--text-faint); background: var(--surface-2); }
+#topbar .project-chip:hover { border-color: var(--accent); }
 
 #content {
   flex: 1;
@@ -356,6 +368,11 @@ code { font-family: Consolas, monospace; font-size: 12px; background: var(--surf
 .dcol.drop-hover { outline: 2px dashed var(--accent); outline-offset: 4px; border-radius: var(--radius); }
 .btn.add-status { width: 100%; padding: 10px; border-style: dashed; color: var(--text-dim); }
 button[disabled] { opacity: 0.45; cursor: default; }
+
+/* ---- projects ---- */
+.project-card.current { border-color: var(--accent); outline: 2px solid var(--accent-soft); }
+.project-card .stat-row b { font-size: 20px; }
+.project-card .stat-row span { display: block; }
 
 .ok-text { color: var(--ok); }
 .bad-text { color: var(--danger); }

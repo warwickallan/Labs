@@ -67,6 +67,25 @@ class ConcertoSession:
         self.refresh_state()
         return self.status()
 
+    def adopt_session_cookie(self, url: str, name: str, value: str) -> dict:
+        """Adopt an EXISTING authenticated session created by a human in
+        another browser (session-cookie hand-off). This is not credential
+        entry: the human signed in themselves; we reuse that session.
+        The cookie value is held in browser memory only — never logged,
+        never persisted, never written to a receipt or the repository."""
+        from playwright.sync_api import sync_playwright
+
+        if self._pw is None:
+            self._pw = sync_playwright().start()
+            self._browser = self._pw.chromium.launch(headless=False)
+            context = self._browser.new_context(viewport={"width": 1500, "height": 950})
+            self.page = context.new_page()
+        self.target_url = url.rstrip("/")
+        self.page.context.add_cookies([{"name": name, "value": value, "url": self.target_url + "/"}])
+        self.page.goto(self.target_url, wait_until="domcontentloaded", timeout=45000)
+        self.refresh_state()
+        return self.status()
+
     def disconnect(self) -> None:
         try:
             if self._browser:

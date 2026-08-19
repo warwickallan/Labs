@@ -88,6 +88,9 @@ def worker() -> None:
             if kind == "connect":
                 result = SESSION.connect(job["url"])
                 job["done"](result)
+            elif kind == "adopt":
+                result = SESSION.adopt_session_cookie(job["url"], job["name"], job["value"])
+                job["done"](result)
             elif kind == "disconnect":
                 SESSION.disconnect()
                 job["done"]({"state": adapter.DISCONNECTED})
@@ -291,6 +294,41 @@ class Handler(BaseHTTPRequestHandler):
                 if any(k in payload for k in ("username", "password", "credentials")):
                     return self._send(400, {"error": "this harness NEVER accepts credentials; sign in at the browser window"})
                 self._send(200, run_on_worker("connect", url=url))
+            elif self.path == "/session/adopt-from-file":
+                # Read a session cookie from a local hand-off FILE (so the
+                # token never travels in a command argument or a URL). The
+                # file is read once and immediately deleted; its contents
+                # are never logged or persisted. Format: JSON
+                # {"url","cookieName","cookieValue"}.
+                fp = Path((payload.get("path") or "").strip())
+                if not fp.is_file():
+                    return self._send(400, {"error": "hand-off file not found"})
+                try:
+                    handoff = json.loads(fp.read_text(encoding="utf-8"))
+                finally:
+                    try:
+                        fp.unlink()
+                    except OSError:
+                        pass
+                url = (handoff.get("url") or "").strip()
+                name = (handoff.get("cookieName") or "").strip()
+                value = handoff.get("cookieValue") or ""
+                if not (url.startswith("http") and name and value):
+                    return self._send(400, {"error": "hand-off file needs url, cookieName, cookieValue"})
+                self._send(200, run_on_worker("adopt", url=url, name=name, value=value))
+            elif self.path == "/session/adopt":
+                # Session ADOPTION: reuse a session a human created by
+                # signing in elsewhere (cookie hand-off). NOT credential
+                # entry — username/password are still refused outright.
+                # The value is never logged or persisted.
+                url = (payload.get("url") or "").strip()
+                name = (payload.get("cookieName") or "").strip()
+                value = payload.get("cookieValue") or ""
+                if not (url.startswith("http") and name and value):
+                    return self._send(400, {"error": "url, cookieName and cookieValue required"})
+                if any(k in payload for k in ("username", "password")):
+                    return self._send(400, {"error": "credentials are never accepted"})
+                self._send(200, run_on_worker("adopt", url=url, name=name, value=value))
             elif self.path == "/session/disconnect":
                 self._send(200, run_on_worker("disconnect"))
             elif self.path == "/crawl":

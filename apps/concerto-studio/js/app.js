@@ -13,6 +13,7 @@
 
   var PAGES = {
     'overview': { title: 'Overview' },
+    'projects': { title: 'Projects' },
     'vanilla-diagram': { title: 'Vanilla · Workflow Diagram' },
     'vanilla-map': { title: 'Vanilla · Action Map' },
     'vanilla-matrix': { title: 'Vanilla · Matrix' },
@@ -65,8 +66,21 @@
     ]));
   }
 
+  function updateProjectChip() {
+    var chip = document.getElementById('projectChip');
+    if (!chip) return;
+    var cur = window.StudioProject ? window.StudioProject.current() : null;
+    chip.className = 'project-chip' + (cur ? '' : ' empty');
+    chip.textContent = cur
+      ? 'Project: ' + cur.name + (cur.instanceUrl ? ' · ' + cur.instanceUrl : '')
+      : 'No project open';
+    chip.title = 'Projects';
+    chip.onclick = function () { location.hash = '#projects'; };
+  }
+
   function route() {
     var pageId = currentPage();
+    updateProjectChip();
     document.getElementById('pageTitle').textContent = PAGES[pageId].title;
     document.querySelectorAll('#sidenav a').forEach(function (a) {
       a.classList.toggle('active', a.getAttribute('data-page') === pageId);
@@ -83,6 +97,7 @@
 
     switch (pageId) {
       case 'overview': window.StudioOverview.render(content, app.model, app.invariants); break;
+      case 'projects': window.StudioProjects.render(content, app.model); break;
       case 'vanilla-diagram': window.StudioDiagram.render(content, app.model); break;
       case 'vanilla-map': window.StudioActionMap.render(content, app.model); break;
       case 'vanilla-matrix': window.StudioGrid.render(content, app.model); break;
