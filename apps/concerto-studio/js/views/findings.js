@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var state = { selected: {}, showPatch: false };
+  var state = { selected: {}, showPatch: false, source: 'vanilla' };
 
   function catChipClass(cat) {
     if (cat === 'CONFIRMED DEFECT') return 'conf-chip'; /* styled red below */
@@ -21,7 +21,14 @@
 
     function rerender() { render(container, model); }
 
-    var findings = window.StudioRules.runAll(model);
+    var inst = window.StudioApp.instance;
+    var hasInstance = !!(inst && inst.model);
+    if (state.source === 'instance' && !hasInstance) state.source = 'vanilla';
+    var targetModel = state.source === 'instance' ? inst.model : model;
+
+    var detailed = window.StudioRules.runAllDetailed(targetModel);
+    var findings = detailed.findings;
+    var notEvaluated = detailed.notEvaluated;
     var fixable = findings.filter(function (f) { return f.fixable; });
     var selectedFindings = fixable.filter(function (f, i) { return state.selected[f.ruleId + '|' + f.objectKey]; });
 
@@ -33,7 +40,16 @@
 
     /* toolbar */
     page.appendChild(el('div', { class: 'toolstrip', style: 'border:1px solid var(--border);border-radius:8px;margin-bottom:16px' }, [
-      el('span', { text: findings.length + ' computed findings · ' + fixable.length + ' fixable · ' + selectedFindings.length + ' selected' }),
+      el('span', { class: 'seg' }, [
+        el('button', { class: state.source === 'vanilla' ? 'on' : '', text: 'Vanilla', onclick: function () { state.source = 'vanilla'; state.selected = {}; rerender(); } }),
+        el('button', {
+          class: state.source === 'instance' ? 'on' : '',
+          text: 'Instance' + (hasInstance ? '' : ' (no snapshot)'),
+          disabled: hasInstance ? null : 'disabled',
+          onclick: function () { state.source = 'instance'; state.selected = {}; rerender(); }
+        })
+      ]),
+      el('span', { text: findings.length + ' computed findings · ' + fixable.length + ' fixable · ' + selectedFindings.length + ' selected' + (notEvaluated.length ? ' · ' + notEvaluated.length + ' not evaluated' : '') }),
       el('span', { style: 'flex:1' }),
       el('button', {
         class: 'btn', text: 'Select all fixable',
@@ -90,6 +106,24 @@
         ]);
       }))
     ]));
+
+    /* not-evaluated rules — an honest gap, never a false pass */
+    if (notEvaluated.length) {
+      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:22px' }, [
+        el('h3', { text: 'Not evaluated — required field not crawled (' + notEvaluated.length + ')' }),
+        el('table', { class: 'list' }, [
+          el('thead', {}, [el('tr', {}, ['Rule', 'Register', 'Domain', 'Missing'].map(function (h) { return el('th', { text: h }); }))]),
+          el('tbody', {}, notEvaluated.map(function (n) {
+            return el('tr', {}, [
+              el('td', {}, [el('code', { text: n.ruleId })]),
+              el('td', {}, [el('code', { text: n.register })]),
+              el('td', { text: n.domain }),
+              el('td', { text: n.reason })
+            ]);
+          }))
+        ])
+      ]));
+    }
 
     /* register-only findings */
     page.appendChild(el('div', { class: 'tile' }, [

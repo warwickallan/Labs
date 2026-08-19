@@ -369,7 +369,35 @@
       });
   }
 
-  var api = { loadAll: loadAll, normalise: normalise, invariants: invariants, FILES: FILES };
+  /* Normalise a harness INSTANCE-SNAPSHOT into the same model shape as
+   * Vanilla — ONE normaliser, multiple model sources. The snapshot's
+   * helpdesk/orders parts are emitted by the crawler in the raw
+   * VANILLA-*.json shapes precisely so this reuse is possible. */
+  function normaliseSnapshot(snapshot) {
+    var raw = {
+      helpdesk: snapshot.helpdesk || {
+        metadata: { modelVersion: 2, environment: snapshot.meta.targetUrl, generatedAt: snapshot.meta.crawledAt },
+        sharedConfiguration: [],
+        helpdeskTypes: [
+          { name: 'Reactive', statuses: [], operativeStatuses: [], actions: [], relationships: [] },
+          { name: 'Planned', statuses: [], operativeStatuses: [], actions: [], relationships: [] }
+        ],
+        evidence: []
+      },
+      orders: snapshot.orders || {
+        metadata: { generatedAt: snapshot.meta.crawledAt },
+        orderStatuses: [], orderPriorities: [], orderTypes: [],
+        budgetCategories: [], supplierActions: [], emptyTabs: [], unknowns: []
+      },
+      crossDomain: { edges: [] },
+      behaviours: { behaviours: [] },
+      identities: Object.assign({ _meta: {}, statuses: {}, actions: {} }, snapshot.identities || {})
+    };
+    var model = normalise(raw);
+    return model;
+  }
+
+  var api = { loadAll: loadAll, normalise: normalise, normaliseSnapshot: normaliseSnapshot, invariants: invariants, FILES: FILES };
   if (typeof window !== 'undefined') window.VanillaLoader = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

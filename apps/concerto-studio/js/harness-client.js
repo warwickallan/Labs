@@ -1,55 +1,74 @@
-/* harness-client.js — the Concerto adapter boundary.
+/* harness-client.js — the Concerto adapter boundary (Studio side).
  *
- * The Studio never talks to Concerto directly: everything goes through
- * this adapter interface. The first implementation will be a separate
- * local Python service driving a browser harness (crawl first, execution
- * later, per the techniques proven in docs/DISCOVERY-TECHNIQUES-AND-
- * LESSONS.md); an HTTP/API adapter can replace it without touching the
- * editor. TODAY no adapter exists — this stub declares the interface and
- * reports honest unavailability, so the Instance/Build UIs can be real
- * about their state instead of pretending.
+ * Talks to the local harness service (harness/server.py on
+ * http://127.0.0.1:8602), which owns the Playwright browser. READ-ONLY:
+ * the service has no write endpoint (its /execute refuses by design) and
+ * /health reports writeCapability:false — the UI must never imply
+ * otherwise. A human signs in at the harness's visible browser window;
+ * the Studio never sees or sends credentials.
  *
- * Contract (all methods return Promises):
- *   probe()                 -> {available, version?, reason?}
- *   connect(url)            -> {sessionState, fingerprint?}   READ-ONLY
- *   crawl(url, domains)     -> {snapshotId, model}            READ-ONLY
- *   execute(plan, approval) -> {receiptId, results}           GATED
- *   readBack(targets)       -> {model}
- *
- * Invariants the real adapter must keep: a human signs in (the adapter
- * never enters credentials); first connection is read-only; every
- * execution appends one truthful receipt and is verified by read-back;
- * write scope is gated (never the Vanilla demo tenant) plus exact-plan
- * approval.
+ * Contract:
+ *   probe()            -> {available, writeCapability, session, reason?}
+ *   connect(url)       -> session status  (read-only; never credentials)
+ *   sessionStatus()    -> live session status
+ *   crawl(domains)     -> {crawlId}
+ *   crawlStatus(id)    -> {state, progress, counts, warnings, notCrawled}
+ *   snapshot(id)       -> INSTANCE-SNAPSHOT json
+ *   receipts()         -> receipt index
+ *   execute()          -> always rejects (no write capability exists)
  */
 (function () {
   'use strict';
 
-  var NOT_BUILT = 'The browser-harness service is not built yet. It will run as a separate local Python service; the Studio calls it over localhost HTTP.';
+  var BASE = 'http://127.0.0.1:8602';
+
+  function call(method, path, payload) {
+    return fetch(BASE + path, {
+      method: method,
+      headers: payload ? { 'Content-Type': 'application/json' } : undefined,
+      body: payload ? JSON.stringify(payload) : undefined
+    }).then(function (r) {
+      return r.json().then(function (body) {
+        if (!r.ok) throw new Error(body.error || ('harness error ' + r.status));
+        return body;
+      });
+    });
+  }
 
   var api = {
-    available: false,
-    reason: NOT_BUILT,
-    probe: function () { return Promise.resolve({ available: false, reason: NOT_BUILT }); },
-    connect: function () { return Promise.reject(new Error(NOT_BUILT)); },
-    crawl: function () { return Promise.reject(new Error(NOT_BUILT)); },
-    execute: function () { return Promise.reject(new Error('Execution requires the adapter AND explicit authorisation — neither exists.')); },
-    readBack: function () { return Promise.reject(new Error(NOT_BUILT)); }
+    base: BASE,
+    probe: function () {
+      return call('GET', '/health')
+        .then(function (h) {
+          return { available: true, writeCapability: h.writeCapability, session: h.session, versions: h };
+        })
+        .catch(function (e) {
+          return { available: false, reason: 'Harness service not running (start apps/concerto-studio/harness/server.py). ' + e.message };
+        });
+    },
+    connect: function (url) { return call('POST', '/session/connect', { url: url }); },
+    sessionStatus: function () { return call('GET', '/session/status'); },
+    disconnect: function () { return call('POST', '/session/disconnect', {}); },
+    crawl: function (domains) { return call('POST', '/crawl', { domains: domains }); },
+    crawlStatus: function (id) { return call('GET', '/crawl/' + id + '/status'); },
+    snapshot: function (id) { return call('GET', '/snapshot/' + id); },
+    receipts: function () { return call('GET', '/receipts'); },
+    execute: function () {
+      return Promise.reject(new Error('WRITE_CAPABILITY is false: the harness is read-only by construction; execution requires a future, separately authorised adapter.'));
+    }
   };
 
-  /* snapshot store: crawled instance snapshots will live here (browser
-   * storage now; the harness service will also file them under
-   * apps/concerto-studio/snapshots/, which is git-ignored). */
-  var SNAP_KEY = 'concerto-studio-snapshots-v1';
-  api.snapshots = {
-    list: function () {
-      try { return JSON.parse(localStorage.getItem(SNAP_KEY) || '[]'); } catch (e) { return []; }
+  /* ---- instance model store (normalised model + meta only — raw crawl
+   * artifacts stay with the harness snapshots on disk) ---- */
+  var STORE_KEY = 'concerto-studio-instance-v1';
+  api.instanceStore = {
+    save: function (record) {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(record)); } catch (e) { /* too large / private mode */ }
     },
-    add: function (snap) {
-      var all = api.snapshots.list();
-      all.unshift(snap);
-      localStorage.setItem(SNAP_KEY, JSON.stringify(all));
-    }
+    load: function () {
+      try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { return null; }
+    },
+    clear: function () { try { localStorage.removeItem(STORE_KEY); } catch (e) { /* */ } }
   };
 
   window.StudioHarness = api;

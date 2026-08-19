@@ -290,7 +290,7 @@
       var html = window.StudioSolDesign.generate(M.desired(), {
         edition: 'customer', diff: diff, findings: window.StudioRules.runAll(M.desired())
       });
-      assert(html.indexOf('Customer System Solution Design') !== -1, 'customer title');
+      assert(html.indexOf('Desired Customer Solution Design') !== -1, 'customer title');
       assert(html.indexOf('Deviation Schedule') !== -1, 'deviation section present');
       assert(html.indexOf('ZZ Customer Status') !== -1, 'deviation listed');
       M.discard();
@@ -299,15 +299,67 @@
 
   /* ---- harness adapter boundary ------------------------------------------ */
 
-  test('harness adapter reports honest unavailability; execution refuses', function () {
+  test('harness adapter: write capability false when up, honest when down, execute refuses', function () {
     var H = window.StudioHarness;
-    assert(H.available === false, 'adapter not available');
     return H.probe().then(function (p) {
-      assert(p.available === false && p.reason, 'probe honest');
+      if (p.available) {
+        assert(p.writeCapability === false, 'a running harness MUST report writeCapability=false');
+      } else {
+        assert(p.reason, 'unavailability carries a reason');
+      }
       return H.execute({}, {}).then(
         function () { throw new Error('execute must refuse'); },
-        function (err) { assert(/authorisation/.test(String(err.message)), 'refusal names authorisation'); }
+        function (err) { assert(/read-only|authorised/.test(String(err.message)), 'refusal names read-only construction'); }
       );
+    });
+  });
+
+  /* ---- instance snapshot pipeline ---------------------------------------- */
+
+  test('snapshot round-trip: raw shapes → normaliseSnapshot → empty diff vs Vanilla', function () {
+    return loadedPromise.then(function (res) {
+      /* a synthetic INSTANCE-SNAPSHOT carrying the SAME raw model shapes
+       * the crawler emits — normalising it must reproduce the Vanilla
+       * model exactly (the oracle the demo crawl is judged against) */
+      var snap = {
+        kind: 'INSTANCE-SNAPSHOT', snapshotVersion: 1,
+        meta: { targetUrl: res.raw.helpdesk.metadata.environment, crawledAt: '2026-08-19T00:00:00', counts: {}, warnings: [], notCrawled: [] },
+        identities: res.raw.identities,
+        helpdesk: res.raw.helpdesk,
+        orders: res.raw.orders
+      };
+      var m1 = window.VanillaLoader.normaliseSnapshot(snap);
+      var d = window.StudioDiff.compare(res.model, m1);
+      assert(d.isEmpty, 'identical raw sources must normalise to a Vanilla-equal model; got +' +
+        d.summary.added + ' −' + d.summary.removed + ' ~' + d.summary.modified);
+      /* determinism: normalise twice, fingerprints equal */
+      var m2 = window.VanillaLoader.normaliseSnapshot(snap);
+      var strip = function (m) { var c = window.StudioSchema.deepClone(m); delete c.meta; return c; };
+      assert(window.StudioSchema.fingerprint(strip(m1)) === window.StudioSchema.fingerprint(strip(m2)), 'normalisation deterministic');
+      /* environment GUID isolation: canonical keys carry no GUIDs */
+      assert(m1.helpdesk.statuses.every(function (s) { return !/[0-9a-f]{8}-/.test(s.key); }), 'no GUIDs in canonical keys');
+    });
+  });
+
+  test('findings report NOT EVALUATED when required fields are missing', function () {
+    return loadedPromise.then(function (res) {
+      /* a sparse snapshot: statuses known but no supplier actions, no tags,
+       * no availability — rules must not fire OR falsely pass */
+      var sparse = window.VanillaLoader.normaliseSnapshot({
+        kind: 'INSTANCE-SNAPSHOT', snapshotVersion: 1,
+        meta: { targetUrl: 'x', crawledAt: 'x' },
+        identities: {},
+        helpdesk: undefined,
+        orders: undefined
+      });
+      var detailed = window.StudioRules.runAllDetailed(sparse);
+      assert(detailed.findings.length === 0, 'no findings fabricated from an empty model');
+      assert(detailed.notEvaluated.length >= 5, 'missing-field rules reported NOT EVALUATED, got ' + detailed.notEvaluated.length);
+      assert(detailed.notEvaluated.every(function (n) { return n.reason; }), 'each carries its reason');
+
+      /* the full model evaluates everything */
+      var full = window.StudioRules.runAllDetailed(res.model);
+      assert(full.notEvaluated.length === 0, 'canonical model leaves nothing unevaluated');
     });
   });
 

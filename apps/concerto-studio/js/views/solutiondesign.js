@@ -9,13 +9,17 @@
 
   function buildDocument(vanilla) {
     var M = window.StudioModel;
+    var inst = window.StudioApp.instance;
     var isCustomer = state.edition === 'customer' && M.hasFork();
-    var model = isCustomer ? M.desired() : vanilla;
+    var isInstance = state.edition === 'instance' && inst && inst.model;
+    var model = isCustomer ? M.desired() : isInstance ? inst.model : vanilla;
     var findings = window.StudioRules.runAll(model);
-    var diff = isCustomer ? window.StudioDiff.compare(vanilla, M.desired()) : null;
+    var diff = (isCustomer || isInstance) ? window.StudioDiff.compare(vanilla, model) : null;
     return window.StudioSolDesign.generate(model, {
-      edition: isCustomer ? 'customer' : 'vanilla',
+      edition: isCustomer ? 'customer' : isInstance ? 'instance' : 'vanilla',
       diff: diff,
+      instanceDiff: (isCustomer && inst && inst.model) ? window.StudioDiff.compare(inst.model, M.desired()) : null,
+      notCrawled: isInstance ? (inst.meta.notCrawled || []) : null,
       findings: findings
     });
   }
@@ -30,15 +34,23 @@
     function rerender() { render(container, vanilla); }
 
     var customerAvailable = M.hasFork();
+    var instanceAvailable = !!(window.StudioApp.instance && window.StudioApp.instance.model);
     if (state.edition === 'customer' && !customerAvailable) state.edition = 'vanilla';
+    if (state.edition === 'instance' && !instanceAvailable) state.edition = 'vanilla';
 
     page.appendChild(el('div', { class: 'toolstrip' }, [
       el('label', { text: 'Edition' }),
       el('span', { class: 'seg' }, [
         el('button', { class: state.edition === 'vanilla' ? 'on' : '', text: 'Vanilla', onclick: function () { state.edition = 'vanilla'; rerender(); } }),
         el('button', {
+          class: state.edition === 'instance' ? 'on' : '',
+          text: 'Instance As-Is' + (instanceAvailable ? '' : ' (no snapshot)'),
+          disabled: instanceAvailable ? null : 'disabled',
+          onclick: function () { state.edition = 'instance'; rerender(); }
+        }),
+        el('button', {
           class: state.edition === 'customer' ? 'on' : '',
-          text: 'Customer' + (customerAvailable ? '' : ' (no design fork)'),
+          text: 'Desired Customer' + (customerAvailable ? '' : ' (no design fork)'),
           disabled: customerAvailable ? null : 'disabled',
           onclick: function () { state.edition = 'customer'; rerender(); }
         })
@@ -59,7 +71,7 @@
           var blob = new Blob([buildDocument(vanilla)], { type: 'text/html' });
           var a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = (state.edition === 'customer' ? 'CUSTOMER' : 'VANILLA') + '-SOLUTION-DESIGN.html';
+          a.download = (state.edition === 'customer' ? 'CUSTOMER' : state.edition === 'instance' ? 'INSTANCE-AS-IS' : 'VANILLA') + '-SOLUTION-DESIGN.html';
           a.click();
           URL.revokeObjectURL(a.href);
         }

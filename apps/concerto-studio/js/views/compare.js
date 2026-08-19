@@ -7,9 +7,16 @@
 (function () {
   'use strict';
 
-  var state = { kind: 'All', object: 'All' };
+  var state = { kind: 'All', object: 'All', pair: 'vanilla-design' };
   var KINDS = ['All', 'Added', 'Removed', 'Modified', 'Unchanged'];
   var OBJECTS = ['All', 'Statuses', 'Actions', 'Availability', 'Results'];
+
+  /* one pure diff engine, multiple model sources */
+  var PAIRS = [
+    { id: 'vanilla-design', label: 'Vanilla ↔ Design', needs: 'design' },
+    { id: 'vanilla-instance', label: 'Vanilla ↔ Instance', needs: 'instance' },
+    { id: 'instance-design', label: 'Instance ↔ Design', needs: 'both' }
+  ];
 
   function render(container, vanilla) {
     var el = window.StudioDom.el;
@@ -18,19 +25,35 @@
 
     function rerender() { render(container, vanilla); }
 
-    if (!M.hasFork()) {
+    var hasDesign = M.hasFork();
+    var inst = window.StudioApp.instance;
+    var hasInstance = !!(inst && inst.model);
+
+    function pairAvailable(p) {
+      if (p.needs === 'design') return hasDesign;
+      if (p.needs === 'instance') return hasInstance;
+      return hasDesign && hasInstance;
+    }
+    var current = PAIRS.filter(function (p) { return p.id === state.pair; })[0];
+    if (!pairAvailable(current)) {
+      current = PAIRS.filter(pairAvailable)[0] || null;
+      state.pair = current ? current.id : state.pair;
+    }
+
+    if (!current) {
       container.appendChild(el('div', { class: 'page' }, [
         el('div', { class: 'stub' }, [
           el('h3', { text: 'Compare' }),
-          el('p', { text: 'Compare shows Added / Removed / Modified / Unchanged at object and field level. Right now it compares the Vanilla baseline against your DESIGN desired state; once the Instance crawl exists, the same engine compares Vanilla against any crawled customer instance.' }),
-          el('p', { text: 'There is no design fork yet — start one in DESIGN to have something to compare.' }),
-          el('p', {}, [el('a', { href: '#design', class: 'btn', style: 'text-decoration:none', text: 'Go to Design' })])
+          el('p', { text: 'Compare shows Added / Removed / Modified / Unchanged at object and field level, between any two of: the Vanilla baseline, a crawled instance snapshot, and your DESIGN desired state. One diff engine, multiple model sources.' }),
+          el('p', { text: 'Nothing to compare yet — fork a design in DESIGN, or crawl an instance from INSTANCE.' })
         ])
       ]));
       return;
     }
 
-    var diff = window.StudioDiff.compare(vanilla, M.desired());
+    var base = current.id === 'instance-design' ? inst.model : vanilla;
+    var right = current.id === 'vanilla-instance' ? inst.model : M.desired();
+    var diff = window.StudioDiff.compare(base, right);
     var page = el('div', { class: 'page wide' });
     container.appendChild(page);
 
@@ -41,6 +64,15 @@
     }
 
     page.appendChild(el('div', { class: 'toolstrip' }, [
+      el('span', { class: 'seg' }, PAIRS.map(function (p) {
+        return el('button', {
+          class: p.id === state.pair ? 'on' : '',
+          text: p.label,
+          disabled: pairAvailable(p) ? null : 'disabled',
+          title: pairAvailable(p) ? '' : (p.needs === 'instance' ? 'Crawl an instance first' : p.needs === 'both' ? 'Needs an instance snapshot and a design fork' : 'Fork a design first'),
+          onclick: function () { state.pair = p.id; rerender(); }
+        });
+      })),
       el('label', { text: 'Show' }),
       seg(KINDS, state.kind, function (v) { state.kind = v; rerender(); }),
       el('label', { text: 'Objects' }),
@@ -48,7 +80,7 @@
       el('span', { style: 'flex:1' }),
       el('span', {
         class: 'src-chip',
-        html: 'Vanilla vs Design · <b>' + diff.summary.added + '</b> added · <b>' + diff.summary.removed + '</b> removed · <b>' + diff.summary.modified + '</b> modified'
+        html: current.label.replace('↔', 'vs') + ' · <b>' + diff.summary.added + '</b> added · <b>' + diff.summary.removed + '</b> removed · <b>' + diff.summary.modified + '</b> modified'
       })
     ]));
 

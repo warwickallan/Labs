@@ -84,12 +84,17 @@
   function generate(model, opts) {
     opts = opts || {};
     var isCustomer = opts.edition === 'customer';
-    var title = isCustomer ? 'Customer System Solution Design' : 'Vanilla System Solution Design';
+    var isInstance = opts.edition === 'instance';
+    var title = isCustomer ? 'Desired Customer Solution Design'
+      : isInstance ? 'Instance As-Is Solution Design'
+      : 'Vanilla System Solution Design';
     var h = '';
 
     h += '<h1>' + title + '</h1>';
-    h += '<p class="subtitle">Concerto Helpdesk &amp; Orders configuration — generated from the canonical machine-readable model' +
-      (isCustomer ? ', including the customer design deviations from Vanilla' : '') + '.</p>';
+    h += '<p class="subtitle">Concerto Helpdesk &amp; Orders configuration — generated from the ' +
+      (isInstance ? 'crawled instance snapshot (read-only automated crawl)' : 'canonical machine-readable model') +
+      (isCustomer ? ', including the customer design deviations from Vanilla' : '') +
+      (isInstance ? ', including its deviations from the Vanilla baseline' : '') + '.</p>';
     h += '<div class="meta">Source environment: <code>' + esc(model.meta.environment) + '</code> · ' +
       'model generated ' + esc(model.meta.generatedAt.helpdesk) + ' (Helpdesk) / ' + esc(model.meta.generatedAt.orders) + ' (Orders) · ' +
       'baseline fingerprints <code>hd:' + esc(model.meta.sourceFingerprints.helpdesk) + '</code> <code>ord:' + esc(model.meta.sourceFingerprints.orders) + '</code> · ' +
@@ -179,9 +184,12 @@
     });
     h += '</ul><p>Every cross-domain edge above is configuration truth (both sides read in Admin); none is behaviourally verified yet — that is experiment E2.</p>';
 
-    /* 8 — customer deviations */
-    if (isCustomer && opts.diff) {
-      h += '<h2 class="pagebreak">8 · Deviation Schedule (this design vs Vanilla)</h2>';
+    /* 8 — deviation schedules (customer/instance editions) */
+    var hasDeviations = (isCustomer || isInstance) && opts.diff;
+    if (hasDeviations) {
+      var devTitle = isInstance ? 'Deviation Schedule (this instance vs Vanilla)'
+        : 'Deviation Schedule (this design vs Vanilla)';
+      h += '<h2 class="pagebreak">8 · ' + devTitle + '</h2>';
       var schedule = window.StudioDiff.deviationSchedule(opts.diff);
       if (schedule.length) {
         h += '<table><thead><tr><th style="width:12%">Change</th><th style="width:14%">Object</th><th>Deviation</th></tr></thead><tbody>';
@@ -189,14 +197,37 @@
           h += '<tr><td><b>' + esc(r.kind) + '</b></td><td>' + esc(r.object) + '</td><td>' + esc(r.detail) + '</td></tr>';
         });
         h += '</tbody></table>';
-        h += '<p>Everything not listed above is identical to the Vanilla baseline (fingerprints in the header).</p>';
+        h += '<p>Everything not listed above is identical to the Vanilla baseline (fingerprints in the header).' +
+          (isInstance ? ' A first-crawler snapshot also differs from the canonical model wherever the crawler has not yet reproduced a field — those gaps are listed as NOT CRAWLED in section ' + (9) + ', not hidden.' : '') + '</p>';
       } else {
-        h += '<p>This design is currently identical to the Vanilla baseline.</p>';
+        h += '<p>' + (isInstance ? 'This instance is' : 'This design is currently') + ' identical to the Vanilla baseline.</p>';
+      }
+      if (isCustomer && opts.instanceDiff) {
+        h += '<h3>Instance → Desired</h3>';
+        var sched2 = window.StudioDiff.deviationSchedule(opts.instanceDiff);
+        if (sched2.length) {
+          h += '<table><thead><tr><th style="width:12%">Change</th><th style="width:14%">Object</th><th>Deviation</th></tr></thead><tbody>';
+          sched2.forEach(function (r) {
+            h += '<tr><td><b>' + esc(r.kind) + '</b></td><td>' + esc(r.object) + '</td><td>' + esc(r.detail) + '</td></tr>';
+          });
+          h += '</tbody></table>';
+        } else {
+          h += '<p>The crawled instance already matches this design.</p>';
+        }
       }
     }
 
+    /* not-crawled honesty for instance editions */
+    if (isInstance && opts.notCrawled && opts.notCrawled.length) {
+      h += '<h3>Not crawled (fields the automated crawler has not yet reproduced)</h3><ul>';
+      opts.notCrawled.forEach(function (n) {
+        h += '<li><b>' + esc(n.family) + '</b> — ' + esc(n.reason) + '</li>';
+      });
+      h += '</ul>';
+    }
+
     /* 9 — findings, assumptions, unknowns */
-    var secNo = isCustomer ? 9 : 8;
+    var secNo = hasDeviations ? 9 : 8;
     h += '<h2 class="pagebreak">' + secNo + ' · Known findings, assumptions and unresolved decisions</h2>';
     if (opts.findings && opts.findings.length) {
       h += '<h3>Evidence-backed findings (computed from this configuration)</h3><table><thead><tr><th>Register</th><th>Category</th><th>Object</th><th>Finding</th></tr></thead><tbody>';

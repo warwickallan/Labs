@@ -21,6 +21,11 @@
       register: 'VI-009 / VO-002',
       category: 'CONFIRMED DEFECT',
       domain: 'Orders',
+      requires: function (m) {
+        if (!m.orders.supplierActions.length) return 'supplier actions not crawled';
+        if (!m.orders.orderStatuses.some(function (s) { return s.isDefault; })) return 'default order status not crawled';
+        return null;
+      },
       run: function (m) {
         var out = [];
         var defaultStatus = (m.orders.orderStatuses.filter(function (s) { return s.isDefault; })[0] || {}).name;
@@ -49,6 +54,11 @@
       register: 'VI-009 (SP02 precision) / UO-002',
       category: 'CONFIRMED DEFECT',
       domain: 'Orders',
+      requires: function (m) {
+        if (!m.orders.supplierActions.some(function (sa) { return sa.firesHelpdeskAction; })) return 'supplier-action helpdesk links not crawled';
+        if (!m.orders.orderStatuses.some(function (s) { return s.isDefault; })) return 'default order status not crawled';
+        return null;
+      },
       run: function (m) {
         var out = [];
         var defaultStatus = (m.orders.orderStatuses.filter(function (s) { return s.isDefault; })[0] || {}).name;
@@ -79,6 +89,10 @@
       register: 'VI-002 (Business Case - R) · VI-003 history (Quote Requested - R)',
       category: 'STRONG ANOMALY',
       domain: 'Helpdesk',
+      requires: function (m) {
+        if (!m.helpdesk.availability.length) return 'action availability not crawled';
+        return null;
+      },
       run: function (m) {
         var out = [];
         m.helpdesk.statuses.forEach(function (s) {
@@ -109,6 +123,10 @@
       register: 'VI-001 (New PPM)',
       category: 'INFORMATION',
       domain: 'Helpdesk',
+      requires: function (m) {
+        if (!m.helpdesk.results.length) return 'action result edges not crawled';
+        return null;
+      },
       run: function (m) {
         var out = [];
         m.helpdesk.statuses.forEach(function (s) {
@@ -141,6 +159,12 @@
       category: 'CONFIGURATION INCONSISTENCY',
       domain: 'Helpdesk',
       /* computable since model v2 carries structured tag automation */
+      requires: function (m) {
+        if (!m.helpdesk.actions.some(function (a) { return (a.addsTags || []).length || (a.removesTags || []).length; })) {
+          return 'per-action tag automation not crawled';
+        }
+        return null;
+      },
       run: function (m) {
         var out = [];
         m.helpdesk.actions.forEach(function (a) {
@@ -167,6 +191,10 @@
       register: 'VO-001',
       category: 'STRONG ANOMALY',
       domain: 'Orders',
+      requires: function (m) {
+        if (!m.orders.orderPriorities.length) return 'order priorities not crawled';
+        return null;
+      },
       run: function (m) {
         var out = [];
         var seen = {};
@@ -194,6 +222,10 @@
       register: 'VI-004',
       category: 'INFORMATION',
       domain: 'Helpdesk',
+      requires: function (m) {
+        if (!m.helpdesk.actions.some(function (a) { return a.buttonGroup; })) return 'button groups not crawled';
+        return null;
+      },
       run: function (m) {
         return m.helpdesk.actions
           .filter(function (a) { return !a.buttonGroup && !a.machineFired; })
@@ -223,9 +255,18 @@
     { register: 'VI-008', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'Email templates (5)', finding: 'All five templates have empty subject AND body; "Email failed to send" passively observed (OD-006).', evidence: ['E-017', 'E-020'], note: 'Template records not yet in the model.' }
   ];
 
-  function runAll(model) {
+  /* Full evaluation: findings PLUS rules that could not run because the
+   * model (typically a crawled snapshot) lacks the required fields —
+   * reported as NOT EVALUATED, never as a false pass. */
+  function runAllDetailed(model) {
     var findings = [];
+    var notEvaluated = [];
     RULES.forEach(function (rule) {
+      var reason = rule.requires ? rule.requires(model) : null;
+      if (reason) {
+        notEvaluated.push({ ruleId: rule.id, register: rule.register, domain: rule.domain, reason: reason });
+        return;
+      }
       rule.run(model).forEach(function (f) {
         findings.push(Object.assign({
           ruleId: rule.id,
@@ -236,8 +277,10 @@
         }, f));
       });
     });
-    return findings;
+    return { findings: findings, notEvaluated: notEvaluated };
   }
+
+  function runAll(model) { return runAllDetailed(model).findings; }
 
   /* Compile selected fixable findings into a desired-state patch — the
    * artefact a build plan consumes. Preview only until the execution
@@ -260,7 +303,7 @@
     };
   }
 
-  var api = { runAll: runAll, compileFixPatch: compileFixPatch, REGISTER_ONLY: REGISTER_ONLY, RULES: RULES };
+  var api = { runAll: runAll, runAllDetailed: runAllDetailed, compileFixPatch: compileFixPatch, REGISTER_ONLY: REGISTER_ONLY, RULES: RULES };
   if (typeof window !== 'undefined') window.StudioRules = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

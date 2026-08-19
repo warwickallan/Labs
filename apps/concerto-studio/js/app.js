@@ -91,7 +91,7 @@
       case 'findings': window.StudioFindings.render(content, app.model); break;
       case 'compare': window.StudioCompare.render(content, app.model); break;
       case 'solution-design': window.StudioSolutionDesignView.render(content, app.model); break;
-      case 'instance': window.StudioInstance.render(content); break;
+      case 'instance': window.StudioInstance.render(content, app.model); break;
       case 'build': window.StudioBuild.render(content, app.model); break;
       case 'evidence': renderEvidence(content); break;
       default: renderStub(content, pageId);
@@ -123,6 +123,7 @@
       .then(function (res) {
         app.model = res.model;
         app.invariants = res.invariants;
+        app.instance = window.StudioHarness.instanceStore.load(); /* previous crawl, if any */
         updateChips();
         route();
       })
