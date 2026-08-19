@@ -13,6 +13,34 @@ repository (`apps/concerto-studio/`). Labs is the Concerto knowledge +
 tooling repository: `evidence/` + `model/` hold what we know;
 `apps/` holds the tools that use it. No separate git repository.
 
+## Projects and versioned Vanilla (added 2026-08-19)
+
+Studio is **project-centric**. A Project (`js/project.js`,
+`js/views/projects.js`) owns a customer's instance context: URL, snapshots,
+compare state, findings, desired state, change receipts, evidence. A CURRENT
+PROJECT drives the whole app; VANILLA remains the shared read-only reference.
+Projects reference the Vanilla baseline they compared against — they never
+duplicate Vanilla.
+
+**Vanilla is versioned** (see `../../docs/VANILLA-VERSIONING.md`). The first
+real second-instance comparison proved the older Labs baseline and a newer
+Vanilla deployment differ materially (Orders re-seeded, 11 supplier actions
+not 13, Quote/Business Case engines healthier, but the VI-009 acceptance
+defect persisted). So a Project records `basedOnVanilla { fingerprint,
+version/label, date }`, and each captured Day-One deployment is a first-class,
+comparable Vanilla baseline — not merely a deviation from the Labs model. The
+pure diff engine already accepts arbitrary model sources; the remaining work
+is to let Compare show **older Vanilla → newer Vanilla** directly.
+
+**REQUIREMENT — durable private project storage (not yet built).** Customer
+project data lives under `apps/concerto-studio/projects/<key>/` and is
+**git-ignored** — it must never enter the PUBLIC Labs repo (instance URLs,
+configuration evidence, findings, change receipts). But *git-ignored must not
+mean "only on one laptop with no backup"*. A private, durable, backed-up store
+for project data is required (e.g. a separate private repo or synced store,
+mirroring how RLMCP kept secrets/state outside its public repo). The public
+Labs repo continues to hold only generic Concerto knowledge + tooling.
+
 ## The pipeline
 
 ```

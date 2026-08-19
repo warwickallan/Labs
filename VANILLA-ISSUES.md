@@ -58,6 +58,20 @@ owner of Vanilla.
 - **Suggested correction:** Needs the T-action firing mechanism understood
   first (U-009); then either give the status exit actions or remove it.
 - **Correction verified?** No.
+- **UPDATE (2026-08-19, reconciled against a newer Vanilla deployment) —
+  RE-CLASSIFIED: VISUALISER / ACTION-MAP LIMITATION, not a dead end.**
+  Business Case - R has no *Helpdesk Action* exit because its lifecycle is
+  controlled by the dedicated hard-coded **Business Cases** engine
+  (Helpdesk menu → Business Cases → Awaiting approval / Approved /
+  Rejected; `ContractJobHelpdeskHome.aspx`). A cost uplift (supplier-side
+  BC01) creates a business case; approval/rejection happens in that module
+  and advances the job — no Helpdesk-operative action on the status is
+  required or expected. The Action map cannot see this cross-engine
+  lifecycle, hence the "unreachable/dead-end" appearance. The historical
+  structural observation stands; the *interpretation* is corrected. Runtime
+  behaviour of the approval→return transition is engine-driven and was NOT
+  independently runtime-verified here — do not claim beyond the observed
+  module structure.
 
 ## VI-003 — "Quote Requested - R" has no exit actions [POSSIBLE DEFECT — NEEDS EXPERIMENT]
 
@@ -82,6 +96,17 @@ owner of Vanilla.
   With Contractor - R). RH03b is machine-fired, hence unallocated. The
   residual issue is only that the Action map does not render quote-engine
   firings. Runtime confirmation = experiment E3.
+- **UPDATE (2026-08-19, reconciled against a newer Vanilla deployment) —
+  CONFIRMED by-design; VISUALISER / ACTION-MAP LIMITATION.** A newer Vanilla
+  deployment carries a coherent quote engine (RE01 Issue → RE02 Quotes
+  received → RE03 Send back → RE04 Select / RE04a Approve → RE05 Raise Order
+  → RE06 Complete; RE07 Cancel → Quote request cancelled). **RE05 "Raise
+  Order" was read directly: "Action to be triggered against the original job
+  linked to the quote" = "Quote Ordered" (RH03b)** → returns the job to
+  With Contractor - R with the order raised. So the ordinary Helpdesk Action
+  map's apparent dead-end is an incomplete projection of a cross-engine
+  workflow, not a defect. Structural evidence preserved; interpretation
+  corrected. (Config-observed; the runtime firing itself remains E3.)
 
 ## VI-005 — No default Response category (SLA) [CONFIGURATION INCONSISTENCY]
 
@@ -186,6 +211,20 @@ owner of Vanilla.
 - **Suggested correction (NOT applied):** portal visibility on SP01+ORC10;
   portal visibility + AWA availability on SP02 - or ZZ TEST clones for E2.
 - **Correction verified?** No.
+- **UPDATE (2026-08-19) — VI-009 PERSISTS IN CURRENT VANILLA and was
+  corrected in an implementation project (read-back verified).** A newer
+  Vanilla deployment reproduced the defect: **SP01** — Awaiting-acceptance
+  availability correct, portal visibility OFF; **SP02** — portal visibility
+  OFF *and* availability set to "In progress" instead of "Awaiting
+  acceptance". That deployment has **no ORC10** (see versioning note), so
+  the acceptance entry relies solely on SP01/SP02, making the defect fully
+  blocking. Corrected there by: SP01 portal visibility ON; SP02 portal
+  visibility ON + availability moved to Awaiting acceptance (In progress
+  removed). Both re-opened and read back as applied — **PASS**. So VI-009 is
+  a **persistent, genuine current-Vanilla defect** (unlike VI-002/VI-003
+  which reconcile to visualiser limitations). The correction is the minimal
+  set of supplier-action field changes above. (Customer-specific identifiers
+  are held privately in the implementation project, not in this repo.)
 
 ## VI-010 — GM06 "Take off hold" tag automation appears inverted [CONFIGURATION INCONSISTENCY]
 

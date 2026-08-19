@@ -7,6 +7,31 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — Vanilla is versioned; register reconciliations; Studio Projects
+
+First real second-instance comparison (an implementation project against a
+newer Vanilla deployment; customer identifiers held privately, NOT in this
+repo). Generic knowledge banked:
+- **docs/VANILLA-VERSIONING.md** — Vanilla is versioned, not one eternal
+  golden config. Older Labs baseline vs a newer deployment differ materially
+  (Orders re-seeded, 11 supplier actions not 13, no ORC10/SPWA, Quote +
+  Business Case engines healthy, PH05 anomaly absent) — but the VI-009
+  acceptance defect persisted. Projects must record which Vanilla baseline
+  they started from.
+- **VANILLA-ISSUES.md reconciliations:** VI-002 (Business Case-R) and VI-003
+  (Quote Requested-R) RE-CLASSIFIED from "dead end" to VISUALISER / ACTION-MAP
+  LIMITATION — both are engine-driven (Business Cases module; quote engine
+  RE05→RH03b), the Action map just can't see the cross-engine lifecycle.
+  VI-009 confirmed a PERSISTENT genuine current-Vanilla defect (SP01/SP02
+  portal visibility + SP02 availability), corrected + read-back-verified in
+  the implementation project. Historical structural evidence preserved
+  throughout; only current interpretation updated. Frozen baseline untouched.
+- **Studio Projects** feature integrated (project-centric app, current-project
+  chip, versioned-Vanilla-aware), tests 30/30. Customer project data is
+  git-ignored; ARCHITECTURE.md records the requirement for durable PRIVATE
+  project storage (git-ignored must not mean un-backed-up).
+No model/*.json changed; no customer data committed to this public repo.
+
 ## 2026-08-19 — Concerto Configuration Studio v0.1 (apps/concerto-studio/)
 
 New tooling boundary: Labs is now knowledge (evidence/model) + tools
