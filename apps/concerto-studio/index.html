@@ -12,34 +12,24 @@
   <div class="brand">Concerto Studio
     <small>Configuration knowledge &amp; design</small>
   </div>
-  <a href="#overview" data-page="overview">Overview</a>
   <a href="#projects" data-page="projects">Projects</a>
-  <div class="nav-sep"></div>
-  <a href="#vanilla-diagram" data-page="vanilla-diagram">Vanilla · Diagram</a>
-  <a href="#vanilla-map" data-page="vanilla-map">Vanilla · Action Map</a>
-  <a href="#vanilla-matrix" data-page="vanilla-matrix">Vanilla · Matrix</a>
-  <a href="#vanilla-config" data-page="vanilla-config">Vanilla · Configuration</a>
-  <div class="nav-sep"></div>
-  <a href="#instance" data-page="instance">Instance</a>
-  <a href="#compare" data-page="compare">Compare</a>
-  <a href="#findings" data-page="findings">Findings</a>
-  <div class="nav-sep"></div>
-  <a href="#design" data-page="design">Design</a>
-  <a href="#solution-design" data-page="solution-design">Solution Design</a>
-  <a href="#build" data-page="build">Build</a>
-  <div class="nav-sep"></div>
-  <a href="#evidence" data-page="evidence">Evidence</a>
   <a href="#settings" data-page="settings">Settings</a>
   <div class="nav-foot" id="navFoot"></div>
 </nav>
 
 <main>
   <header id="topbar">
-    <h2 id="pageTitle">Overview</h2>
+    <h2 id="pageTitle">Projects</h2>
+    <span id="ctxWrap" hidden>
+      <label for="ctxSelect" class="ctx-label">Project</label>
+      <select id="ctxSelect" class="ctx-select"></select>
+    </span>
     <span class="spacer"></span>
     <span id="projectChip" class="project-chip empty">No project open</span>
     <span id="srcChip" class="src-chip">loading canonical models…</span>
   </header>
+  <div id="ctxInfo" hidden></div>
+  <div id="viewbar" hidden></div>
   <div id="content"></div>
 </main>
 
@@ -66,13 +56,15 @@
 <script src="js/views/actionmap.js"></script>
 <script src="js/views/grid.js"></script>
 <script src="js/views/config.js"></script>
-<script src="js/views/design.js"></script>
+<script src="js/views/design.js?v=2"></script>
 <script src="js/views/findings.js"></script>
 <script src="js/views/compare.js"></script>
 <script src="js/views/solutiondesign.js"></script>
 <script src="js/views/instance.js"></script>
 <script src="js/views/build.js"></script>
+<script src="js/views/evidence.js"></script>
 <script src="js/views/projects.js"></script>
-<script src="js/app.js"></script>
+<script src="js/views/settings.js?v=2"></script>
+<script src="js/app.js?v=2"></script>
 </body>
 </html>

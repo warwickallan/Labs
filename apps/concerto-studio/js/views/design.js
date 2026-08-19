@@ -1,13 +1,18 @@
-/* design.js — DESIGN mode: fork Vanilla into an editable desired state and
- * edit it on the same Diagram component (drag to move availability,
- * Alt-drag to copy, ✕ to remove, drag column headers to reorder,
- * + Status to add). Every edit is one undo step; the Deviation Schedule
- * is computed live against the immutable Vanilla baseline.
+/* design.js — DESIGN: the project design workspace. Fork Vanilla into an
+ * editable desired state, then work the whole design flow through internal
+ * tabs:  Edit → Compare → Findings → Build.
+ *
+ *   CURRENT STATE → DESIRED STATE → DIFF → FINDINGS → BUILD PLAN →
+ *   PREVIEW → EXECUTE → VERIFY
+ *
+ * Build is a function of Design (the action that applies the design), not a
+ * separate destination. The Deviation Schedule is computed live against the
+ * immutable Vanilla baseline.
  */
 (function () {
   'use strict';
 
-  var panelState = { showSchedule: false, restoredChecked: false, view: 'diagram' };
+  var panelState = { tab: 'edit', view: 'diagram', showSchedule: false, restoredChecked: false };
 
   function promptNewAction(M, onDone) {
     var code = window.prompt('Action code (e.g. RH12):');
@@ -28,10 +33,8 @@
     var el = window.StudioDom.el;
     var M = window.StudioModel;
     window.StudioDom.clear(container);
-
     function rerender() { render(container, vanilla); }
 
-    /* one-time: offer to restore an autosaved design */
     if (!M.hasFork() && !panelState.restoredChecked) {
       panelState.restoredChecked = true;
       if (M.restore(vanilla)) { rerender(); return; }
@@ -40,31 +43,20 @@
     if (!M.hasFork()) {
       container.appendChild(el('div', { class: 'page' }, [
         el('div', { class: 'stub' }, [
-          el('h3', { text: 'Design a customer configuration' }),
-          el('p', { text: 'DESIGN forks the immutable Vanilla baseline into an editable desired state. Vanilla itself is never modified — every change you make becomes an explicit deviation, computed live against the pinned baseline.' }),
+          el('h3', { text: 'Design this project' }),
+          el('p', { text: 'Design forks the immutable Vanilla baseline into an editable desired state for this project. Vanilla is never modified — every change becomes an explicit deviation, computed live against the pinned baseline. Work the flow: Edit → Compare → Findings → Build.' }),
           el('p', {}, [
-            el('button', {
-              class: 'btn', style: 'font-weight:600',
-              text: 'Fork Vanilla → start designing',
-              onclick: function () { M.fork(vanilla); rerender(); }
-            }),
+            el('button', { class: 'btn', style: 'font-weight:600', text: 'Fork Vanilla → start designing', onclick: function () { M.fork(vanilla); rerender(); } }),
             document.createTextNode('  '),
-            el('button', {
-              class: 'btn', text: 'Import CUSTOMER-DESIRED-STATE.json…',
-              onclick: function () { document.getElementById('designImportFile').click(); }
-            })
+            el('button', { class: 'btn', text: 'Import CUSTOMER-DESIRED-STATE.json…', onclick: function () { document.getElementById('designImportFile').click(); } })
           ]),
           el('input', {
             type: 'file', id: 'designImportFile', accept: '.json,application/json', hidden: 'hidden',
             onchange: function (ev) {
-              var f = ev.target.files[0];
-              if (!f) return;
+              var f = ev.target.files[0]; if (!f) return;
               f.text().then(function (text) {
-                try {
-                  var warning = M.importJson(text, vanilla);
-                  if (warning) window.alert(warning);
-                  rerender();
-                } catch (e) { window.alert('Import failed: ' + e.message); }
+                try { var w = M.importJson(text, vanilla); if (w) window.alert(w); rerender(); }
+                catch (e) { window.alert('Import failed: ' + e.message); }
               });
             }
           })
@@ -75,14 +67,49 @@
 
     var desired = M.desired();
     var diff = window.StudioDiff.compare(vanilla, desired);
-    var schedule = window.StudioDiff.deviationSchedule(diff);
-
     function onChange() { rerender(); }
 
     var page = el('div', { class: 'page wide' });
     container.appendChild(page);
 
+    function tabBtn(id, label) {
+      return el('button', { class: panelState.tab === id ? 'on' : '', text: label, onclick: function () { panelState.tab = id; rerender(); } });
+    }
+
     page.appendChild(el('div', { class: 'toolstrip' }, [
+      el('span', { class: 'seg' }, [tabBtn('edit', 'Edit'), tabBtn('compare', 'Compare'), tabBtn('findings', 'Findings'), tabBtn('build', 'Build')]),
+      el('span', {
+        class: 'src-chip',
+        html: diff.isEmpty ? 'No deviations from Vanilla yet'
+          : '<b>' + diff.summary.added + '</b> added · <b>' + diff.summary.removed + '</b> removed · <b>' + diff.summary.modified + '</b> modified'
+      }),
+      el('span', { style: 'flex:1' }),
+      el('button', {
+        class: 'btn', text: 'Export design JSON',
+        onclick: function () {
+          var blob = new Blob([M.exportJson()], { type: 'application/json' });
+          var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+          a.download = 'CUSTOMER-DESIRED-STATE.json'; a.click(); URL.revokeObjectURL(a.href);
+        }
+      }),
+      el('button', {
+        class: 'btn', text: 'Discard design',
+        onclick: function () {
+          if (window.confirm('Discard this design entirely? The Vanilla baseline is unaffected; this removes the fork and its autosave.')) { M.discard(); rerender(); }
+        }
+      })
+    ]));
+
+    var body = el('div', { style: 'flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto' });
+    page.appendChild(body);
+
+    if (panelState.tab === 'compare') { window.StudioCompare.render(body, vanilla); return; }
+    if (panelState.tab === 'findings') { window.StudioFindings.render(body, vanilla); return; }
+    if (panelState.tab === 'build') { window.StudioBuild.render(body, vanilla); return; }
+
+    /* ---- Edit tab ---- */
+    var schedule = window.StudioDiff.deviationSchedule(diff);
+    body.appendChild(el('div', { class: 'toolstrip' }, [
       el('span', { class: 'seg' }, [
         el('button', { class: panelState.view === 'diagram' ? 'on' : '', text: 'Diagram', onclick: function () { panelState.view = 'diagram'; rerender(); } }),
         el('button', { class: panelState.view === 'grid' ? 'on' : '', text: 'Grid', onclick: function () { panelState.view = 'grid'; rerender(); } })
@@ -90,65 +117,25 @@
       el('button', { class: 'btn', text: '+ Action', onclick: function () { promptNewAction(M, onChange); } }),
       el('button', { class: 'btn', text: '↶ Undo', disabled: M.canUndo() ? null : 'disabled', onclick: function () { M.undo(); rerender(); } }),
       el('button', { class: 'btn', text: '↷ Redo', disabled: M.canRedo() ? null : 'disabled', onclick: function () { M.redo(); rerender(); } }),
-      el('span', {
-        class: 'src-chip' + (diff.isEmpty ? '' : ' '),
-        html: diff.isEmpty
-          ? 'No deviations from Vanilla yet'
-          : '<b>' + diff.summary.added + '</b> added · <b>' + diff.summary.removed + '</b> removed · <b>' + diff.summary.modified + '</b> modified'
-      }),
-      el('button', {
-        class: 'btn', text: panelState.showSchedule ? 'Hide deviation schedule' : 'Show deviation schedule (' + schedule.length + ')',
-        onclick: function () { panelState.showSchedule = !panelState.showSchedule; rerender(); }
-      }),
-      el('span', { style: 'flex:1' }),
-      el('button', {
-        class: 'btn', text: 'Export design JSON',
-        onclick: function () {
-          var blob = new Blob([M.exportJson()], { type: 'application/json' });
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = 'CUSTOMER-DESIRED-STATE.json';
-          a.click();
-          URL.revokeObjectURL(a.href);
-        }
-      }),
-      el('button', {
-        class: 'btn', text: 'Discard design',
-        onclick: function () {
-          if (window.confirm('Discard this design entirely? The Vanilla baseline is unaffected; this removes the fork and its autosave.')) {
-            M.discard();
-            rerender();
-          }
-        }
-      })
+      el('button', { class: 'btn', text: panelState.showSchedule ? 'Hide deviation schedule' : 'Deviation schedule (' + schedule.length + ')', onclick: function () { panelState.showSchedule = !panelState.showSchedule; rerender(); } })
     ]));
 
     if (panelState.showSchedule) {
-      var body = el('tbody', {}, schedule.length ? schedule.map(function (r) {
+      var tbody = el('tbody', {}, schedule.length ? schedule.map(function (r) {
         return el('tr', {}, [
-          el('td', {}, [el('span', {
-            class: 'conf-chip' + (r.kind === 'ADDED' ? ' observed' : r.kind === 'REMOVED' ? '' : ' parsed'),
-            text: r.kind
-          })]),
-          el('td', { text: r.object }),
-          el('td', { text: r.detail })
+          el('td', {}, [el('span', { class: 'conf-chip' + (r.kind === 'ADDED' ? ' observed' : r.kind === 'REMOVED' ? '' : ' parsed'), text: r.kind })]),
+          el('td', { text: r.object }), el('td', { text: r.detail })
         ]);
       }) : [el('tr', {}, [el('td', { colspan: '3', text: 'No deviations — the design is identical to Vanilla.' })])]);
-      page.appendChild(el('div', { style: 'padding:14px 22px;max-height:260px;overflow:auto;border-bottom:1px solid var(--border);background:var(--surface)' }, [
-        el('table', { class: 'list' }, [
-          el('thead', {}, [el('tr', {}, [el('th', { text: '' }), el('th', { text: 'Object' }), el('th', { text: 'Deviation' })])]),
-          body
-        ])
+      body.appendChild(el('div', { style: 'padding:14px 22px;max-height:240px;overflow:auto;border-bottom:1px solid var(--border);background:var(--surface)' }, [
+        el('table', { class: 'list' }, [el('thead', {}, [el('tr', {}, [el('th', { text: '' }), el('th', { text: 'Object' }), el('th', { text: 'Deviation' })])]), tbody])
       ]));
     }
 
     var boardHost = el('div', { style: 'flex:1;display:flex;flex-direction:column;min-height:0' });
-    page.appendChild(boardHost);
-    if (panelState.view === 'grid') {
-      window.StudioGrid.render(boardHost, desired, { editable: true, onChange: onChange });
-    } else {
-      window.StudioDiagram.render(boardHost, desired, { editable: true, onChange: onChange });
-    }
+    body.appendChild(boardHost);
+    if (panelState.view === 'grid') window.StudioGrid.render(boardHost, desired, { editable: true, onChange: onChange });
+    else window.StudioDiagram.render(boardHost, desired, { editable: true, onChange: onChange });
   }
 
   window.StudioDesign = { render: render };

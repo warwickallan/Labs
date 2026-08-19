@@ -633,6 +633,121 @@
     });
   });
 
+  /* ---- settings view + project-file record shape ----------------------- */
+
+  test('Settings has the baseline registry, ratified date, Vanilla evidence and Storage', function () {
+    return loadedPromise.then(function (res) {
+      var sb = document.getElementById('sandbox');
+      while (sb.firstChild) sb.removeChild(sb.firstChild);
+      window.StudioApp = window.StudioApp || {};
+      window.StudioSettings.render(sb, res.model, res.invariants);
+      assert(/Vanilla baselines/i.test(sb.textContent), 'baseline registry section');
+      assert(/active/i.test(sb.textContent), 'marks an active baseline');
+      assert(sb.querySelector('input[type=date]'), 'ratified-date control');
+      assert(/Vanilla & generic evidence|Vanilla evidence/i.test(sb.textContent), 'Vanilla/generic evidence section');
+      assert(/Storage/i.test(sb.textContent), 'Storage section');
+      assert(sb.textContent.indexOf(res.model.meta.sourceFingerprints.helpdesk) !== -1, 'shows the baseline fingerprint');
+    });
+  });
+
+  test('project Evidence is separate from Vanilla evidence and shows project history', function () {
+    return loadedPromise.then(function (res) {
+      var sb = document.getElementById('sandbox');
+      while (sb.firstChild) sb.removeChild(sb.firstChild);
+      window.StudioApp = window.StudioApp || {}; window.StudioApp.model = res.model;
+      withCleanProjects(function () {
+        /* no project open → prompts to select a project, points to Settings for Vanilla evidence */
+        window.StudioProjectEvidence.render(sb, res.model);
+        assert(/Project evidence/i.test(sb.textContent) && /Settings/.test(sb.textContent), 'no-project state points to Settings');
+        /* with a project open → shows its change receipts */
+        window.StudioProject.importProject(fileFor('kirklees-council', 'Kirklees Council', {
+          changeLog: [{ at: '2026-08-19', id: 'CHG-001', object: 'SP01', outcome: 'PASS' }],
+          findingsSummary: { resolved: ['VI-009 fixed'] }
+        }));
+        window.StudioProject.open('kirklees-council');
+        while (sb.firstChild) sb.removeChild(sb.firstChild);
+        window.StudioProjectEvidence.render(sb, res.model);
+        assert(/Change receipts/i.test(sb.textContent), 'shows change receipts');
+        assert(sb.textContent.indexOf('CHG-001') !== -1, 'lists the project change');
+        assert(sb.textContent.indexOf('VI-009 fixed') !== -1, 'shows project findings');
+        window.StudioProject.close();
+      });
+    });
+  });
+
+  test('Design nests Edit / Compare / Findings / Build (Build is not a separate destination)', function () {
+    return loadedPromise.then(function (res) {
+      var sb = document.getElementById('sandbox');
+      while (sb.firstChild) sb.removeChild(sb.firstChild);
+      window.StudioApp = window.StudioApp || {}; window.StudioApp.model = res.model;
+      var M = window.StudioModel;
+      M.discard(); M.fork(res.model);
+      window.StudioDesign.render(sb, res.model);
+      var tabLabels = Array.prototype.map.call(sb.querySelectorAll('.toolstrip .seg button'), function (b) { return b.textContent; });
+      assert(tabLabels.indexOf('Edit') !== -1 && tabLabels.indexOf('Compare') !== -1 &&
+        tabLabels.indexOf('Findings') !== -1 && tabLabels.indexOf('Build') !== -1,
+        'Design tabs = Edit/Compare/Findings/Build, got ' + tabLabels.join(','));
+      M.discard();
+    });
+  });
+
+  function withCleanProjects(fn) {
+    var KEY = window.StudioProject.STORAGE_KEY;
+    var saved = localStorage.getItem(KEY);
+    localStorage.removeItem(KEY);
+    try { return fn(); } finally { if (saved) localStorage.setItem(KEY, saved); else localStorage.removeItem(KEY); }
+  }
+  function fileFor(key, name, extra) {
+    var p = { formatVersion: 1, key: key, name: name, instanceUrl: 'https://' + key + '.example', domains: ['Reactive Helpdesk'], createdAt: 'x', lastOpenedAt: null, lastCrawlAt: null, concertoBuild: null, basedOnVanilla: null, instance: null, desiredHelpdesk: null, findingsState: {}, notes: '', changeLog: [] };
+    Object.keys(extra || {}).forEach(function (k) { p[k] = extra[k]; });
+    return JSON.stringify({ kind: 'CONCERTO-STUDIO-PROJECT', formatVersion: 1, project: p });
+  }
+
+  test('durable project-file record imports and beats a stale localStorage entry', function () {
+    return loadedPromise.then(function () {
+      withCleanProjects(function () {
+        /* stale localStorage record with the WRONG url */
+        window.StudioProject.create({ key: 'kirklees-council', name: 'STALE', instanceUrl: 'https://wrong.example' });
+        /* durable file for the same key wins */
+        var rec = window.StudioProject.importProject(fileFor('kirklees-council', 'Kirklees Council', { changeLog: [{ at: 'x', id: 'CHG-001' }] }));
+        assert(rec.name === 'Kirklees Council', 'file name wins');
+        assert(window.StudioProject.get('kirklees-council').instanceUrl === 'https://kirklees-council.example', 'file url wins over stale');
+        assert(window.StudioProject.get('kirklees-council').changeLog.length === 1, 'change log carried');
+      });
+    });
+  });
+
+  test('exactly two seeded projects; stale non-manifest keys can be pruned', function () {
+    return loadedPromise.then(function () {
+      withCleanProjects(function () {
+        window.StudioProject.importProject(fileFor('warwick-demo', 'Warwick Demo'));
+        window.StudioProject.importProject(fileFor('kirklees-council', 'Kirklees Council'));
+        window.StudioProject.create({ key: 'zz-stale', name: 'ZZ Stale', instanceUrl: 'x' }); /* not in manifest */
+        var manifest = ['warwick-demo', 'kirklees-council'];
+        window.StudioProject.list().forEach(function (p) { if (manifest.indexOf(p.key) === -1) window.StudioProject.remove(p.key); });
+        var keys = window.StudioProject.list().map(function (p) { return p.key; }).sort();
+        assert(keys.length === 2 && keys[0] === 'kirklees-council' && keys[1] === 'warwick-demo', 'exactly the two manifest projects remain: ' + keys.join(','));
+      });
+    });
+  });
+
+  test('project switching carries no cross-project state leakage', function () {
+    return loadedPromise.then(function (res) {
+      withCleanProjects(function () {
+        window.StudioApp = window.StudioApp || {};
+        window.StudioApp.model = res.model;
+        var instA = { snapshotId: 'A', meta: { targetUrl: 'https://a' }, model: res.model };
+        window.StudioProject.importProject(fileFor('proj-a', 'Project A', { instance: instA }));
+        window.StudioProject.importProject(fileFor('proj-b', 'Project B')); /* no instance */
+        window.StudioProject.open('proj-a');
+        assert(window.StudioApp.instance && window.StudioApp.instance.snapshotId === 'A', 'A opens with its instance');
+        window.StudioProject.open('proj-b');
+        assert(!window.StudioApp.instance, 'switching to B (no instance) clears A instance — no leak');
+        window.StudioProject.close();
+      });
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');

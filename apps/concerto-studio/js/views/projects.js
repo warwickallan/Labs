@@ -102,7 +102,7 @@
             class: 'btn', style: 'font-weight:600', text: 'OPEN PROJECT',
             onclick: function () {
               P.open(rec.key);
-              location.hash = '#overview';
+              location.hash = '#diagram';
             }
           }),
           isCurrent ? el('button', {
