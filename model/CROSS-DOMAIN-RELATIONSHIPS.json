@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "description": "Explicit Helpdesk↔Orders (and quote-engine) edges. Each edge is neither purely Helpdesk nor purely Orders configuration; both sides' evidence is referenced. Grades: STRUCTURAL (configuration read on both sides) / CONTROLLED_VERIFIED (runtime-proven).",
+    "updated": "2026-08-19"
+  },
+  "edges": [
+    {"id": "X-001", "edge": "Supplier action SP01 Accept -> order status Accepted -> fires Helpdesk T02", "grade": "STRUCTURAL", "evidence": ["EO-002", "E-015"]},
+    {"id": "X-002", "edge": "Supplier action SP02 Reject -> order status Cancelled -> fires Helpdesk T03 (job -> With Helpdesk, tag 02. Supplier rejected)", "grade": "STRUCTURAL", "evidence": ["EO-002", "E-015", "E-023"]},
+    {"id": "X-003", "edge": "Supplier action SP03 Make appointment -> order AMO -> fires Helpdesk T04; PPM visit -> Appointment made", "grade": "STRUCTURAL", "evidence": ["EO-002", "E-015"]},
+    {"id": "X-004", "edge": "Supplier actions ORC10/SP04/SP06 -> order In progress -> fire Helpdesk T05", "grade": "STRUCTURAL", "evidence": ["EO-002", "E-015"]},
+    {"id": "X-005", "edge": "Supplier action SP05 Hold -> order On hold -> fires Helpdesk T06 (user-selects return status)", "grade": "STRUCTURAL", "evidence": ["EO-002", "E-007", "E-015"]},
+    {"id": "X-006", "edge": "Supplier completions SP07 Work complete / Complete&Quote -> order Work complete -> fire Helpdesk RH10 / RH11 (job -> Work Complete - R)", "grade": "STRUCTURAL", "evidence": ["EO-002", "E-015"]},
+    {"id": "X-007", "edge": "Supplier PPM completions SP07 PPM / PPM-with-remedials / SPWA -> fire Helpdesk PH06 / PH07 (job -> PPM Complete); PPM visit -> Complete / Complete - Remedial", "grade": "STRUCTURAL", "evidence": ["EO-002", "E-015"]},
+    {"id": "X-008", "edge": "Supplier action BC01 Cost uplift required -> fires Helpdesk T07 (job -> Business Case - R; tag 06)", "grade": "STRUCTURAL", "evidence": ["EO-002", "E-015", "E-023"]},
+    {"id": "X-009", "edge": "Helpdesk RH04/PH03/LM05 assign supplier -> raise order (default status Awaiting acceptance); RH04 order-status trigger field also fires ON orders->Awaiting acceptance", "grade": "STRUCTURAL", "evidence": ["E-015", "EO-001"]},
+    {"id": "X-010", "edge": "Helpdesk G003 Cancel job -> all non-cancelled orders -> Cancelled; PPM visits -> Aborted visit; order status Cancelled is also G003's own trigger (reverse listener)", "grade": "STRUCTURAL", "evidence": ["E-015", "EO-001"]},
+    {"id": "X-011", "edge": "Helpdesk G004 Close job triggers on orders->Closed; Helpdesk RH05 Approve Order fires on order approval (job Awaiting Order Approval - R -> With Contractor - R)", "grade": "STRUCTURAL", "evidence": ["E-015", "EO-001"]},
+    {"id": "X-012", "edge": "Job enters Awaiting Order Approval - R via the STATUS unapproved-orders flag (order raised above approval level); approval-level source unknown (UO-001)", "grade": "STRUCTURAL", "evidence": ["E-022"]},
+    {"id": "X-013", "edge": "Helpdesk Response Category Priority 1 -> Link to order priority 'Priority 1'; RH07 Amend SLA updates order priority to the helpdesk priority", "grade": "STRUCTURAL", "evidence": ["E-017", "E-015", "EO-002"]},
+    {"id": "X-014", "edge": "Helpdesk RH04 default orders project (00001) Reactive Maintenance; PH03 -> (00002) Planned Maintenance; Stock Order type -> (00003) Stock Orders", "grade": "STRUCTURAL", "evidence": ["E-015", "EO-002"]},
+    {"id": "X-015", "edge": "Quote engine RE05 Raise Order -> fires Helpdesk RH03b (job Quote Requested - R -> With Contractor - R); SP07 Complete&Quote enters the quote engine from the supplier side", "grade": "STRUCTURAL", "evidence": ["E-016", "EO-002"]},
+    {"id": "X-016", "edge": "Helpdesk T09 AFP approved fires on application-for-payment approval; order statuses gate AFP via prevent-application flags", "grade": "STRUCTURAL", "evidence": ["E-015", "EO-001"]},
+    {"id": "X-017", "edge": "Order tags CU01/CU02 (Order type) and QuoteRequest tags Q1-Q4 span domains with Helpdesk tags", "grade": "STRUCTURAL", "evidence": ["E-012", "E-017"]}
+  ]
+}

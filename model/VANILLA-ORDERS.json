@@ -1,0 +1,73 @@
+{
+  "metadata": {
+    "modelVersion": 1,
+    "domain": "Orders",
+    "environment": "https://warwick.concertodemo.co.uk",
+    "mode": "DISCOVER",
+    "generatedAt": "2026-08-19",
+    "notes": "Vanilla Orders Admin structural baseline (evidence EO-001..EO-003). Separate domain from VANILLA-HELPDESK.json by design. Cross-domain edges live in CROSS-DOMAIN-RELATIONSHIPS.json. 25 of 32 admin tabs are empty in Vanilla."
+  },
+  "orderStatuses": [
+    {"name": "Awaiting acceptance", "code": "AWA", "colour": "Amber", "sort": 10, "isDefault": true, "preventApplication": true, "hubDashboard": true},
+    {"name": "Accepted", "code": null, "colour": "Dark blue", "sort": 20, "preventApplication": true, "preventInvoices": true, "hubDashboard": true},
+    {"name": "Appointment Made/Operative Assigned", "code": "AMO", "colour": "Light green", "sort": 30, "mobileApp": true, "contractorView": true, "preventApplication": true, "preventInvoices": true, "hubDashboard": true},
+    {"name": "In progress", "code": "IPR", "colour": "Green", "sort": 40, "semantic": "in-progress", "mobileApp": true, "goodsReceivedPage": true, "restrictedToOperativesSuppliers": true, "contractorView": true, "preventApplication": true, "preventInvoices": true, "hubDashboard": true},
+    {"name": "On hold", "code": null, "colour": "Dark red", "sort": 50, "semantic": "on-hold", "mobileApp": true, "contractorView": true, "preventApplication": true, "preventInvoices": true, "hubDashboard": true},
+    {"name": "Pending quote", "code": "PQU", "colour": "Purple", "sort": 60, "semantic": "quote-pending", "preventApplication": true, "preventInvoices": true, "hubDashboard": true},
+    {"name": "Work complete", "code": "WCO", "colour": "Green", "sort": 70, "semantic": "complete-on-site/goods-received", "restrictedToOperativesSuppliers": true, "remedialsPromptAction": "Complete work", "hubDashboard": true},
+    {"name": "Complete - awaiting certificate", "code": "CAC", "colour": "Yellow", "sort": 80, "semantic": "complete-on-site/goods-received", "hubDashboard": true},
+    {"name": "In review", "code": "IRE", "colour": "Dark red", "sort": 90, "preventApplication": true, "hubDashboard": true},
+    {"name": "Closed", "code": "CLO", "colour": "Dark gray/black", "sort": 100, "semantic": "complete", "hubDashboard": true},
+    {"name": "Cancelled", "code": "CXL", "colour": "Dark gray/black", "sort": 110, "semantic": "cancelled", "hubDashboard": true}
+  ],
+  "orderPriorities": [
+    {"name": "Default", "isDefault": true, "note": "one of TWO records named Default (VO-001)"},
+    {"name": "Default", "note": "duplicate empty record (VO-001)"},
+    {"name": "Planned", "colour": "Blue", "workingHours": "Standard hours"},
+    {"name": "Priority 1", "responseHours": 2, "completionDays": 1, "colour": "Red", "workingHours": "Standard hours", "workspace": "A Workspace"},
+    {"name": "Priority 2", "code": "02", "colour": "Orange", "workingHours": "Standard hours"},
+    {"name": "Priority 3", "code": "03", "colour": "Yellow", "workingHours": "Standard hours"},
+    {"name": "Priority 4", "code": "04", "colour": "Green", "workingHours": "Standard hours"}
+  ],
+  "orderTypes": [
+    {"name": "Purchase order", "code": "PO-01", "isDefault": true},
+    {"name": "Stock Order", "code": "STK01", "consumable": true, "budgetHeading": "Stock", "budgetCategory": "STK (STOCK)", "ordersProject": "(00003) Stock Orders"}
+  ],
+  "budgetCategories": [
+    {"name": "CAP (EQUIP)", "code": "CAP", "code2": "6000", "type": "Works", "rateUnitQty": true},
+    {"name": "CAP (IT)", "code": "CAP", "code2": "7000", "type": "Works", "rateUnitQty": true},
+    {"name": "PM (BUILD)", "code": "PM", "code2": "1000", "type": "Works", "rateUnitQty": true, "lumpsum": true},
+    {"name": "PM (ELEC)", "code": "PM", "code2": "2000", "type": "Works", "rateUnitQty": true, "lumpsum": true},
+    {"name": "PM (MECH)", "code": "PM", "code2": "3000", "type": "Works", "rateUnitQty": true, "lumpsum": true},
+    {"name": "PM (OTHER)", "code": "PM", "code2": "4000", "type": "Works", "rateUnitQty": true, "lumpsum": true},
+    {"name": "RM (BUILD)", "code": "RM", "code2": "1000", "type": "Works", "rateUnitQty": true, "lumpsum": true},
+    {"name": "RM (ELEC)", "code": "RM", "code2": "2000", "type": "Works", "rateUnitQty": true, "lumpsum": true},
+    {"name": "RM (MECH)", "code": "RM", "code2": "3000", "type": "Works", "rateUnitQty": true, "lumpsum": true, "isDefault": true},
+    {"name": "RM (OTHER)", "code": "RM", "code2": "4000", "type": "Works", "rateUnitQty": true, "lumpsum": true},
+    {"name": "STK (STOCK)", "code": "STK", "code2": "5000", "type": "Works", "rateUnitQty": true}
+  ],
+  "supplierActions": [
+    {"code": "ORC10", "name": "Acknowledge Job", "availableIn": ["Awaiting acceptance", "Appointment Made/Operative Assigned"], "resultingOrderStatus": "In progress", "firesHelpdeskAction": "T05", "acknowledge": true},
+    {"code": "SP01", "name": "Accept job", "availableIn": ["Awaiting acceptance"], "resultingOrderStatus": "Accepted", "firesHelpdeskAction": "T02", "portalAcceptAction": true, "showBeforeAccepted": true},
+    {"code": "SP02", "name": "Reject job", "availableIn": ["In progress"], "resultingOrderStatus": "Cancelled", "firesHelpdeskAction": "T03", "portalRejectAction": true, "ppm": "Non planned jobs", "showBeforeAccepted": true},
+    {"code": "SP03", "name": "Make appointment/Assign operative", "availableIn": ["Accepted"], "resultingOrderStatus": "Appointment Made/Operative Assigned", "firesHelpdeskAction": "T04", "appointmentPanel": true, "operativeAssignmentPanel": true, "ppmVisitStatus": "Appointment made"},
+    {"code": "SP04", "name": "Start Job", "availableIn": ["Appointment Made/Operative Assigned", "In progress"], "resultingOrderStatus": "In progress", "firesHelpdeskAction": "T05", "responseTimeMandatory": true, "timer": "start", "oncePerOperative": true, "updatesResponseDate": true, "contractorApp": true},
+    {"code": "SP05", "name": "Place on hold", "availableIn": ["Appointment Made/Operative Assigned", "In progress"], "resultingOrderStatus": "On hold", "firesHelpdeskAction": "T06", "timer": "stop"},
+    {"code": "SP06", "name": "Start return visit", "availableIn": ["On hold"], "resultingOrderStatus": "In progress", "firesHelpdeskAction": "T05", "constraints": ["SP04", "SP05"], "timer": "start"},
+    {"code": "SP07a", "name": "Work complete", "availableIn": ["Appointment Made/Operative Assigned", "In progress"], "resultingOrderStatus": "Work complete", "firesHelpdeskAction": "RH10", "responseAndCompleteMandatory": true, "signatures": true, "portalToolbarBulk": true, "updatesResponseAndCompleteDates": true, "timer": "stop", "constraints": ["SP04"], "ppm": "Non planned jobs"},
+    {"code": "SP07b", "name": "Complete & Quote", "availableIn": ["Appointment Made/Operative Assigned", "In progress"], "resultingOrderStatus": "Work complete", "firesHelpdeskAction": "RH11", "isQuoteRequest": true, "quoteProcess": "Standard process", "sendsToQuoteScreen": true, "timer": "stop", "constraints": ["SP04"], "ppm": "Non planned jobs"},
+    {"code": "SP07c", "name": "PPM Complete", "availableIn": ["In progress"], "resultingOrderStatus": "Work complete", "firesHelpdeskAction": "PH06", "ppm": "Planned jobs only", "ppmVisitStatus": "Complete", "timingsMandatory": true, "timer": "stop", "constraints": ["SP04"]},
+    {"code": "SP07d", "name": "PPM Complete - with remedials", "availableIn": ["In progress"], "resultingOrderStatus": "Work complete", "firesHelpdeskAction": "PH07", "ppm": "Planned jobs only", "ppmVisitStatus": "Complete - Remedial", "canAddRemedials": true, "timer": "stop"},
+    {"code": "SPWA", "name": "PPM Reviewed", "availableIn": [], "resultingOrderStatus": "Work complete", "firesHelpdeskAction": "PH06", "ppm": "Planned jobs only", "fileUploadMandatory": true, "ppmCertificatePrompt": true},
+    {"code": "BC01", "name": "Cost uplift required", "availableIn": ["Work complete"], "resultingOrderStatus": null, "firesHelpdeskAction": "T07", "estimatePrompt": "Cost uplift", "ppm": "Non planned jobs"}
+  ],
+  "referenceData": {
+    "invoiceTypes": ["Cash purchases"],
+    "hazardFields": ["Hazards", "Persons at Risk", "Risk level"]
+  },
+  "emptyTabs": ["Terms", "Teams", "Fees", "Fee rules matrix", "Basis of estimate", "Standard phrases", "Discounts", "Custom fields", "Approval escalation", "Cancellation reasons", "Internal codes", "Application approval rules", "Customers", "Sales nominals", "Sales departments", "Supplier groups", "Order approval workflow", "Invoice rules", "Cost code validation (CVRs)", "Cost code validation (parts)", "Agency", "Site Code", "Invoice addresses", "PPM Supplier Review Actions", "Project order outcomes"],
+  "unknowns": [
+    {"id": "UO-001", "question": "Source of the order approval level referenced by Helpdesk status Awaiting Order Approval - R (unapproved_orders flag) — not found in Orders Admin (candidates: system settings, site/supplier config)."},
+    {"id": "UO-002", "question": "SP02 availability shows 'In progress' ticked yet 'show before job is accepted' — apparent contradiction; runtime behaviour unknown (E2)."}
+  ]
+}

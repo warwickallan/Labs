@@ -7,6 +7,23 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — ORDERS ADMIN DISCOVER complete (EO-001..EO-003)
+
+All 32 Orders Admin tabs crawled read-only; 7 populated / 25 empty.
+Priority families ALL record-complete: 11 Order Statuses (codes, semantic
+flags, device/portal, AFP gates; Awaiting acceptance default), 7
+Priorities (duplicate-Default anomaly VO-001; only P1 has deadlines), 2
+Order Types, 11 Budget Categories (nominal codes; RM MECH default), 13
+Supplier Actions individually read. KEY: Supplier Actions carry a direct
+"Resulting action on the helpdesk status" link - the complete T-action
+trigger map is structurally resolved (T02<-SP01, T03<-SP02, T04<-SP03,
+T05<-ORC10/SP04/SP06, T06<-SP05, T07<-BC01; supplier completions fire
+RH10/RH11/PH06/PH07). New artefacts: VANILLA-ORDERS.json,
+CROSS-DOMAIN-RELATIONSHIPS.json (X-001..X-017),
+docs/VANILLA-ORDERS-DISCOVERY.md. PPM references recorded, no PPM crawl.
+E2 still not begun. Unknowns: UO-001 approval-level source, UO-002 SP02
+contradiction.
+
 ## 2026-08-19 (rotate checkpoint) — Entering ORDERS ADMIN DISCOVER
 
 Core Five audit accepted and banked (E-023, CORE-FIVE-COMPLETENESS.md).

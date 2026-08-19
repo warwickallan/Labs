@@ -4,7 +4,7 @@
 > the evidence/registers named below → `git log`.** This file states the
 > CURRENT truth; history lives in SESSION_LOG and git.
 
-- **Updated:** 2026-08-19 (entering ORDERS ADMIN DISCOVER mode).
+- **Updated:** 2026-08-19 (ORDERS ADMIN DISCOVER complete; stopped).
 - **Phase/mode:** **ORDERS ADMIN DISCOVER** — structural discovery of the
   Orders configuration domain (read-only: Add/Edit forms opened and
   CANCELLED, transient unsaved probes allowed, nothing persisted).
@@ -48,11 +48,10 @@
 
 ## Next permitted step
 
-Orders Admin structural crawl (authorised, in progress): all tabs; priority
-depth on Status, Priority, Order Types, Budget Categories, and Supplier
-Actions (every record individually). Then Helpdesk↔Orders reconciliation,
-Orders model validation, and a proposed programme for Supplier-Helpdesk
-operational discovery + E2. E2 itself remains BLOCKED.
+Orders Admin crawl COMPLETE (EO-001..EO-003; VANILLA-ORDERS.json;
+CROSS-DOMAIN-RELATIONSHIPS.json X-001..X-017). Awaiting Warwick's word on:
+(a) Supplier Helpdesk operational discovery (proposed, read-only), then
+(b) E2. Both BLOCKED until authorised.
 
 ## Important unresolved items
 
