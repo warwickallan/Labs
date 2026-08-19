@@ -107,7 +107,7 @@
             importanceUseFirst: !!a.importanceUseFirst,
             availableInAnyStatus: !!a.availableInAnyStatus,
             availableIn: (a.availableIn || []).slice(),
-            notesProvenance: v2 ? 'STRUCTURED-V2' : 'PARSED-FROM-NOTES',
+            notesProvenance: a.provenance || (v2 ? 'STRUCTURED-V2' : 'PARSED-FROM-NOTES'),
             rawNotes: a.notes || '',
             machineFired: false, /* derived below */
             confidence: a.confidence,
@@ -209,6 +209,10 @@
           identities: S.fingerprint(raw.identities)
         },
         loadedAt: new Date().toISOString(),
+        /* Which fields the SOURCE actually captured. Absent for the canonical
+         * models (they capture everything); present for instance crawls so
+         * the differ never reads an uncaptured field as a deviation. */
+        capture: hd.metadata.capture || null,
         notes: 'Normalised READ-ONLY from Labs model/*.json. Vanilla is immutable.'
       },
       helpdesk: {

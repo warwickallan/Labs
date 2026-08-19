@@ -31,18 +31,32 @@
     return el('span', { class: cls, text: text });
   }
 
+  /* Every crawl earns a stamped place on the open project's timeline, so it
+   * can be re-opened in any view and compared with the capture before it.
+   * The harness stamps a full ISO datetime. */
+  function addToTimeline(record) {
+    var P = window.StudioProject;
+    var proj = P && P.current();
+    if (!proj) return;
+    var snaps = (proj.snapshots || []).slice();
+    if (snaps.some(function (s) { return s.id === record.snapshotId; })) return;
+    snaps.push({
+      id: record.snapshotId,
+      label: 'Crawl ' + record.snapshotId,
+      path: null, /* held in the harness store, not a project file */
+      capturedAt: record.meta.crawledAt || record.ingestedAt,
+      source: 'harness crawl (read-only)'
+    });
+    P.save(proj.key, { snapshots: snaps, lastCrawlAt: record.meta.crawledAt || record.ingestedAt });
+  }
+
   function ingestSnapshot(snapshotId, vanilla, rerender) {
     window.StudioHarness.snapshot(snapshotId).then(function (snap) {
-      var model = window.VanillaLoader.normaliseSnapshot(snap);
-      var diff = window.StudioDiff.compare(vanilla, model);
-      var record = {
-        snapshotId: snapshotId,
-        meta: snap.meta,
-        model: model,
-        ingestedAt: new Date().toISOString()
-      };
+      var record = window.StudioIngest.toInstanceRecord(snapshotId, snap, vanilla);
+      var diff = window.StudioDiff.compare(vanilla, record.model);
       window.StudioApp.instance = record;
       window.StudioHarness.instanceStore.save(record);
+      addToTimeline(record);
       state.message = 'Snapshot ' + snapshotId + ' ingested: ' +
         diff.summary.added + ' added / ' + diff.summary.removed + ' removed / ' +
         diff.summary.modified + ' modified vs Vanilla.';

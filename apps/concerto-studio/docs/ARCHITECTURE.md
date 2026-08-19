@@ -32,6 +32,40 @@ comparable Vanilla baseline — not merely a deviation from the Labs model. The
 pure diff engine already accepts arbitrary model sources; the remaining work
 is to let Compare show **older Vanilla → newer Vanilla** directly.
 
+## Snapshot timeline and honest comparison (added 2026-08-20)
+
+Every crawl of a customer instance is banked as a **time-and-date stamped
+snapshot** on that project's timeline. Selecting a stamp renders THAT capture
+in every view (Diagram, Action Map, Matrix, Configuration); switching on
+**Changes only** re-renders the same capture with everything that moved since
+the previous stamp ringed, above a written summary. The earliest capture has
+no predecessor, so it compares against the Vanilla baseline and says so.
+
+Two rules keep this honest:
+
+1. **A stamp is shown at the precision it was recorded.** The harness stamps
+   a full ISO datetime; a capture that only ever recorded a date is displayed
+   as a date and labelled "time not recorded". No clock time is invented.
+2. **A crawl's blind spots are declared, never silently diffed.** An ingested
+   model carries `meta.capture` describing what its source actually saw:
+   which Helpdesk Types, which per-action fields, and how actions and
+   outcomes were read. `js/diff.js` reads that declaration and
+   - scopes the comparison to the covered Types,
+   - excludes per-action fields the crawl never read (`notCompared`),
+   - excludes actions no grouped-by-status view can show — engine-fired ones
+     included — instead of reporting them as deleted (`invisibleToCrawl`),
+   - excludes outcomes the crawl recorded neither way (`resultsNotObserved`).
+   Each exclusion is counted and printed in the summary. Silence about a
+   field is never rendered as "identical", and never as "deleted".
+
+`js/instance-ingest.js` converts a captured crawl into the standard model
+shape. Where the source used an abbreviation it defines, it is expanded and
+logged; where an abbreviation is genuinely ambiguous ("WC-R" is both With
+Contractor - R and Work Complete - R), it is resolved only by matching the
+action code against the baseline's known outcome — logged as
+DISAMBIGUATED-VS-BASELINE — and otherwise left UNRESOLVED and reported. The
+ingest report is shown in the project's Evidence view.
+
 **REQUIREMENT — durable private project storage (not yet built).** Customer
 project data lives under `apps/concerto-studio/projects/<key>/` and is
 **git-ignored** — it must never enter the PUBLIC Labs repo (instance URLs,

@@ -7,6 +7,28 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-20 — Studio: real instance ingest + stamped snapshot timeline
+
+A project's views now render the **customer instance**, not the Vanilla
+reference. `js/instance-ingest.js` converts a captured read-only crawl into
+the standard model shape; `js/snapshots.js` turns a project's captures into a
+**time-and-date stamped timeline** — pick a stamp to see that capture in every
+view, or turn on *Changes only* to see what moved since the previous stamp
+ringed in the Diagram/Matrix/Action Map above a written summary.
+
+The differ (`js/diff.js`) learned to respect what a crawl could actually see.
+An ingested model declares `meta.capture`, and comparison is scoped to the
+covered Helpdesk Types, excludes fields the crawl never read, excludes actions
+no grouped-by-status view can show (engine-fired ones), and excludes outcomes
+the crawl recorded neither way — each exclusion counted and printed rather
+than silently absorbed. Ambiguous source abbreviations are resolved only
+against the baseline, or left unresolved and reported; nothing is guessed.
+
+Result: the deltas previously written by hand in prose are now **computed**
+from the capture — 1 action absent, 1 availability added, 6 availability
+edges absent, all matching the manual analysis. Studio tests 46/46.
+Generic knowledge only in this repo; customer captures stay git-ignored.
+
 ## 2026-08-19 — Vanilla is versioned; register reconciliations; Studio Projects
 
 First real second-instance comparison (an implementation project against a

@@ -69,19 +69,112 @@
 
   /* compare two models (normalised Studio shape). Currently the Helpdesk
    * domain — the editable surface; Orders joins when DESIGN covers it. */
+  /* A model may declare which fields its SOURCE captured (meta.capture — set
+   * by an instance crawl). Fields nobody captured on either side are not
+   * comparable: they are excluded and listed in summary.notCompared rather
+   * than reported as deviations. Silence here would read as "identical". */
+  function capturedFields(model, which, all) {
+    var cap = model && model.meta && model.meta.capture;
+    if (!cap || !cap[which]) return all;
+    return all.filter(function (f) { return cap[which].indexOf(f) !== -1; });
+  }
+
+  /* A crawl may cover only some Helpdesk Types. Comparing a Reactive-only
+   * capture against the full model would read every Planned action as
+   * "removed" and every dual-type action as "changed" — coverage artefacts,
+   * not deviations. Both sides are therefore scoped to the covered Types
+   * before diffing, and the scope is reported. */
+  function coveredTypes(base, desired) {
+    var a = base && base.meta && base.meta.capture && base.meta.capture.types;
+    var b = desired && desired.meta && desired.meta.capture && desired.meta.capture.types;
+    if (!a && !b) return null;
+    if (!a) return b.slice();
+    if (!b) return a.slice();
+    return a.filter(function (t) { return b.indexOf(t) !== -1; });
+  }
+
+  function scope(model, types) {
+    var hd = model.helpdesk;
+    if (!types) return hd;
+    function inScope(o) { return (o.types || []).some(function (t) { return types.indexOf(t) !== -1; }); }
+    function narrow(o) {
+      var c = Object.assign({}, o);
+      c.types = (o.types || []).filter(function (t) { return types.indexOf(t) !== -1; });
+      if (o.isDefaultFor) c.isDefaultFor = o.isDefaultFor.filter(function (t) { return types.indexOf(t) !== -1; });
+      return c;
+    }
+    function edgeInScope(e) { return types.indexOf(e.type) !== -1; }
+    return {
+      statuses: hd.statuses.filter(inScope).map(narrow),
+      actions: hd.actions.filter(inScope).map(narrow),
+      availability: hd.availability.filter(edgeInScope),
+      results: hd.results.filter(edgeInScope)
+    };
+  }
+
   function compare(base, desired) {
+    var actionFields = capturedFields(desired, 'actionFields',
+      capturedFields(base, 'actionFields', ACTION_FIELDS));
+    var statusFields = capturedFields(desired, 'statusFields',
+      capturedFields(base, 'statusFields', STATUS_FIELDS));
+    var notCompared = ACTION_FIELDS.filter(function (f) { return actionFields.indexOf(f) === -1; })
+      .concat(STATUS_FIELDS.filter(function (f) { return statusFields.indexOf(f) === -1; }));
+
+    var types = coveredTypes(base, desired);
+    var b = scope(base, types), t = scope(desired, types);
+
+    /* A crawl that reads actions from the grouped-BY-STATUS view can only
+     * ever see actions that are available somewhere. Actions nobody can see
+     * there — engine-fired ones, and actions attached to no status at all —
+     * are invisible to it by construction, so comparing them would report
+     * "removed" for something the crawl was never able to look at. Both
+     * sides are narrowed to actions with at least one availability edge. */
+    var availabilityOnly = [base, desired].some(function (m) {
+      return m && m.meta && m.meta.capture && m.meta.capture.actionsFrom === 'status-grouped-view';
+    });
+    var invisible = [];
+    if (availabilityOnly) {
+      var seen = {};
+      b.availability.concat(t.availability).forEach(function (e) { seen[e.action] = true; });
+      invisible = b.actions.filter(function (a) { return !seen[a.name]; })
+        .map(function (a) { return a.name; });
+      b = Object.assign({}, b, { actions: b.actions.filter(function (a) { return seen[a.name]; }) });
+      t = Object.assign({}, t, { actions: t.actions.filter(function (a) { return seen[a.name]; }) });
+    }
+
+    /* A grouped-by-status crawl records an action's resulting status only
+     * where the view actually drew one. An action listed without an arrow
+     * proves nothing about its result, so silence there must not be read as
+     * "the outcome was deleted". Result edges are compared only for actions
+     * the crawl DID record an outcome for. */
+    var bResults = b.results, tResults = t.results, resultsNotObserved = 0;
+    var resultsPartial = [base, desired].some(function (m) {
+      return m && m.meta && m.meta.capture && m.meta.capture.resultsFrom === 'status-grouped-view-arrows';
+    });
+    if (resultsPartial) {
+      var withResult = {};
+      t.results.forEach(function (r) { withResult[r.action] = true; });
+      var before = b.results.length;
+      bResults = b.results.filter(function (r) { return withResult[r.action]; });
+      resultsNotObserved = before - bResults.length;
+    }
+
     var d = {
-      statuses: diffObjects(base.helpdesk.statuses, desired.helpdesk.statuses,
-        function (s) { return s.name; }, STATUS_FIELDS),
-      actions: diffObjects(base.helpdesk.actions, desired.helpdesk.actions,
-        function (a) { return a.name; }, ACTION_FIELDS),
-      availability: diffEdges(base.helpdesk.availability, desired.helpdesk.availability, edgeKeyAvail),
-      results: diffEdges(base.helpdesk.results, desired.helpdesk.results, edgeKeyResult)
+      statuses: diffObjects(b.statuses, t.statuses,
+        function (s) { return s.name; }, statusFields),
+      actions: diffObjects(b.actions, t.actions,
+        function (a) { return a.name; }, actionFields),
+      availability: diffEdges(b.availability, t.availability, edgeKeyAvail),
+      results: diffEdges(bResults, tResults, edgeKeyResult)
     };
     d.summary = {
       added: d.statuses.added.length + d.actions.added.length + d.availability.added.length + d.results.added.length,
       removed: d.statuses.removed.length + d.actions.removed.length + d.availability.removed.length + d.results.removed.length,
-      modified: d.statuses.modified.length + d.actions.modified.length
+      modified: d.statuses.modified.length + d.actions.modified.length,
+      notCompared: notCompared,
+      scopedToTypes: types,
+      invisibleToCrawl: invisible,
+      resultsNotObserved: resultsNotObserved
     };
     d.isEmpty = d.summary.added === 0 && d.summary.removed === 0 && d.summary.modified === 0;
     return d;

@@ -92,7 +92,11 @@
       var l = el('div', { class: 'lane' }, [el('h4', { text: title })]);
       items.forEach(function (it) {
         var name = labelFn(it);
-        var row = el('div', { class: 'lrow' }, [
+        var row = el('div', {
+          class: 'lrow',
+          'data-action': kind === 'action' ? name : null,
+          'data-status': kind === 'action' ? null : name
+        }, [
           document.createTextNode(name),
           subFn && subFn(it) ? el('small', { text: subFn(it) }) : null
         ]);

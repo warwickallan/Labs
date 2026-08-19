@@ -73,6 +73,8 @@
     var editable = opts && opts.editable;
     var c = el('div', {
       class: 'dcard' + (state.selected === action.name ? ' selected' : ''),
+      'data-action': action.name,
+      'data-status': statusName || null,
       draggable: editable ? 'true' : null,
       title: editable ? 'Drag to another status to MOVE availability · Alt-drag to COPY' : null,
       onclick: function () {
@@ -168,6 +170,7 @@
 
     var head = el('div', {
       class: 'dcol-head',
+      'data-status': status.name,
       draggable: editable ? 'true' : null,
       title: isCollapsed ? 'Expand' : (editable ? 'Drag to reorder · click name for details' : 'Click name for details · chevron to collapse'),
       onclick: function (ev) {

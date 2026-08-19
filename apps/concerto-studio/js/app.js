@@ -22,11 +22,76 @@
 
   var PAGES = { 'projects': 'Projects', 'settings': 'Settings' };
 
-  /* the model the read-only views render for the current context */
+  /* the model the read-only views render for the current context: the
+   * SELECTED SNAPSHOT of the open project, else its last ingested crawl,
+   * else the Vanilla reference. */
   function ctxModel() {
     var p = currentProject();
+    if (p && window.StudioSnapshots) {
+      var m = window.StudioSnapshots.modelFor(p);
+      if (m) return m;
+    }
     if (p && p.instance && p.instance.model) return p.instance.model;
     return app.model; /* Vanilla reference when a project has no ingested crawl */
+  }
+
+  function ctxIsSnapshot() {
+    var p = currentProject();
+    return !!(p && window.StudioSnapshots && window.StudioSnapshots.modelFor(p));
+  }
+
+  /* CHANGES mode: render the selected capture, ring what moved since the
+   * previous one, and say it in words above the view. */
+  function changesContext() {
+    var p = currentProject();
+    if (!p || !window.StudioSnapshots) return null;
+    if (window.StudioSnapshots.mode() !== 'changes') return null;
+    if (!window.StudioSnapshots.modelFor(p)) return null;
+    return window.StudioSnapshots.changesFor(p, app.model);
+  }
+
+  function renderChangeSummary(container, ch) {
+    var el = window.StudioDom.el;
+    var lines = window.StudioSnapshots.summarise(ch);
+    var panel = el('div', { class: 'chg-summary' }, [
+      el('h4', {}, [
+        document.createTextNode('Changes in ' + ch.currentLabel + ' vs ' + ch.against.label),
+        ch.identical ? el('span', { class: 'chg-note', text: ' — byte-identical capture' }) : null
+      ]),
+      lines.length
+        ? el('p', { text: lines.join(' · ') + '. Changed objects are ringed below.' })
+        : el('p', { text: 'Nothing changed between these two captures.' }),
+      ch.diff.summary.scopedToTypes
+        ? el('p', {
+          class: 'chg-note',
+          text: 'Scope: ' + ch.diff.summary.scopedToTypes.join(', ') + ' only — the other Helpdesk Types were not crawled, so they are not compared.'
+        }) : null,
+      ch.diff.summary.resultsNotObserved
+        ? el('p', {
+          class: 'chg-note',
+          text: ch.diff.summary.resultsNotObserved + ' status outcome(s) the crawl did not record either way are left out — silence is not evidence of deletion.'
+        }) : null,
+      ch.diff.summary.invisibleToCrawl && ch.diff.summary.invisibleToCrawl.length
+        ? el('p', {
+          class: 'chg-note',
+          text: 'Out of view (' + ch.diff.summary.invisibleToCrawl.length + '): actions attached to no status — engine-fired ones included — cannot appear in a grouped-by-status crawl, so their absence is not read as a deletion.'
+        }) : null,
+      ch.diff.summary.notCompared && ch.diff.summary.notCompared.length
+        ? el('p', {
+          class: 'chg-note',
+          text: 'Not compared (not captured by these crawls): ' + ch.diff.summary.notCompared.join(', ') + '.'
+        }) : null,
+      ch.rows.length ? el('details', {}, [
+        el('summary', { text: 'Every change in words (' + ch.rows.length + ')' }),
+        el('ul', { class: 'chg-list' }, ch.rows.map(function (r) {
+          return el('li', {}, [
+            el('span', { class: 'chg-kind ' + r.kind.toLowerCase(), text: r.kind }),
+            document.createTextNode(' ' + r.object + ' · ' + r.detail)
+          ]);
+        }))
+      ]) : null
+    ]);
+    container.insertBefore(panel, container.firstChild);
   }
   function currentProject() { return window.StudioProject ? window.StudioProject.current() : null; }
 
@@ -52,6 +117,14 @@
     if (val === 'vanilla') { if (window.StudioProject) window.StudioProject.close(); app.instance = null; }
     else if (window.StudioProject) { window.StudioProject.open(val); }
     route();
+    loadSnapshots();
+  }
+
+  /* Fetch + ingest the open project's captures, then redraw once. */
+  function loadSnapshots() {
+    var p = currentProject();
+    if (!p || !window.StudioSnapshots || !app.model) return Promise.resolve();
+    return window.StudioSnapshots.ensureLoaded(p, app.model).then(function () { route(); });
   }
 
   function renderContextSelect() {
@@ -91,6 +164,47 @@
       '<span class="ci-item">Baseline Vanilla: ' + esc(baseDate) + '</span>' +
       '<span class="ci-item">Current snapshot: ' + esc(snap) + '</span>' +
       '<span class="ci-item">Changes: ' + ((p.changeLog || []).length) + '</span>';
+    renderSnapshotPicker(bar, p);
+  }
+
+  /* Timeline control: pick a stamp, and choose whether to see the whole
+   * capture or only what moved since the one before it. */
+  function renderSnapshotPicker(bar, p) {
+    if (!window.StudioSnapshots) return;
+    var el = window.StudioDom.el;
+    var entries = window.StudioSnapshots.list(p);
+    if (!entries.length) return;
+    var loaded = !!window.StudioSnapshots.modelFor(p);
+    var cur = window.StudioSnapshots.selectedEntry(p);
+    var wrap = el('span', { class: 'ci-snap' }, [el('span', { class: 'ci-snap-label', text: 'Snapshot' })]);
+
+    var sel = el('select', {
+      class: 'ctx-select',
+      title: 'Every crawl is time-and-date stamped — pick one to render it in every view',
+      onchange: function (ev) { window.StudioSnapshots.select(p.key, ev.target.value); route(); }
+    });
+    entries.forEach(function (e) {
+      var o = document.createElement('option');
+      o.value = e.id;
+      o.textContent = window.StudioSnapshots.stampLabel(e) + ' — ' + e.label;
+      if (cur && e.id === cur.id) o.selected = true;
+      sel.appendChild(o);
+    });
+    wrap.appendChild(sel);
+
+    var changes = window.StudioSnapshots.mode() === 'changes';
+    wrap.appendChild(el('button', {
+      class: 'snapbtn' + (changes ? ' on' : ''),
+      text: changes ? 'Changes only ●' : 'Changes only',
+      title: 'Ring what moved since the previous snapshot and summarise it in words',
+      disabled: loaded ? null : 'disabled',
+      onclick: function () {
+        window.StudioSnapshots.setMode(changes ? 'full' : 'changes');
+        route();
+      }
+    }));
+    if (!loaded) wrap.appendChild(el('span', { class: 'ci-item', text: 'loading capture…' }));
+    bar.appendChild(wrap);
   }
 
   function renderViewBar() {
@@ -107,10 +221,17 @@
       bar.appendChild(b);
     });
     var p = currentProject();
-    if (p && !(p.instance && p.instance.model) && viewById(r.id).ctx) {
+    if (p && viewById(r.id).ctx) {
       var note = document.createElement('span');
       note.className = 'viewbar-note';
-      note.textContent = 'No crawl ingested for ' + p.name + ' — showing Vanilla baseline for reference.';
+      if (ctxIsSnapshot()) {
+        var e = window.StudioSnapshots.selectedEntry(p);
+        note.textContent = 'Showing ' + p.name + ' as captured ' + window.StudioSnapshots.stampLabel(e) + '.';
+      } else if (p.instance && p.instance.model) {
+        note.textContent = 'Showing the last ingested crawl of ' + p.name + '.';
+      } else {
+        note.textContent = 'No crawl ingested for ' + p.name + ' — showing Vanilla baseline for reference.';
+      }
       bar.appendChild(note);
     }
   }
@@ -139,6 +260,41 @@
     if (r.kind === 'page' && r.id === 'projects') { window.StudioProjects.render(content, app.model); return; }
     if (r.kind === 'page' && r.id === 'settings') { window.StudioSettings.render(content, app.model, app.invariants); return; }
     viewById(r.id).render(content);
+
+    /* snapshot CHANGES overlay — only over the views that draw the model */
+    applyOverlay();
+  }
+
+  /* The overlay is re-applied whenever a view redraws itself (filters, zoom,
+   * selection) — otherwise the rings would vanish on the first interaction. */
+  var overlay = { applying: false, observer: null };
+
+  function applyOverlay() {
+    var r = currentRoute();
+    var content = document.getElementById('content');
+    if (!content) return;
+    if (r.kind !== 'view' || !viewById(r.id).ctx) return;
+    var ch = changesContext();
+    if (!ch) return;
+    var page = content.querySelector('.page') || content;
+    if (page.querySelector('.chg-summary')) return; /* already overlaid */
+    overlay.applying = true;
+    window.StudioSnapshots.applyHighlight(page, window.StudioSnapshots.highlight(ch.diff));
+    renderChangeSummary(page, ch);
+    Promise.resolve().then(function () {
+      if (overlay.observer) overlay.observer.takeRecords();
+      overlay.applying = false;
+    });
+  }
+
+  function installOverlayObserver() {
+    var content = document.getElementById('content');
+    if (!content || typeof MutationObserver === 'undefined') return;
+    overlay.observer = new MutationObserver(function () {
+      if (overlay.applying) return;
+      applyOverlay();
+    });
+    overlay.observer.observe(content, { childList: true, subtree: true });
   }
 
   function updateProjectChip() {
@@ -197,6 +353,8 @@
         var cur = currentProject();
         app.instance = cur && cur.instance ? cur.instance : window.StudioHarness.instanceStore.load();
         updateChips(); route();
+        installOverlayObserver();
+        return loadSnapshots();
       })
       .catch(function (err) { app.loadError = String((err && err.message) || err); updateChips(); route(); });
   });

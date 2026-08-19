@@ -748,6 +748,206 @@
     });
   });
 
+  /* ---- instance ingest + snapshot timeline ----------------------------- */
+
+  /* A miniature capture in the recorded-crawl shape. Deliberately includes
+   * the two genuinely ambiguous cases the real Kirklees capture contains:
+   * "WC-R" (With Contractor - R *or* Work Complete - R) resolvable from the
+   * baseline for RH04, and unresolvable for a code the baseline lacks. */
+  var CAPTURE = {
+    kind: 'INSTANCE-SNAPSHOT',
+    label: 'TEST CAPTURE',
+    meta: { targetUrl: 'https://test.example', crawledAt: '2026-08-19T09:30:00Z', crawlMethod: 'unit test' },
+    statuses: {
+      listLevel: 'WH 10, WMT-R 20, WC-R 30, WC-R(work) 60, Closed 70. With Helpdesk=Default.',
+      typeAttribution: {
+        reactive: ['With Helpdesk', 'With Maintenance Team - R', 'With Contractor - R', 'Work Complete - R', 'Closed'],
+        planned: []
+      },
+      recordLevelReactive: { 'With Helpdesk': { ticked: ['Default status'] } }
+    },
+    actionsGroupedViewReactive: {
+      'With Helpdesk': ['G001 Add note', 'RH04 Assign to contractor→WC-R', 'ZZ99 Invented→WC-R'],
+      'With Contractor - R': ['G001']
+    }
+  };
+
+  test('captured crawl ingests into a real model (identity, availability, results)', function () {
+    return loadedPromise.then(function (res) {
+      var out = window.StudioIngest.fromCapturedCrawl(CAPTURE, res.model);
+      var m = out.model;
+      assert(m.helpdesk.statuses.length === 5, '5 statuses ingested, got ' + m.helpdesk.statuses.length);
+      var wh = m.helpdesk.statuses.filter(function (s) { return s.name === 'With Helpdesk'; })[0];
+      assert(wh && wh.displayOrder === 10, 'sort order read from the capture, got ' + (wh && wh.displayOrder));
+      assert(wh.isDefaultFor.indexOf('Reactive') !== -1, 'default status read from the capture');
+      var codes = m.helpdesk.actions.map(function (a) { return a.code; }).sort().join(',');
+      assert(codes === 'G001,RH04,ZZ99', 'action codes ingested: ' + codes);
+      var g001 = m.helpdesk.actions.filter(function (a) { return a.code === 'G001'; })[0];
+      assert(/^G001\./.test(g001.name), 'known code resolves to the baseline action name: ' + g001.name);
+      assert(g001.notesProvenance === 'OBSERVED-CRAWL', 'ingested actions declare crawl provenance');
+      assert(m.helpdesk.availability.filter(function (e) { return e.action === g001.name; }).length === 2,
+        'G001 availability captured in both statuses');
+    });
+  });
+
+  test('ambiguous abbreviations resolve against the baseline or stay unresolved — never guessed', function () {
+    return loadedPromise.then(function (res) {
+      var out = window.StudioIngest.fromCapturedCrawl(CAPTURE, res.model);
+      var rh04 = out.model.helpdesk.actions.filter(function (a) { return a.code === 'RH04'; })[0];
+      var r = out.model.helpdesk.results.filter(function (x) { return x.action === rh04.name; })[0];
+      assert(r && r.toStatus === 'With Contractor - R',
+        'RH04 → WC-R disambiguated to With Contractor - R, got ' + (r && r.toStatus));
+      assert(out.report.resolutions.some(function (x) { return x.how === 'DISAMBIGUATED-VS-BASELINE'; }),
+        'the disambiguation is logged');
+      var zz = out.model.helpdesk.actions.filter(function (a) { return a.code === 'ZZ99'; })[0];
+      assert(out.model.helpdesk.results.filter(function (x) { return x.action === zz.name; }).length === 0,
+        'an unresolvable target produces NO result edge');
+      assert(out.report.unresolved.length === 1, 'and is reported as unresolved, got ' + out.report.unresolved.length);
+    });
+  });
+
+  test('uncaptured fields are excluded from comparison, not reported as deviations', function () {
+    return loadedPromise.then(function (res) {
+      var out = window.StudioIngest.fromCapturedCrawl(CAPTURE, res.model);
+      var d = window.StudioDiff.compare(res.model, out.model);
+      assert(d.summary.notCompared.indexOf('buttonGroup') !== -1, 'buttonGroup declared not-compared');
+      assert(d.summary.notCompared.indexOf('emails') !== -1, 'emails declared not-compared');
+      var g001 = out.model.helpdesk.actions.filter(function (a) { return a.code === 'G001'; })[0];
+      var mod = d.actions.modified.filter(function (x) { return x.key === g001.name; })[0];
+      assert(!mod, 'G001 is not reported as modified merely because the crawl did not read its detail');
+    });
+  });
+
+  test('a Reactive-only capture is compared within its own scope, not against Planned', function () {
+    return loadedPromise.then(function (res) {
+      var out = window.StudioIngest.fromCapturedCrawl(CAPTURE, res.model);
+      var d = window.StudioDiff.compare(res.model, out.model);
+      assert(d.summary.scopedToTypes && d.summary.scopedToTypes.join(',') === 'Reactive',
+        'comparison scope is declared: ' + JSON.stringify(d.summary.scopedToTypes));
+      var removedPlanned = d.actions.removed.filter(function (x) {
+        return (x.object.types || []).indexOf('Planned') !== -1;
+      });
+      assert(removedPlanned.length === 0,
+        'Planned-only actions are out of scope, not reported as removed (' + removedPlanned.length + ')');
+      var st = d.statuses.removed.map(function (x) { return x.key; });
+      assert(st.indexOf('New PPM') === -1, 'Planned-only statuses are out of scope too');
+    });
+  });
+
+  test('actions no grouped-by-status crawl can see are not reported as deletions', function () {
+    return loadedPromise.then(function (res) {
+      var out = window.StudioIngest.fromCapturedCrawl(CAPTURE, res.model);
+      var d = window.StudioDiff.compare(res.model, out.model);
+      var invisible = d.summary.invisibleToCrawl || [];
+      /* RH03b Quote Ordered is engine-fired: available in no status at all */
+      assert(invisible.some(function (n) { return /RH03b/.test(n); }),
+        'engine-fired RH03b is declared out of view');
+      assert(!d.actions.removed.some(function (x) { return /RH03b/.test(x.key); }),
+        'and is therefore NOT reported as removed');
+      /* RH08 IS available in a status in the baseline and absent here — a real delta */
+      assert(d.actions.removed.some(function (x) { return /RH08/.test(x.key); }),
+        'a genuinely visible-but-absent action IS still reported as removed');
+    });
+  });
+
+  test('an outcome the crawl never recorded is not reported as a deleted outcome', function () {
+    return loadedPromise.then(function (res) {
+      var out = window.StudioIngest.fromCapturedCrawl(CAPTURE, res.model);
+      var d = window.StudioDiff.compare(res.model, out.model);
+      assert(d.summary.resultsNotObserved > 0, 'unobserved outcomes are counted and declared');
+      var g001 = out.model.helpdesk.actions.filter(function (a) { return a.code === 'G001'; })[0];
+      assert(!d.results.removed.some(function (r) { return r.action === g001.name; }),
+        'G001 was listed without an arrow — its baseline outcome is not called deleted');
+      /* RH04 WAS recorded with an arrow, so its outcome remains comparable */
+      var rh04 = out.model.helpdesk.actions.filter(function (a) { return a.code === 'RH04'; })[0];
+      assert(out.model.helpdesk.results.some(function (r) { return r.action === rh04.name; }),
+        'a recorded outcome is still carried and compared');
+    });
+  });
+
+  test('snapshot stamps display at the precision they were recorded', function () {
+    var SS = window.StudioSnapshots;
+    assert(SS.formatStamp('2026-08-19T09:30:00Z') === '19 Aug 2026 09:30', SS.formatStamp('2026-08-19T09:30:00Z'));
+    assert(SS.formatStamp('2026-08-19') === '19 Aug 2026', SS.formatStamp('2026-08-19'));
+    var dated = SS.list({ key: 'k', snapshots: [{ id: 'a', path: 'a.json', capturedAt: '2026-08-19' }] })[0];
+    assert(dated.precision === 'date' && /time not recorded/.test(SS.stampLabel(dated)),
+      'a date-only capture says so instead of inventing a clock time');
+    var timed = SS.list({ key: 'k', snapshots: [{ id: 'b', path: 'b.json', capturedAt: '2026-08-19T09:30:00Z' }] })[0];
+    assert(timed.precision === 'datetime' && !/time not recorded/.test(SS.stampLabel(timed)), 'timed capture');
+  });
+
+  test('snapshot list is newest-first and selection defaults to the latest capture', function () {
+    var proj = {
+      key: 'tl', snapshots: [
+        { id: 'old', path: 'o.json', capturedAt: '2026-08-01T08:00:00Z' },
+        { id: 'new', path: 'n.json', capturedAt: '2026-08-19T09:30:00Z' }
+      ]
+    };
+    var SS = window.StudioSnapshots;
+    var l = SS.list(proj);
+    assert(l[0].id === 'new' && l[1].id === 'old', 'newest first: ' + l.map(function (e) { return e.id; }).join(','));
+    assert(SS.selectedEntry(proj).id === 'new', 'defaults to the latest capture');
+    SS.select('tl', 'old');
+    assert(SS.selectedEntry(proj).id === 'old', 'an explicit stamp selection sticks');
+    SS.select('tl', 'new');
+  });
+
+  test('a live harness crawl joins the timeline without a project file', function () {
+    return loadedPromise.then(function (res) {
+      withCleanProjects(function () {
+        var SS = window.StudioSnapshots;
+        var live = { snapshotId: 'crawl-9', meta: { crawledAt: '2026-08-20T14:05:00Z' }, model: res.model };
+        var proj = {
+          key: 'live', instance: live,
+          snapshots: [{ id: 'crawl-9', path: null, capturedAt: '2026-08-20T14:05:00Z', label: 'Crawl' }]
+        };
+        var e = SS.list(proj)[0];
+        assert(e.precision === 'datetime', 'a harness crawl carries a full timestamp');
+        assert(SS.modelFor(proj) === res.model, 'the live crawl is renderable from the timeline');
+      });
+    });
+  });
+
+  test('changes between two captures are computed and ringed; removals survive in the summary', function () {
+    return loadedPromise.then(function (res) {
+      var SS = window.StudioSnapshots;
+      var earlier = window.StudioIngest.fromCapturedCrawl(CAPTURE, res.model);
+      /* a later capture in which RH04 is no longer available in With Helpdesk */
+      var later = JSON.parse(JSON.stringify(CAPTURE));
+      later.meta.crawledAt = '2026-08-20T11:00:00Z';
+      later.actionsGroupedViewReactive['With Helpdesk'] = ['G001 Add note', 'ZZ99 Invented→WC-R'];
+      var lateOut = window.StudioIngest.fromCapturedCrawl(later, res.model);
+
+      var diff = window.StudioDiff.compare(earlier.model, lateOut.model);
+      assert(diff.actions.removed.length === 1, 'RH04 removed, got ' + diff.actions.removed.length);
+      assert(diff.availability.removed.length === 1, 'its availability edge removed too');
+
+      var sets = SS.highlight(diff);
+      var rh04 = earlier.model.helpdesk.actions.filter(function (a) { return a.code === 'RH04'; })[0];
+      assert(sets.actions[rh04.name] === 'removed', 'the removed action is classified as removed');
+
+      /* the ring can only paint what the view actually drew */
+      var host = document.getElementById('sandbox');
+      host.innerHTML = '';
+      var card = document.createElement('div');
+      card.setAttribute('data-action', 'G001. Add a note, photo or document');
+      card.setAttribute('data-status', 'With Helpdesk');
+      host.appendChild(card);
+      var ghost = document.createElement('div');
+      ghost.setAttribute('data-action', rh04.name);
+      host.appendChild(ghost);
+      SS.applyHighlight(host, sets);
+      assert(ghost.classList.contains('chg-ring') && ghost.classList.contains('chg-removed'),
+        'a drawn removed object is ringed');
+      assert(!card.classList.contains('chg-ring'), 'an unchanged object is left alone');
+
+      var rows = window.StudioDiff.deviationSchedule(diff);
+      assert(rows.some(function (r) { return r.kind === 'REMOVED' && /RH04/.test(r.detail); }),
+        'the written summary names the removal even where nothing can be ringed');
+      host.innerHTML = '';
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');

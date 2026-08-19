@@ -116,6 +116,7 @@
       function tick(v) { return v ? '✔' : ''; }
       return el('tr', {
         style: 'cursor:pointer',
+        'data-action': r.action.name,
         onclick: function () {
           window.StudioInspector.showAction(model, r.action.name,
             editable ? { editable: true, onChange: opts.onChange } : undefined);
