@@ -7,6 +7,21 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 (repo-only rotate patch) — Final durability inconsistencies fixed
+
+No browser work. E2's RH04 expectation corrected to With Contractor - R
+(structural only); Rev-2 preamble no longer claims E1 used the reporter
+wizard (E0 did; E1 used the admin quick-add modal). CURRENT_STATE marked
+as Rotate Correction state with evidence E-001..E-024. build_model.py's
+last stale U-003 wording removed (operative statuses are type-agnostic -
+no Type field); model rebuilt. CLAUDE.md/README stripped of obsolete
+DISCOVER-MODE/future-phase/scope-approval wording presented as current
+(authority defers to CURRENT_STATE). VANILLA-ORDERS now carries
+observedCode=SP07 for all four SP07 records with canonicalKey as the
+internal disambiguator; schema/validator updated (+canonicalKey
+uniqueness check) and annotated as structural/manual rather than full
+JSON-Schema-engine validation. Validators green.
+
 ## 2026-08-19 (ROTATE CORRECTION) — Cold-review gaps closed
 
 External review found the first rotate incomplete. Closed this pass:

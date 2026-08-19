@@ -38,10 +38,9 @@ durable contract only.** Standing invariants regardless of mode:
    logged out, stop and ask.
 4. The TEST environment is authoritative for what currently exists. Do not
    assume documentation is correct where the UI says otherwise.
-5. Behaviour testing is out of scope unless observable safely without
-   changing data. A later, separately approved EXPERIMENT phase will test
-   behaviour with disposable `ZZ TEST` objects. Do not begin it without
-   explicit approval.
+5. Behavioural experiments run only with Warwick's explicit per-
+   experiment authorisation, using disposable `ZZ TEST` fixtures (E0/E1
+   are complete; see CURRENT_STATE for what is and is not authorised).
 6. The models grow **only from discovered evidence** — never invent
    fields for completeness. Domains stay separate (Helpdesk / Orders /
    cross-domain / behaviour); GUIDs are environment identities, and
@@ -139,12 +138,9 @@ repository must only ever contain discovery evidence).
 
 ## Stop condition
 
-When Reactive Helpdesk Vanilla discovery is complete: **STOP** and report
-counts (statuses, operative statuses, actions, relationships, configurator
-fields), verified vs inferred facts, unknowns, gaps requiring experiment,
-and whether Vanilla is sufficiently understood to begin a controlled
-EXPERIMENT phase. Do not begin experiments or configuration changes without
-explicit approval.
+Historic (Helpdesk discovery is complete). Standing rule: STOP at the
+boundary CURRENT_STATE defines; report evidence-graded findings; never
+begin experiments or configuration changes without explicit approval.
 
 ## The "rotate" protocol
 
@@ -165,10 +161,10 @@ model and report from evidence; run the validator; commit on `main`.
 
 ## What needs Warwick's explicit approval
 
-Any configuration change in Concerto; any behavioural experiment; creating
-`ZZ TEST` objects; anything against live jobs; full Planned Helpdesk
-discovery; adding a Git remote or pushing; widening scope beyond Helpdesk
-Admin.
+Any configuration change in Concerto (Vanilla is immutable); any
+behavioural experiment; creating/deleting `ZZ TEST` fixtures; anything
+against live jobs; opening a NEW domain (e.g. PPM Scheduler). Current
+scope and authority always per CURRENT_STATE.md.
 
 ## Continuation checklist
 

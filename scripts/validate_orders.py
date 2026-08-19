@@ -1,4 +1,10 @@
-"""Validate Orders + cross-domain + behaviour models: structural checks + round-trip."""
+"""Validate Orders + cross-domain + behaviour models: structural checks + round-trip.
+
+NOTE: this performs structural/manual schema checks (required keys, minItems,
+grades) rather than full JSON-Schema-engine validation. Future Builder
+hardening should swap in a real validator (e.g. jsonschema) against
+schemas/vanilla-orders.schema.json.
+"""
 import json, sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 errs = []
@@ -21,6 +27,9 @@ for key, spec in s['properties'].items():
             for r in req:
                 if r not in item:
                     errs.append(f'orders: {key}[{i}] missing {r}')
+keys = [sa.get('canonicalKey') for sa in o['supplierActions']]
+if len(keys) != len(set(keys)):
+    errs.append('orders: supplierActions canonicalKey values are not unique')
 x = load('model/CROSS-DOMAIN-RELATIONSHIPS.json')
 for i, e in enumerate(x.get('edges', [])):
     for r in ('id', 'edge', 'grade', 'evidence'):

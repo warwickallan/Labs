@@ -1,10 +1,11 @@
 # Controlled Experiment Programme — Vanilla Helpdesk (proposed, NOT authorised)
 
-> **Rev 2 (2026-08-19), after operational-surface discovery E-019..E-021:**
-> E1 job creation uses the Raise Job wizard (site → block → classification
-> tiles → describe → H&S → access details → CONFIRM) — it collects NO
-> urgency, so E1 doubles as the first half of E6 (wizard-raised job should
-> have no SLA targets; verify, then apply RH07 Amend SLA to add one).
+> **Rev 2 (2026-08-19), after operational-surface discovery E-019..E-021
+> (corrected post-execution):** two creation routes exist. The reporter
+> Raise Job wizard (used by E0) collects NO urgency — wizard-raised jobs
+> arrive without SLA targets (verified). **E1 as executed used the ADMIN
+> QUICK-ADD modal**, which REQUIRES urgency and applied the SLA at
+> creation.
 > Planned creation (E1-P extension) uses the Planned list toolbar ACTIONS →
 > PH01, NOT a wizard — treat separately. E2's email observation has a head
 > start: "Email failed to send" is already passively recorded on RH01
@@ -79,7 +80,9 @@ gate. Global rules for every experiment:
 
 - **Objects:** ZZ TEST job; ZZ TEST supplier (non-routable email).
 - **Initial:** job at With Helpdesk.
-- **Variables:** RH04 assign supplier (order raised, → WC-R, tag 01 added);
+- **Variables:** RH04 assign supplier (order raised; job → With
+  Contractor - R [structural expectation — RH04 not yet behaviourally
+  verified]; tag 01 added);
   then drive the ORDER through statuses: Awaiting acceptance → Accepted →
   Appointment Made → In progress → Work complete, one change at a time
   (via the supplier-portal/order surfaces).

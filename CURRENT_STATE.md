@@ -5,7 +5,8 @@
 > models/registers/evidence → git log.** A fresh session must read the
 > operating-model document before touching anything.
 
-- **Updated:** 2026-08-19 — FINAL ROTATE of the discovery engagement.
+- **Updated:** 2026-08-19 — ROTATE CORRECTION state (post cold-review
+  patch; final).
 - **Phase:** structural discovery of Helpdesk + Orders + both operational
   surfaces COMPLETE. Experiments E0/E1 COMPLETE (CONTROLLED VERIFIED).
   **E2 NOT authorised/executed. PPM Scheduler NOT mapped. Vanilla NOT
@@ -22,7 +23,7 @@
 
 - **Helpdesk domain:** 43 tabs; Core Five SCHEMA+VALUE complete
   (CORE-FIVE-COMPLETENESS.md); model/VANILLA-HELPDESK.json (generated,
-  validator green); evidence E-001..E-023.
+  validator green); evidence E-001..E-024.
 - **Operational Helpdesk:** landing/wizard/quick-add/action surfaces
   (E-019..E-021; OPERATIONAL-DISCREPANCIES.md OD-001..007).
 - **Orders domain:** 32 tabs; ALL 32 configurator Add-schemas captured

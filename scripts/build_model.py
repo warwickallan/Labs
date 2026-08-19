@@ -348,8 +348,8 @@ def build():
                 "confidence": STR, "evidence": ["E-003"],
             },
             {
-                "statement": "The 9 operative statuses are common to both Type filters "
-                             "(shared, or the filter does not apply — U-003).",
+                "statement": "The 9 operative statuses are structurally type-agnostic: the "
+                             "operative-status object has no Type field (U-003 RESOLVED, E-013).",
                 "confidence": STR, "evidence": ["E-004"],
             },
             {

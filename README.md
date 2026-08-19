@@ -51,8 +51,9 @@ Canonical explainer       ── docs/CONCERTO-HELPDESK-ORDERS-OPERATING-MODEL.m
 ## Repository map
 
 ```
-CLAUDE.md              orientation + DISCOVER MODE rules (read first, every session)
-INVESTIGATION_PLAN.md  the phased plan and discovery gates
+CLAUDE.md              durable operating contract (read first, every session)
+CURRENT_STATE.md       current phase/authority wayfinder
+INVESTIGATION_PLAN.md  historical phased plan (original Helpdesk brief)
 SESSION_LOG.md         append-only per-session record
 UNKNOWNS.md            prioritised unknowns register
 model/                 the machine-readable Vanilla model (grows only from evidence)

@@ -370,7 +370,7 @@
       "portalVisible": true
     },
     {
-      "code": "SP07a",
+      "code": "SP07",
       "name": "Work complete",
       "availableIn": [
         "Appointment Made/Operative Assigned",
@@ -392,7 +392,7 @@
       "portalVisible": true
     },
     {
-      "code": "SP07b",
+      "code": "SP07",
       "name": "Complete & Quote",
       "availableIn": [
         "Appointment Made/Operative Assigned",
@@ -413,7 +413,7 @@
       "portalVisible": true
     },
     {
-      "code": "SP07c",
+      "code": "SP07",
       "name": "PPM Complete",
       "availableIn": [
         "In progress"
@@ -432,7 +432,7 @@
       "portalVisible": true
     },
     {
-      "code": "SP07d",
+      "code": "SP07",
       "name": "PPM Complete - with remedials",
       "availableIn": [
         "In progress"
@@ -522,5 +522,5 @@
       "question": "SP02 availability shows 'In progress' ticked yet 'show before job is accepted' — apparent contradiction; runtime behaviour unknown (E2)."
     }
   ],
-  "_identityNote": "canonicalKey disambiguates the four SP07 records; observedCode is the code Concerto displays. Display names/codes are NOT unique (four SP07s; two 'Default' priorities) — canonical identity = family + observedCode/name + disambiguator."
+  "_identityNote": "canonicalKey is the internal collision-safe disambiguator (SP07a..d for the four records Concerto displays as SP07); observedCode and code carry the SOURCE-TRUTH code as displayed by Concerto. Display names/codes are NOT unique (four SP07s; two 'Default' priorities) — canonical identity = family + observedCode/name + disambiguator."
 }

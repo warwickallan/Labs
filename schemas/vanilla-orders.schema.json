@@ -89,5 +89,6 @@
         ]
       }
     }
-  }
+  },
+  "description": "Structural expectations for VANILLA-ORDERS.json. supplierActions[].code/observedCode carry Concerto's displayed code (NOT unique \u2014 four SP07s); canonicalKey is the unique internal key. NOTE: scripts/validate_orders.py applies these checks structurally/manually, not via a full JSON-Schema engine; Builder hardening can upgrade that later."
 }
