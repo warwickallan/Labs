@@ -7,7 +7,22 @@
 (function () {
   'use strict';
 
-  var panelState = { showSchedule: false, restoredChecked: false };
+  var panelState = { showSchedule: false, restoredChecked: false, view: 'diagram' };
+
+  function promptNewAction(M, onDone) {
+    var code = window.prompt('Action code (e.g. RH12):');
+    if (!code || !code.trim()) return;
+    var name = window.prompt('Action name (e.g. Escalate to manager):');
+    if (!name || !name.trim()) return;
+    var type = window.prompt('Helpdesk Type — Reactive or Planned:', 'Reactive');
+    if (type !== 'Reactive' && type !== 'Planned') return void window.alert('Type must be exactly Reactive or Planned.');
+    var group = window.prompt('Button group (blank for none):',
+      type === 'Reactive' ? 'Reactive Helpdesk Tasks' : 'Planned Helpdesk Tasks') || '';
+    try {
+      M.addAction({ code: code.trim(), name: name.trim(), types: [type], group: group.trim() || null });
+      onDone();
+    } catch (e) { window.alert(e.message); }
+  }
 
   function render(container, vanilla) {
     var el = window.StudioDom.el;
@@ -68,6 +83,11 @@
     container.appendChild(page);
 
     page.appendChild(el('div', { class: 'toolstrip' }, [
+      el('span', { class: 'seg' }, [
+        el('button', { class: panelState.view === 'diagram' ? 'on' : '', text: 'Diagram', onclick: function () { panelState.view = 'diagram'; rerender(); } }),
+        el('button', { class: panelState.view === 'grid' ? 'on' : '', text: 'Grid', onclick: function () { panelState.view = 'grid'; rerender(); } })
+      ]),
+      el('button', { class: 'btn', text: '+ Action', onclick: function () { promptNewAction(M, onChange); } }),
       el('button', { class: 'btn', text: '↶ Undo', disabled: M.canUndo() ? null : 'disabled', onclick: function () { M.undo(); rerender(); } }),
       el('button', { class: 'btn', text: '↷ Redo', disabled: M.canRedo() ? null : 'disabled', onclick: function () { M.redo(); rerender(); } }),
       el('span', {
@@ -124,7 +144,11 @@
 
     var boardHost = el('div', { style: 'flex:1;display:flex;flex-direction:column;min-height:0' });
     page.appendChild(boardHost);
-    window.StudioDiagram.render(boardHost, desired, { editable: true, onChange: onChange });
+    if (panelState.view === 'grid') {
+      window.StudioGrid.render(boardHost, desired, { editable: true, onChange: onChange });
+    } else {
+      window.StudioDiagram.render(boardHost, desired, { editable: true, onChange: onChange });
+    }
   }
 
   window.StudioDesign = { render: render };

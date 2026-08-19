@@ -21,16 +21,14 @@
     'compare': { title: 'Compare' },
     'findings': { title: 'Findings' },
     'design': { title: 'Design' },
+    'solution-design': { title: 'Solution Design' },
     'build': { title: 'Build' },
     'evidence': { title: 'Evidence' },
     'settings': { title: 'Settings & Connection' }
   };
 
   var STUBS = {
-    'instance': 'Target-instance connection: URL, read-only browser-harness crawl, snapshot history. The harness is a separate local service (adapter) — planned; nothing here talks to Concerto yet.',
-    'compare': 'Instance-vs-Vanilla difference engine: Added / Removed / Modified / Unchanged at object and field level. Requires the Instance crawl.',
-    'build': 'Desired-state changes → dependency-ordered build plan → Validate / Preview Build / BUILD, with receipts and read-back verification. Requires the execution adapter.',
-    'settings': 'Instance URL, browser-harness status, authentication/session state (a human signs in — the Studio never enters credentials), future adapter settings.'
+    'settings': 'Instance URL and connection live on the Instance page. This page will hold harness-adapter settings (service endpoint, session detection) once the adapter exists — a human signs in; the Studio never enters credentials.'
   };
 
   function esc(s) {
@@ -91,6 +89,10 @@
       case 'vanilla-config': window.StudioConfig.render(content, app.model); break;
       case 'design': window.StudioDesign.render(content, app.model); break;
       case 'findings': window.StudioFindings.render(content, app.model); break;
+      case 'compare': window.StudioCompare.render(content, app.model); break;
+      case 'solution-design': window.StudioSolutionDesignView.render(content, app.model); break;
+      case 'instance': window.StudioInstance.render(content); break;
+      case 'build': window.StudioBuild.render(content, app.model); break;
       case 'evidence': renderEvidence(content); break;
       default: renderStub(content, pageId);
     }

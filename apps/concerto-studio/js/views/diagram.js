@@ -66,7 +66,8 @@
       title: editable ? 'Drag to another status to MOVE availability · Alt-drag to COPY' : null,
       onclick: function () {
         state.selected = action.name;
-        window.StudioInspector.showAction(model, action.name);
+        window.StudioInspector.showAction(model, action.name,
+          editable ? { editable: true, onChange: opts.onChange } : undefined);
         rerender();
       }
     }, [

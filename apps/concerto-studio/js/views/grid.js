@@ -71,13 +71,14 @@
       });
   }
 
-  function render(container, model) {
+  function render(container, model, opts) {
     var el = window.StudioDom.el;
+    var editable = opts && opts.editable;
     window.StudioDom.clear(container);
     var page = el('div', { class: 'page wide' });
     container.appendChild(page);
 
-    function rerender() { render(container, model); }
+    function rerender() { render(container, model, opts); }
 
     page.appendChild(el('div', { class: 'toolstrip' }, [
       el('label', { text: 'Type' }),
@@ -89,7 +90,9 @@
         oninput: function (e) { state.search = e.target.value; rerender(); }
       }),
       el('span', { style: 'flex:1' }),
-      el('span', { class: 'map-legend', text: 'Click a row for full detail · click a header to sort' })
+      el('span', { class: 'map-legend', text: editable
+        ? 'Mobile is editable inline · click a row for full editing · click a header to sort'
+        : 'Click a row for full detail · click a header to sort' })
     ]));
 
     var rows = project(model);
@@ -113,7 +116,10 @@
       function tick(v) { return v ? '✔' : ''; }
       return el('tr', {
         style: 'cursor:pointer',
-        onclick: function () { window.StudioInspector.showAction(model, r.action.name); }
+        onclick: function () {
+          window.StudioInspector.showAction(model, r.action.name,
+            editable ? { editable: true, onChange: opts.onChange } : undefined);
+        }
       }, [
         el('td', {}, [el('code', { text: r.code })]),
         el('td', { text: r.name }),
@@ -122,7 +128,14 @@
         el('td', { title: r.availNames.join(', '), text: r.availCount ? String(r.availCount) : '—' }),
         el('td', { text: r.resulting }),
         el('td', { text: r.userSelects }),
-        el('td', { text: tick(r.mobile) }),
+        editable ? el('td', {}, [el('input', {
+          type: 'checkbox', checked: r.mobile ? 'checked' : null,
+          onclick: function (ev) { ev.stopPropagation(); },
+          onchange: function (ev) {
+            window.StudioModel.modifyAction(r.action.name, { mobileAvailable: ev.target.checked });
+            opts.onChange();
+          }
+        })]) : el('td', { text: tick(r.mobile) }),
         el('td', { text: tick(r.supplier) }),
         el('td', { text: tick(r.email) }),
         el('td', { text: r.tags }),

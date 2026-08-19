@@ -82,7 +82,13 @@
   function mutate(fn) {
     if (!state.desired) throw new Error('No design fork exists');
     snapshot();
-    fn(state.desired.helpdesk);
+    try {
+      fn(state.desired.helpdesk);
+    } catch (e) {
+      /* roll the failed mutation back so undo history stays truthful */
+      state.desired.helpdesk = JSON.parse(state.undoStack.pop());
+      throw e;
+    }
     state.dirty = true;
     autosave();
   }
@@ -155,6 +161,65 @@
       });
       (types || ['Reactive']).forEach(function (t) {
         hd.types.forEach(function (ty) { if (ty.name === t && ty.statuses.indexOf(name) === -1) ty.statuses.push(name); });
+      });
+    });
+  }
+
+  function addAction(spec) {
+    /* spec: {code, name, group, applicability, types, mobileAvailable} */
+    mutate(function (hd) {
+      var fullName = spec.code + '. ' + spec.name;
+      if (hd.actions.some(function (a) { return a.name === fullName || a.code === spec.code; })) {
+        throw new Error('An action with that code or name already exists');
+      }
+      hd.actions.push({
+        key: S.canonicalKey('hd', 'action', fullName),
+        name: fullName,
+        code: spec.code,
+        active: true,
+        applicability: spec.applicability || 'All jobs',
+        mobileAvailable: !!spec.mobileAvailable,
+        types: (spec.types || ['Reactive']).slice(),
+        buttonGroup: spec.group || null,
+        flags: [],
+        addsTags: [],
+        removesTags: [],
+        resultingType: null,
+        notesProvenance: DESIGNED,
+        rawNotes: '',
+        machineFired: false,
+        firedBySupplierActions: [],
+        confidence: DESIGNED,
+        evidence: []
+      });
+      hd.actions.sort(function (a, b) { return a.name.localeCompare(b.name); });
+      (spec.types || ['Reactive']).forEach(function (t) {
+        hd.types.forEach(function (ty) { if (ty.name === t && ty.actions.indexOf(fullName) === -1) ty.actions.push(fullName); });
+      });
+    });
+  }
+
+  function removeAction(name) {
+    mutate(function (hd) {
+      hd.actions = hd.actions.filter(function (a) { return a.name !== name; });
+      hd.availability = hd.availability.filter(function (e) { return e.action !== name; });
+      hd.results = hd.results.filter(function (r) { return r.action !== name; });
+      hd.types.forEach(function (t) {
+        t.actions = t.actions.filter(function (n) { return n !== name; });
+      });
+    });
+  }
+
+  var EDITABLE_ACTION_FIELDS = ['applicability', 'mobileAvailable', 'buttonGroup', 'types'];
+
+  function modifyAction(name, fields) {
+    mutate(function (hd) {
+      hd.actions.forEach(function (a) {
+        if (a.name !== name) return;
+        Object.keys(fields).forEach(function (k) {
+          if (EDITABLE_ACTION_FIELDS.indexOf(k) === -1) throw new Error('Field not editable: ' + k);
+          a[k] = fields[k];
+        });
       });
     });
   }
@@ -268,6 +333,9 @@
     addStatus: addStatus,
     removeStatus: removeStatus,
     reorderStatus: reorderStatus,
+    addAction: addAction,
+    removeAction: removeAction,
+    modifyAction: modifyAction,
     discard: discard,
     exportJson: exportJson,
     importJson: importJson,

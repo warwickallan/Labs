@@ -79,7 +79,91 @@
     return model.helpdesk.availability.filter(function (e) { return e.action === actionName; });
   }
 
-  function showAction(model, actionName) {
+  /* ---- design-mode edit controls -------------------------------------- */
+
+  function editSection(model, a, opts) {
+    var M = window.StudioModel;
+    function changed() { opts.onChange(); showAction(model, a.name, opts); }
+
+    var rows = [];
+
+    /* resulting status, per type the action belongs to */
+    a.types.forEach(function (type) {
+      var current = resultsFor(model, a.name).filter(function (r) { return r.type === type; })[0];
+      var statuses = model.helpdesk.statuses.filter(function (s) { return s.types.indexOf(type) !== -1; });
+      var sel = el('select', {
+        onchange: function (ev) {
+          var v = ev.target.value;
+          M.setResult(a.name, v === '' ? null : v, kindSel.value, type);
+          changed();
+        }
+      }, [el('option', { value: '', text: '(no status change)' })].concat(statuses.map(function (s) {
+        var o = el('option', { value: s.name, text: s.name });
+        if (current && current.toStatus === s.name) o.selected = true;
+        return o;
+      })));
+      var kindSel = el('select', {
+        onchange: function (ev) {
+          if (current) { M.setResult(a.name, current.toStatus, ev.target.value, type); changed(); }
+        }
+      }, [
+        el('option', { value: 'sets', text: 'sets status' }),
+        el('option', { value: 'userSelects', text: 'user selects' })
+      ]);
+      if (current && current.kind === 'userSelects') kindSel.value = 'userSelects';
+      rows.push(['Resulting status (' + type + ')', el('span', {}, [sel, document.createTextNode(' '), kindSel])]);
+    });
+
+    rows.push(['Mobile available', el('input', {
+      type: 'checkbox', checked: a.mobileAvailable ? 'checked' : null,
+      onchange: function (ev) { M.modifyAction(a.name, { mobileAvailable: ev.target.checked }); changed(); }
+    })]);
+
+    rows.push(['Button group', el('input', {
+      type: 'text', value: a.buttonGroup || '', placeholder: '(none)',
+      onchange: function (ev) { M.modifyAction(a.name, { buttonGroup: ev.target.value.trim() || null }); changed(); }
+    })]);
+
+    /* availability checklist per status the action's types allow */
+    var availList = el('div', { style: 'max-height:180px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:6px 10px' },
+      model.helpdesk.statuses
+        .filter(function (s) { return s.types.some(function (t) { return a.types.indexOf(t) !== -1; }); })
+        .map(function (s) {
+          var type = s.types.filter(function (t) { return a.types.indexOf(t) !== -1; })[0];
+          var ticked = availabilityFor(model, a.name).some(function (e) { return e.status === s.name; });
+          return el('label', { style: 'display:block;font-size:12.5px;margin:2px 0' }, [
+            el('input', {
+              type: 'checkbox', checked: ticked ? 'checked' : null,
+              onchange: function (ev) {
+                if (ev.target.checked) M.addAvailability(a.name, s.name, type);
+                else M.removeAvailability(a.name, s.name);
+                changed();
+              }
+            }),
+            document.createTextNode(' ' + s.name)
+          ]);
+        }));
+
+    return sec('Edit (design)', [
+      kvTable(rows),
+      el('h4', { text: 'Available in', style: 'margin-top:10px' }),
+      availList,
+      el('div', { style: 'margin-top:10px' }, [
+        el('button', {
+          class: 'btn', style: 'color:var(--danger)', text: 'Remove action from design',
+          onclick: function () {
+            if (window.confirm('Remove "' + a.name + '" and every relationship touching it from the design? (Undo is available.)')) {
+              M.removeAction(a.name);
+              opts.onChange();
+              close();
+            }
+          }
+        })
+      ])
+    ]);
+  }
+
+  function showAction(model, actionName, opts) {
     var a = model.helpdesk.actions.filter(function (x) { return x.name === actionName; })[0];
     if (!a) return;
 
@@ -90,6 +174,7 @@
     });
 
     open(a.name, [
+      (opts && opts.editable) ? editSection(model, a, opts) : null,
       sec('Identity', [kvTable([
         ['Canonical key', el('code', { text: a.key })],
         ['Code', a.code],

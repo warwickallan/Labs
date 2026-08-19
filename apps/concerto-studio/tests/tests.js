@@ -193,6 +193,124 @@
     });
   });
 
+  /* ---- add/modify action, inspector-grade mutations --------------------- */
+
+  test('addAction / modifyAction / removeAction with duplicate guard and rollback', function () {
+    return loadedPromise.then(function (res) {
+      var M = window.StudioModel, Df = window.StudioDiff;
+      M.discard();
+      M.fork(res.model);
+
+      M.addAction({ code: 'RH99', name: 'Escalate to manager', types: ['Reactive'], group: 'Reactive Helpdesk Tasks' });
+      var d = Df.compare(res.model, M.desired());
+      assert(d.actions.added.length === 1 && d.actions.added[0].key === 'RH99. Escalate to manager', 'action added');
+
+      /* duplicate code must throw AND leave no stray undo snapshot */
+      var undoDepth = M._state.undoStack.length;
+      var threw = false;
+      try { M.addAction({ code: 'RH99', name: 'Duplicate', types: ['Reactive'] }); } catch (e) { threw = true; }
+      assert(threw, 'duplicate rejected');
+      assert(M._state.undoStack.length === undoDepth, 'failed mutation left no undo snapshot');
+
+      M.modifyAction('RH99. Escalate to manager', { mobileAvailable: true, buttonGroup: 'General Actions' });
+      d = Df.compare(res.model, M.desired());
+      assert(d.actions.added[0].object.mobileAvailable === true, 'modify applied');
+
+      threw = false;
+      try { M.modifyAction('RH99. Escalate to manager', { code: 'HACK' }); } catch (e) { threw = true; }
+      assert(threw, 'non-editable field rejected');
+
+      M.removeAction('RH99. Escalate to manager');
+      assert(Df.compare(res.model, M.desired()).isEmpty, 'remove returns to Vanilla-equal');
+      M.discard();
+    });
+  });
+
+  /* ---- build-plan compiler ---------------------------------------------- */
+
+  test('build plan: staged passes, dependency order, honest non-executability', function () {
+    return loadedPromise.then(function (res) {
+      var M = window.StudioModel, Df = window.StudioDiff, BP = window.StudioBuildPlan;
+      M.fork(res.model);
+      M.addStatus('ZZ Triage', ['Reactive']);
+      M.addAction({ code: 'RH98', name: 'Send to triage', types: ['Reactive'], group: 'Reactive Helpdesk Tasks' });
+      M.addAvailability('RH98. Send to triage', 'With Helpdesk', 'Reactive');
+      M.setResult('RH98. Send to triage', 'ZZ Triage', 'sets', 'Reactive');
+
+      var plan = BP.compile(Df.compare(res.model, M.desired()));
+      assert(plan.executable === false, 'plan is honestly non-executable');
+      assert(plan.operations.some(function (o) { return o.pass === 1 && o.objectType === 'Status' && o.target === 'ZZ Triage'; }), 'status create in pass 1');
+      assert(plan.operations.some(function (o) { return o.pass === 2 && o.op === 'RESOLVE'; }), 'identity resolution pass present');
+      assert(plan.unresolvedIdentities.length === 2, 'two unresolved identities (status + action)');
+      var statusCreateIdx = plan.operations.findIndex(function (o) { return o.op === 'CREATE' && o.objectType === 'Status'; });
+      var tickIdx = plan.operations.findIndex(function (o) { return o.op === 'TICK'; });
+      assert(statusCreateIdx < tickIdx, 'creates precede relationship ticks');
+      assert(plan.operations[plan.operations.length - 1].op === 'VERIFY', 'VERIFY is the final operation');
+      /* ZZ Triage gets a result INTO it and RH98 has availability, so the
+       * only expected warning is the new status offering no exit actions */
+      assert(plan.warnings.some(function (w) { return /offers no actions/.test(w.text); }), 'strand warning raised');
+      M.discard();
+
+      /* empty diff → empty plan */
+      M.fork(res.model);
+      var emptyPlan = BP.compile(Df.compare(res.model, M.desired()));
+      assert(emptyPlan.operationCount === 0, 'no changes → no operations');
+      M.discard();
+    });
+  });
+
+  /* ---- solution design generator ----------------------------------------- */
+
+  test('solution design: vanilla edition generated from the canonical model', function () {
+    return loadedPromise.then(function (res) {
+      var html = window.StudioSolDesign.generate(res.model, {
+        edition: 'vanilla',
+        findings: window.StudioRules.runAll(res.model)
+      });
+      assert(html.indexOf('<!DOCTYPE html>') === 0, 'standalone document');
+      assert(html.indexOf('Vanilla System Solution Design') !== -1, 'title');
+      /* every status must appear as a section */
+      res.model.helpdesk.statuses.forEach(function (s) {
+        assert(html.indexOf('<h3>' + s.name) !== -1, 'status section: ' + s.name);
+      });
+      assert(html.indexOf('RH04. Assign to contractor') !== -1, 'actions rendered');
+      assert(html.indexOf('SP01 Accept job') !== -1, 'supplier actions rendered');
+      assert(html.indexOf('VI-009') !== -1, 'known defect stated');
+      assert(html.indexOf('X-018') !== -1, 'cross-domain edges rendered');
+      assert(html.indexOf('not yet carried in the machine-readable model') !== -1, 'register-sourced facts marked honestly');
+    });
+  });
+
+  test('solution design: customer edition carries the deviation schedule', function () {
+    return loadedPromise.then(function (res) {
+      var M = window.StudioModel;
+      M.fork(res.model);
+      M.addStatus('ZZ Customer Status', ['Reactive']);
+      var diff = window.StudioDiff.compare(res.model, M.desired());
+      var html = window.StudioSolDesign.generate(M.desired(), {
+        edition: 'customer', diff: diff, findings: window.StudioRules.runAll(M.desired())
+      });
+      assert(html.indexOf('Customer System Solution Design') !== -1, 'customer title');
+      assert(html.indexOf('Deviation Schedule') !== -1, 'deviation section present');
+      assert(html.indexOf('ZZ Customer Status') !== -1, 'deviation listed');
+      M.discard();
+    });
+  });
+
+  /* ---- harness adapter boundary ------------------------------------------ */
+
+  test('harness adapter reports honest unavailability; execution refuses', function () {
+    var H = window.StudioHarness;
+    assert(H.available === false, 'adapter not available');
+    return H.probe().then(function (p) {
+      assert(p.available === false && p.reason, 'probe honest');
+      return H.execute({}, {}).then(
+        function () { throw new Error('execute must refuse'); },
+        function (err) { assert(/authorisation/.test(String(err.message)), 'refusal names authorisation'); }
+      );
+    });
+  });
+
   /* ---- findings engine -------------------------------------------------- */
 
   test('rules recover the known Vanilla defects with correct fixability', function () {
