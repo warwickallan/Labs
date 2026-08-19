@@ -81,16 +81,88 @@
     return h;
   }
 
+  /* When a project is selected the document describes THAT ENGAGEMENT: the
+   * instance, which configuration state it is, what was changed and
+   * verified, what was found, what the customer still has to decide, and
+   * what is not yet known. Vanilla appears only as a comparison. */
+  function projectContext(model, opts, proj) {
+    var h = '<div class="meta project-context">';
+    h += '<b>' + esc(proj.name) + '</b> · instance <code>' + esc(proj.instanceUrl || 'not recorded') + '</code>';
+    if (opts.stateLabel) h += ' · <b>' + esc(opts.stateLabel) + '</b>';
+    if (opts.snapshotStamp) h += ' · snapshot ' + esc(opts.snapshotStamp);
+    if (opts.baselineLabel) h += ' · baseline ' + esc(opts.baselineLabel);
+    h += '</div>';
+
+    var changes = proj.changeLog || [];
+    h += '<h2>0 · Engagement</h2>';
+    h += '<p>' + esc(proj.notes || 'No engagement note recorded.') + '</p>';
+
+    h += '<h3>Changes applied and verified (' + changes.length + ')</h3>';
+    if (!changes.length) h += '<p>No configuration has been changed in this instance by this engagement.</p>';
+    else {
+      h += '<table><thead><tr><th>Ref</th><th>When</th><th>Object</th><th>Change</th><th>Verification</th></tr></thead><tbody>';
+      changes.forEach(function (c) {
+        h += '<tr><td><b>' + esc(c.id || '') + '</b></td><td>' + esc(c.at || '') + '</td><td>' + esc(c.object || '') + '</td><td>' +
+          esc(c.field ? c.field + ': ' + JSON.stringify(c.before) + ' → ' + JSON.stringify(c.after) : (c.fields || '')) +
+          '</td><td>' + esc(c.outcome || '') + '</td></tr>';
+      });
+      h += '</tbody></table>';
+    }
+
+    var fs = proj.findingsSummary || {};
+    function bullets(title, arr) {
+      if (!arr || !arr.length) return '';
+      var s = '<h3>' + title + '</h3><ul>';
+      arr.forEach(function (x) { s += '<li>' + esc(x) + '</li>'; });
+      return s + '</ul>';
+    }
+    h += bullets('Findings resolved', fs.resolved);
+    h += bullets('Confirmed not defects (engine-driven or by design)', fs.notDefects);
+    h += bullets('Customer decisions still open', fs.customerDecisions);
+    h += bullets('Review notes', fs.reviewNotes);
+    h += bullets('How this instance differs from the older Vanilla reference', proj.vanillaEvolution);
+
+    /* what is NOT known — stated, never implied by omission */
+    var rep = opts.ingestReport;
+    if (rep) {
+      h += '<h3>Coverage of this document</h3><ul>';
+      h += '<li>Acquired by: ' + esc(rep.crawlMethod || 'not recorded') + '</li>';
+      if (rep.notCaptured && rep.notCaptured.length) {
+        h += '<li>Per-action detail NOT captured for this instance (so not described below): <code>' +
+          esc(rep.notCaptured.join(', ')) + '</code></li>';
+      }
+      (rep.notes || []).forEach(function (n) { h += '<li>' + esc(n) + '</li>'; });
+      (rep.unresolved || []).forEach(function (u) {
+        h += '<li><b>Unresolved:</b> ' + esc(u.item) + ' — ' + esc(u.reason) + '</li>';
+      });
+      h += '</ul>';
+    }
+    if (opts.deviations && opts.deviations.length) {
+      h += '<h3>Deviations from the comparison baseline (' + opts.deviations.length + ')</h3><ul>';
+      opts.deviations.slice(0, 200).forEach(function (r) {
+        h += '<li><b>' + esc(r.kind) + '</b> ' + esc(r.object) + ' · ' + esc(r.detail) + '</li>';
+      });
+      h += '</ul>';
+    }
+    return h;
+  }
+
   function generate(model, opts) {
     opts = opts || {};
     var isCustomer = opts.edition === 'customer';
     var isInstance = opts.edition === 'instance';
-    var title = isCustomer ? 'Desired Customer Solution Design'
-      : isInstance ? 'Instance As-Is Solution Design'
-      : 'Vanilla System Solution Design';
+    var proj = opts.project || null;
+    var title = proj
+      ? proj.name + ' — ' + (isCustomer ? 'Desired Solution Design'
+        : opts.edition === 'baseline' ? 'Day-One Baseline Solution Design'
+          : 'Current Solution Design')
+      : (isCustomer ? 'Desired Customer Solution Design'
+        : isInstance ? 'Instance As-Is Solution Design'
+          : 'Vanilla System Solution Design');
     var h = '';
 
     h += '<h1>' + title + '</h1>';
+    if (proj) h += projectContext(model, opts, proj);
     h += '<p class="subtitle">Concerto Helpdesk &amp; Orders configuration — generated from the ' +
       (isInstance ? 'crawled instance snapshot (read-only automated crawl)' : 'canonical machine-readable model') +
       (isCustomer ? ', including the customer design deviations from Vanilla' : '') +

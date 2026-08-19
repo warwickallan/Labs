@@ -41,7 +41,12 @@ class StructureError(RuntimeError):
 class ConcertoSession:
     """One visible (headed) browser session against one Concerto instance."""
 
-    def __init__(self) -> None:
+    def __init__(self, headless: bool = False) -> None:
+        # Headed is the ONLY mode used against a real instance: the human
+        # must be able to see the window they sign in to. `headless=True`
+        # exists solely for the fixture end-to-end test, which signs in to
+        # nothing.
+        self._headless = headless
         self._pw = None
         self._browser = None
         self.page = None
@@ -59,7 +64,7 @@ class ConcertoSession:
         if self._pw is None:
             self._pw = sync_playwright().start()
             # Headed: the human signs in in this window.
-            self._browser = self._pw.chromium.launch(headless=False)
+            self._browser = self._pw.chromium.launch(headless=self._headless)
             context = self._browser.new_context(viewport={"width": 1500, "height": 950})
             self.page = context.new_page()
         self.target_url = url.rstrip("/")
@@ -77,7 +82,7 @@ class ConcertoSession:
 
         if self._pw is None:
             self._pw = sync_playwright().start()
-            self._browser = self._pw.chromium.launch(headless=False)
+            self._browser = self._pw.chromium.launch(headless=self._headless)
             context = self._browser.new_context(viewport={"width": 1500, "height": 950})
             self.page = context.new_page()
         self.target_url = url.rstrip("/")

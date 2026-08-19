@@ -216,8 +216,26 @@
     return true;
   }
 
-  /* file-shaped export — the main agent persists this under
-   * apps/concerto-studio/projects/<key>/project.json (git-ignored) */
+  /* Persist a project to the DURABLE PRIVATE STORE. localStorage is only a
+   * session mirror; without this the work exists in one browser profile and
+   * nowhere else. Returns a promise resolving to the store's receipt, or to
+   * a refusal explaining why nothing was banked — never silently nothing. */
+  function persist(key) {
+    var S = window.StudioStore;
+    if (!S) return Promise.resolve({ saved: false, reason: 'store client not loaded' });
+    if (!S.available()) return Promise.resolve({ saved: false, reason: 'the durable store is not running' });
+    var rec = get(key);
+    if (!rec) return Promise.resolve({ saved: false, reason: 'no such project' });
+    var payload;
+    try { payload = JSON.parse(exportProject(key)); }
+    catch (e) { return Promise.resolve({ saved: false, reason: 'export failed: ' + e.message }); }
+    return S.save(key, payload).catch(function (e) {
+      return { saved: false, reason: 'store refused the save: ' + e.message };
+    });
+  }
+
+  /* file-shaped export — persisted by persist() into the private store, or
+   * written by hand under apps/concerto-studio/projects/<key>/project.json */
   function exportProject(key) {
     var rec = get(key);
     if (!rec) throw new Error('No project with key "' + key + '"');
@@ -254,6 +272,7 @@
     remove: remove,
     exportProject: exportProject,
     importProject: importProject,
+    persist: persist,
     STORAGE_KEY: STORAGE_KEY
   };
 })();

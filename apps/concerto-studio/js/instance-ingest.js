@@ -101,7 +101,125 @@
     };
   }
 
-  function fromCapturedCrawl(snap, baseline) {
+  /* ---- Orders ----------------------------------------------------------
+   * An instance's Orders truth may be acquired by inspection rather than a
+   * full grid crawl. What is carried is exactly what was observed:
+   *  - actions opened individually → full detail, OBSERVED;
+   *  - actions counted but not opened → PRESENT, detail NOT OBSERVED;
+   *  - actions observed to be ABSENT → absent, and recorded as an absence
+   *    with its reason, so "missing" is never confused with "not looked at".
+   */
+  function ordersFrom(observed, report) {
+    var out = {
+      metadata: { generatedAt: report.crawledAt },
+      orderStatuses: [], orderPriorities: [], orderTypes: [],
+      budgetCategories: [], supplierActions: [], emptyTabs: [], unknowns: []
+    };
+    if (!observed) return out;
+
+    Object.keys(observed.actions || {}).forEach(function (key) {
+      var a = observed.actions[key];
+      out.supplierActions.push(Object.assign({}, a, {
+        canonicalKey: key,
+        observedCode: a.code || key,
+        detailObserved: true,
+        provenance: 'OBSERVED-INSTANCE'
+      }));
+    });
+    (observed.presentNotDetailed || []).forEach(function (p) {
+      out.supplierActions.push({
+        canonicalKey: p.canonicalKey,
+        code: p.canonicalKey.replace(/[a-d]$/, ''),
+        observedCode: p.canonicalKey.replace(/[a-d]$/, ''),
+        name: 'NOT INDIVIDUALLY OBSERVED',
+        detailObserved: false,
+        provenance: 'PRESENT-DETAIL-NOT-OBSERVED',
+        confidence: 'VERIFIED — STRUCTURAL',
+        note: p.reason,
+        availableIn: [],
+        portalVisible: null,
+        resultingOrderStatus: null,
+        firesHelpdeskAction: null
+      });
+      report.notes.push('Supplier action ' + p.canonicalKey +
+        ' is present in this instance but its detail was not captured — shown as NOT INDIVIDUALLY OBSERVED, never filled in from the baseline.');
+    });
+    (observed.absent || []).forEach(function (x) {
+      out.unknowns.push({
+        family: 'supplierAction', canonicalKey: x.canonicalKey,
+        kind: 'OBSERVED-ABSENT', name: x.name, reason: x.reason
+      });
+      report.notes.push('Supplier action ' + x.canonicalKey + ' is ABSENT from this instance (observed).');
+    });
+
+    var counted = observed.supplierActionCount;
+    if (counted != null && counted !== out.supplierActions.length) {
+      report.unresolved.push({
+        item: 'Orders supplier actions',
+        reason: 'the grid was counted at ' + counted + ' records but ' +
+          out.supplierActions.length + ' are accounted for individually'
+      });
+    }
+
+    if (observed.orderStatuses && observed.orderStatuses.captured === false) {
+      (observed.orderStatuses.referenced || []).forEach(function (n) {
+        out.orderStatuses.push({
+          name: n, provenance: 'REFERENCED-NOT-ENUMERATED',
+          confidence: 'VERIFIED — STRUCTURAL',
+          note: 'Known to exist because an observed supplier action refers to it; the Order status family itself was not enumerated.'
+        });
+      });
+      out.unknowns.push({ family: 'orderStatuses', kind: 'NOT-CAPTURED',
+        reason: observed.orderStatuses.reason });
+      report.notes.push('Order statuses were not enumerated in this instance — only those referenced by observed supplier actions are carried.');
+    }
+
+    if (observed.responseCategories) out.responseCategories = observed.responseCategories;
+    if (observed.quoteEngine) out.quoteEngine = observed.quoteEngine;
+    return out;
+  }
+
+  /* ---- verified-change overlay ----------------------------------------
+   * A CURRENT model is the Day-One model plus the changes that were
+   * actually applied and read-back verified. Expressing it as an overlay
+   * (rather than a second hand-written capture) means Day-One can never be
+   * quietly edited, and every difference between the two traces to a
+   * change receipt. */
+  function applyChanges(rawOrders, changes, report) {
+    (changes || []).forEach(function (c) {
+      if (c.family !== 'supplierAction') {
+        report.unresolved.push({ item: c.ref || 'change', reason: 'unsupported change family: ' + c.family });
+        return;
+      }
+      var hit = rawOrders.supplierActions.filter(function (a) { return a.canonicalKey === c.key; })[0];
+      if (!hit) {
+        report.unresolved.push({ item: c.ref || c.key, reason: 'no such supplier action in the baseline snapshot' });
+        return;
+      }
+      Object.keys(c.set || {}).forEach(function (f) {
+        report.appliedChanges.push({
+          ref: c.ref, object: c.key + ' ' + (hit.name || ''), field: f,
+          from: hit[f], to: c.set[f]
+        });
+        hit[f] = c.set[f];
+      });
+      if (c.availability) {
+        var list = (hit.availableIn || []).slice();
+        (c.availability.remove || []).forEach(function (s) {
+          var i = list.indexOf(s);
+          if (i !== -1) { list.splice(i, 1); report.appliedChanges.push({ ref: c.ref, object: c.key, field: 'availableIn', from: s, to: '(removed)' }); }
+        });
+        (c.availability.add || []).forEach(function (s) {
+          if (list.indexOf(s) === -1) { list.push(s); report.appliedChanges.push({ ref: c.ref, object: c.key, field: 'availableIn', from: '(absent)', to: s }); }
+        });
+        hit.availableIn = list;
+      }
+      hit.changedBy = (hit.changedBy || []).concat([c.ref]);
+    });
+    return rawOrders;
+  }
+
+  function fromCapturedCrawl(snap, baseline, opts) {
     var report = {
       source: snap.label || 'captured crawl',
       targetUrl: (snap.meta || {}).targetUrl || null,
@@ -114,6 +232,7 @@
       unresolved: [],
       statusFlags: {},
       notes: [],
+      appliedChanges: [],
       counts: {}
     };
     function resolved(item, from, to, how) { report.resolutions.push({ item: item, from: from, to: to, how: how }); }
@@ -292,30 +411,105 @@
       identities: snap.identities || null
     };
 
-    var model = window.VanillaLoader.normaliseSnapshot(raw.identities
-      ? { meta: snap.meta || {}, helpdesk: raw.helpdesk, identities: raw.identities }
-      : { meta: snap.meta || {}, helpdesk: raw.helpdesk });
+    /* Orders may arrive in the same snapshot or in a companion part. */
+    var ordersObserved = snap.ordersObserved ||
+      (opts && opts.orders && opts.orders.ordersObserved) || null;
+    if (opts && opts.orders && opts.orders.meta && !report.crawledAt) {
+      report.crawledAt = opts.orders.meta.crawledAt;
+    }
+    var rawOrders = ordersFrom(ordersObserved, report);
+    if (opts && opts.changes && opts.changes.length) {
+      applyChanges(rawOrders, opts.changes, report);
+      report.notes.push('This is the CURRENT model: the Day-One capture plus ' +
+        opts.changes.length + ' verified change(s), applied as an overlay so Day-One is never edited.');
+    }
+
+    var payload = { meta: snap.meta || {}, helpdesk: raw.helpdesk, orders: rawOrders };
+    if (raw.identities) payload.identities = raw.identities;
+    var model = window.VanillaLoader.normaliseSnapshot(payload);
 
     report.counts = {
       statuses: model.helpdesk.statuses.length,
       actions: model.helpdesk.actions.length,
       availability: model.helpdesk.availability.length,
       results: model.helpdesk.results.length,
+      supplierActions: model.orders.supplierActions.length,
       unresolved: report.unresolved.length
     };
     return { model: model, report: report };
   }
 
-  function fromSnapshot(snap, baseline) {
+  /* An instance whose configuration IS the source of the canonical model —
+   * the discovery instance. Using that model here is not a fallback: it is
+   * the capture of this very instance, and it is labelled as such, with the
+   * ways the instance has since moved recorded as known deltas rather than
+   * quietly folded in. Refused outright if there is no model to stand on. */
+  function fromDiscoveryRecord(snap, baseline) {
+    var S = window.StudioSchema;
+    var report = {
+      source: snap.label || 'discovery capture',
+      targetUrl: (snap.meta || {}).targetUrl || null,
+      crawledAt: (snap.meta || {}).crawledAt || null,
+      crawlMethod: (snap.meta || {}).crawlMethod || null,
+      acquisition: (snap.meta || {}).acquisition || 'ASSISTED-DISCOVERY',
+      capturedActionFields: null,
+      capturedStatusFields: null,
+      notCaptured: [],
+      resolutions: [], unresolved: [], statusFlags: {},
+      notes: [], appliedChanges: [], counts: {}
+    };
+    if (!baseline) {
+      report.unresolved.push({ item: 'discovery record', reason: 'the canonical model is not loaded, so this instance cannot be reconstructed' });
+      return { model: null, report: report };
+    }
+    var fp = snap.fromLabsModel || {};
+    if (fp.helpdeskFingerprint && baseline.meta.sourceFingerprints.helpdesk !== fp.helpdeskFingerprint) {
+      report.unresolved.push({
+        item: 'discovery record',
+        reason: 'the canonical model has moved on (fingerprint ' + baseline.meta.sourceFingerprints.helpdesk +
+          ', this record expects ' + fp.helpdeskFingerprint + ') — it may no longer describe this instance'
+      });
+    }
+    var model = S.deepClone(baseline);
+    model.meta = Object.assign({}, model.meta, {
+      environment: report.targetUrl,
+      provenance: 'DISCOVERY-CAPTURE-OF-THIS-INSTANCE',
+      provenanceNote: fp.reason || 'The canonical model was generated from this instance.',
+      capture: { kind: 'DISCOVERY-CAPTURE', types: ['Reactive', 'Planned'] }
+    });
+    report.notes.push(fp.reason || 'The canonical Labs model was generated from this instance, so it is the capture of it — not a stand-in for it.');
+    (snap.knownDeltasSinceCapture || []).forEach(function (d) {
+      report.notes.push('KNOWN DELTA (' + d.kind + ') ' + d.object + ' — ' + d.detail);
+    });
+    (snap.notIngested || []).forEach(function (n) {
+      report.unresolved.push({ item: n.family, reason: n.reason });
+    });
+    report.knownDeltas = (snap.knownDeltasSinceCapture || []).slice();
+    report.notIngested = (snap.notIngested || []).slice();
+    report.counts = {
+      statuses: model.helpdesk.statuses.length,
+      actions: model.helpdesk.actions.length,
+      availability: model.helpdesk.availability.length,
+      results: model.helpdesk.results.length,
+      supplierActions: model.orders.supplierActions.length,
+      unresolved: report.unresolved.length
+    };
+    return { model: S.deepFreeze(model), report: report };
+  }
+
+  function fromSnapshot(snap, baseline, opts) {
+    if (snap && snap.fromLabsModel && snap.fromLabsModel.use) {
+      return fromDiscoveryRecord(snap, baseline);
+    }
     if (snap && (snap.helpdesk || snap.orders)) {
       return { model: window.VanillaLoader.normaliseSnapshot(snap), report: null };
     }
-    return fromCapturedCrawl(snap, baseline);
+    return fromCapturedCrawl(snap, baseline, opts);
   }
 
   /* Build the instance record views read from window.StudioApp.instance. */
-  function toInstanceRecord(snapshotId, snap, baseline) {
-    var out = fromSnapshot(snap, baseline);
+  function toInstanceRecord(snapshotId, snap, baseline, opts) {
+    var out = fromSnapshot(snap, baseline, opts);
     var meta = Object.assign({}, snap.meta || {});
     if (out.report) {
       meta.counts = out.report.counts;
@@ -332,6 +526,8 @@
   var api = {
     fromSnapshot: fromSnapshot,
     fromCapturedCrawl: fromCapturedCrawl,
+    ordersFrom: ordersFrom,
+    applyChanges: applyChanges,
     toInstanceRecord: toInstanceRecord,
     _parseActionEntry: parseActionEntry,
     _parseOrderings: parseOrderings,

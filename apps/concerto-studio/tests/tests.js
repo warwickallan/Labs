@@ -948,6 +948,334 @@
     });
   });
 
+  /* ---- the harness's own output, ingested ------------------------------
+   * Closes the loop: harness/tests/test_end_to_end.py drives the REAL
+   * adapter and crawlers against a fixture Concerto and banks the snapshot
+   * it produces. If the Studio can turn that file into a model, the whole
+   * chain — DOM → adapter → crawler → snapshot → Studio model — is proven
+   * without a live instance. Only authentication remains untested. */
+
+  var harnessSnap = fetch('../harness/tests/fixtures/harness-crawl-snapshot.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .catch(function () { return null; });
+
+  test('the harness snapshot fixture is present (run test_end_to_end.py to regenerate)', function () {
+    return harnessSnap.then(function (s) {
+      assert(s && s.kind === 'INSTANCE-SNAPSHOT', 'fixture missing — python harness/tests/test_end_to_end.py');
+      assert(s.meta.writeCapability === false, 'the snapshot records that no write capability existed');
+    });
+  });
+
+  test('a real harness crawl snapshot ingests into a Studio model', function () {
+    return harnessSnap.then(function (s) {
+      if (!s) throw new Error('fixture missing');
+      var out = window.StudioIngest.fromSnapshot(s, null);
+      var m = out.model;
+      var names = m.helpdesk.statuses.map(function (x) { return x.name; }).sort();
+      assert(names.join('|') === 'With Contractor - R|With Helpdesk|With Maintenance Team', names.join('|'));
+      var acts = m.helpdesk.actions.map(function (a) { return a.code; }).sort();
+      assert(acts.join(',') === 'G001,G003,RH04', acts.join(','));
+      var rh04 = m.helpdesk.actions.filter(function (a) { return a.code === 'RH04'; })[0];
+      assert(rh04.availableIn.indexOf('With Helpdesk') !== -1, 'availability survives ingest');
+      assert(m.helpdesk.results.some(function (r) {
+        return r.action === rh04.name && r.kind === 'sets' && r.toStatus === 'With Contractor - R';
+      }), 'a crawled resulting status survives ingest as a "sets" edge');
+      assert(m.helpdesk.results.some(function (r) {
+        return r.kind === 'userSelects' && r.toStatus === 'With Contractor - R';
+      }), 'user-selects stays distinct from sets through ingest');
+      assert(m.orders.supplierActions.length === 2, 'the Orders domain survives ingest');
+      assert(m.identities.statuses['With Helpdesk'], 'GUID identities survive ingest');
+    });
+  });
+
+  /* ---- durable private store ------------------------------------------
+   * The store may or may not be running during a test run. Both states are
+   * legitimate; what must NEVER happen is the Studio quietly behaving as
+   * though work were banked when it is not. */
+
+  var storeProbe = window.StudioStore ? window.StudioStore.probe() : Promise.resolve(null);
+
+  test('the Studio can always say where project data came from', function () {
+    return storeProbe.then(function () {
+      var src = window.StudioStore.source();
+      assert(['store', 'files', 'unknown'].indexOf(src) !== -1, 'source is one of the known sources: ' + src);
+      var line = window.StudioStore.durabilityLine();
+      assert(typeof line === 'string' && line.length > 20, 'a plain-English durability line exists');
+    });
+  });
+
+  test('persisting without a running store refuses honestly instead of doing nothing', function () {
+    return storeProbe.then(function () {
+      if (window.StudioStore.available()) return; /* covered by the store round-trip below */
+      return window.StudioProject.persist('does-not-matter').then(function (r) {
+        assert(r && r.saved === false, 'the refusal is explicit');
+        assert(typeof r.reason === 'string' && r.reason.length, 'and carries a reason: ' + r.reason);
+      });
+    });
+  });
+
+  test('when the store IS running it is authoritative and never claims a backup it lacks', function () {
+    return storeProbe.then(function (h) {
+      if (!window.StudioStore.available()) return; /* store not running — nothing to assert */
+      assert(h.insideRepository === false, 'the store root is outside the public repository');
+      assert(['OFF-MACHINE', 'LOCAL-HISTORY', 'LOCAL-VERSIONS', 'SINGLE-COPY'].indexOf(h.durability) !== -1,
+        'durability is one of the honest states: ' + h.durability);
+      if (!h.git || !h.git.remote) {
+        assert(h.durability !== 'OFF-MACHINE', 'no remote means it must NOT report OFF-MACHINE');
+        assert(/only|NO REMOTE|one machine/i.test(window.StudioStore.durabilityLine()),
+          'and the sentence must say so: ' + window.StudioStore.durabilityLine());
+      }
+      return window.StudioStore.list().then(function (rows) {
+        assert(Array.isArray(rows), 'the store lists projects');
+      });
+    });
+  });
+
+
+  /* ---- MAKE THE PROJECTS REAL -----------------------------------------
+   * A project view must show THAT PROJECT or say it has nothing. These
+   * tests load the real Kirklees and Warwick Demo project files and assert
+   * the properties that distinguish a real project model from a Vanilla
+   * stand-in. They run against the same durable files the app loads.
+   */
+
+  function loadProjectFile(key) {
+    if (window.StudioStore && window.StudioStore.available()) {
+      return window.StudioStore.get(key).then(function (payload) { return payload.project; });
+    }
+    return fetch('../projects/' + key + '/project.json', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('no project file for ' + key); return r.json(); })
+      .then(function (f) { return f.project; });
+  }
+
+  /* Snapshot files are read relative to the app, so tests reach them the
+   * same way the app does — through the store when it is up. */
+  function projectFixture(key) {
+    return storeProbe.then(function () { return loadProjectFile(key); }).then(function (rec) {
+      var saveSource = window.StudioStore.source();
+      window.StudioStore.setSource(window.StudioStore.available() ? 'store' : 'files');
+      return loadedPromise.then(function (res) {
+        return window.StudioSnapshots.ensureLoaded(rec, res.model).then(function () {
+          window.StudioStore.setSource(saveSource);
+          return { project: rec, vanilla: res.model };
+        });
+      });
+    });
+  }
+
+  var kirklees = projectFixture('kirklees-council');
+  var warwick = projectFixture('warwick-demo');
+
+  test('Kirklees Day-One loads as a real model', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.baselineModel(f.project);
+      assert(m, 'the Day-One baseline model exists');
+      assert(m.meta.environment === 'https://kirklees.concerto.co.uk',
+        'and it is Kirklees, not another instance: ' + m.meta.environment);
+      assert(m.helpdesk.statuses.length === 13, '13 statuses, got ' + m.helpdesk.statuses.length);
+      assert(m.orders.supplierActions.length === 11,
+        '11 supplier actions (the older Labs baseline has 13), got ' + m.orders.supplierActions.length);
+    });
+  });
+
+  test('Kirklees Current loads and is NOT the same object as Day-One', function () {
+    return kirklees.then(function (f) {
+      var base = window.StudioSnapshots.baselineModel(f.project);
+      var cur = window.StudioSnapshots.currentModel(f.project);
+      assert(cur, 'the current model exists');
+      assert(cur !== base, 'current and Day-One are distinct models');
+      assert(cur.meta.environment === 'https://kirklees.concerto.co.uk', 'and it is Kirklees');
+    });
+  });
+
+  function supplier(model, key) {
+    return model.orders.supplierActions.filter(function (a) { return a.canonicalKey === key; })[0];
+  }
+
+  test('CHG-001/002 differ correctly between Day-One and Current', function () {
+    return kirklees.then(function (f) {
+      var base = window.StudioSnapshots.baselineModel(f.project);
+      var cur = window.StudioSnapshots.currentModel(f.project);
+
+      var sp01b = supplier(base, 'SP01'), sp01c = supplier(cur, 'SP01');
+      assert(sp01b.portalVisible === false, 'Day-One SP01 keeps the ORIGINAL broken value (portal off)');
+      assert(sp01c.portalVisible === true, 'Current SP01 is corrected (portal on) — CHG-001');
+
+      var sp02b = supplier(base, 'SP02'), sp02c = supplier(cur, 'SP02');
+      assert(sp02b.portalVisible === false, 'Day-One SP02 portal off');
+      assert(sp02b.availableIn.join(',') === 'In progress', 'Day-One SP02 availability is the broken In progress');
+      assert(sp02c.portalVisible === true, 'Current SP02 portal on — CHG-002');
+      assert(sp02c.availableIn.indexOf('Awaiting acceptance') !== -1, 'Current SP02 gains Awaiting acceptance');
+      assert(sp02c.availableIn.indexOf('In progress') === -1, 'and loses In progress');
+
+      assert(sp02c.changedBy.indexOf('CHG-002') !== -1, 'the change receipt is attached to the object it changed');
+    });
+  });
+
+  test('applying the change overlay never edits the Day-One capture', function () {
+    return kirklees.then(function (f) {
+      /* re-read Day-One after Current was built from it */
+      var base = window.StudioSnapshots.baselineModel(f.project);
+      assert(supplier(base, 'SP01').portalVisible === false,
+        'Day-One SP01 is still false after Current was derived from it');
+      assert(!supplier(base, 'SP02').changedBy, 'and Day-One carries no change stamp');
+    });
+  });
+
+  test('ORC10 and SPWA do not appear in Kirklees, and their absence is recorded', function () {
+    return kirklees.then(function (f) {
+      var cur = window.StudioSnapshots.currentModel(f.project);
+      assert(!supplier(cur, 'ORC10'), 'no ORC10 in Kirklees');
+      assert(!supplier(cur, 'SPWA'), 'no SPWA in Kirklees');
+      var absences = cur.orders.unknowns.filter(function (u) { return u.kind === 'OBSERVED-ABSENT'; })
+        .map(function (u) { return u.canonicalKey; }).sort().join(',');
+      assert(absences === 'ORC10,SPWA', 'both absences are recorded as OBSERVED-ABSENT, got ' + absences);
+    });
+  });
+
+  test('a supplier action present but not opened is shown as such, never filled in from Vanilla', function () {
+    return kirklees.then(function (f) {
+      var cur = window.StudioSnapshots.currentModel(f.project);
+      var sp07c = supplier(cur, 'SP07c');
+      assert(sp07c, 'SP07c is present (it is inside the counted 11)');
+      assert(sp07c.detailObserved === false, 'its detail is declared NOT observed');
+      assert(sp07c.name === 'NOT INDIVIDUALLY OBSERVED', 'and it is not given the baseline name: ' + sp07c.name);
+      assert(sp07c.portalVisible === null, 'nor the baseline portal value');
+    });
+  });
+
+  test('Kirklees helpdesk differs from Vanilla — ingestion actually happened', function () {
+    return kirklees.then(function (f) {
+      var cur = window.StudioSnapshots.currentModel(f.project);
+      assert(cur.helpdesk.actions.length !== f.vanilla.helpdesk.actions.length,
+        'Kirklees action count (' + cur.helpdesk.actions.length + ') differs from Vanilla (' +
+        f.vanilla.helpdesk.actions.length + ')');
+      var rh08 = cur.helpdesk.actions.filter(function (a) { return a.code === 'RH08'; })[0];
+      assert(!rh08, 'RH08 Place On Hold is absent from the Kirklees capture, as observed');
+    });
+  });
+
+  test('the project source/state indicator describes what is on screen', function () {
+    return kirklees.then(function (f) {
+      var SS = window.StudioSnapshots;
+      var base = SS.byRole(f.project, 'baseline');
+      var cur = SS.byRole(f.project, 'current');
+      assert(base && cur, 'the project declares both a baseline and a current state');
+      SS.select(f.project.key, base.id);
+      var c1 = SS.contextLabel(f.project);
+      assert(c1.state === 'BASELINE' && /Day-One/.test(c1.line), 'baseline is announced: ' + JSON.stringify(c1));
+      SS.select(f.project.key, cur.id);
+      var c2 = SS.contextLabel(f.project);
+      assert(c2.state === 'CURRENT' && /Current/.test(c2.line), 'current is announced: ' + JSON.stringify(c2));
+      assert(c2.stamp && c2.baseline, 'with a snapshot stamp and the baseline it is measured against');
+    });
+  });
+
+  test('a project with no ingested model reports NOT-INGESTED rather than Vanilla', function () {
+    var empty = { key: 'empty-proj', name: 'Empty', snapshots: [] };
+    var c = window.StudioSnapshots.contextLabel(empty);
+    assert(c.state === 'NOT-INGESTED', 'state is NOT-INGESTED, got ' + c.state);
+    assert(window.StudioSnapshots.currentModel(empty) === null, 'and there is NO model to render');
+    assert(window.StudioSnapshots.baselineModel(empty) === null, 'not even a baseline');
+  });
+
+  test('Warwick Demo is its own project model with its provenance stated', function () {
+    return warwick.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      assert(m, 'Warwick Demo has a model');
+      assert(m.meta.environment === 'https://warwick.concertodemo.co.uk',
+        'stamped with its own instance: ' + m.meta.environment);
+      assert(m.meta.provenance === 'DISCOVERY-CAPTURE-OF-THIS-INSTANCE',
+        'and declares WHY the canonical model describes it: ' + m.meta.provenance);
+      var rec = window.StudioSnapshots.entryRecord(f.project, window.StudioSnapshots.selectedEntry(f.project));
+      var rep = rec.meta.ingestReport;
+      assert(rep.knownDeltas.some(function (d) { return /With AMO/.test(d.object); }),
+        'the With AMO addition is carried as a known delta');
+      assert(rep.knownDeltas.some(function (d) { return d.kind === 'EXPERIMENT-RESIDUE'; }),
+        'E0/E1 residue is recorded');
+      assert(rep.notIngested.some(function (n) { return /PPM/.test(n.family); }),
+        'PPM Scheduler is declared NOT INGESTED, not silently empty');
+    });
+  });
+
+  test('switching projects swaps the actual model — no cross-project leakage', function () {
+    return Promise.all([kirklees, warwick]).then(function (both) {
+      var k = window.StudioSnapshots.currentModel(both[0].project);
+      var w = window.StudioSnapshots.currentModel(both[1].project);
+      assert(k.meta.environment !== w.meta.environment, 'the two projects carry different instances');
+      assert(k.orders.supplierActions.length === 11 && w.orders.supplierActions.length === 13,
+        'and different configuration: ' + k.orders.supplierActions.length + ' vs ' + w.orders.supplierActions.length);
+      assert(k.helpdesk.actions.length !== w.helpdesk.actions.length, 'and different helpdesk action counts');
+    });
+  });
+
+  test('the project views are handed the project model, not Vanilla', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var host = document.getElementById('sandbox');
+      [['Diagram', window.StudioDiagram], ['Action Map', window.StudioActionMap],
+       ['Matrix', window.StudioGrid], ['Configuration', window.StudioConfig]].forEach(function (pair) {
+        host.innerHTML = '';
+        pair[1].render(host, m);
+        var text = host.textContent;
+        assert(text.length > 0, pair[0] + ' rendered something');
+        assert(text.indexOf('RH08') === -1,
+          pair[0] + ' shows the Kirklees model (RH08, absent in Kirklees, is not drawn)');
+      });
+      host.innerHTML = '';
+    });
+  });
+
+  test('Design forks the CURRENT configuration, not Vanilla', function () {
+    return kirklees.then(function (f) {
+      var M = window.StudioModel;
+      var cur = window.StudioSnapshots.currentModel(f.project);
+      var hadFork = M.hasFork();
+      if (hadFork) M.discard();
+      M.fork(cur);
+      var d = M.desired();
+      assert(d.helpdesk.actions.length === cur.helpdesk.actions.length,
+        'the fork has the project current action count, not Vanilla: ' +
+        d.helpdesk.actions.length + ' vs Vanilla ' + f.vanilla.helpdesk.actions.length);
+      assert(d.helpdesk.actions.length !== f.vanilla.helpdesk.actions.length, 'which differ');
+      var vsCurrent = window.StudioDiff.compare(cur, d);
+      assert(vsCurrent.isEmpty, 'a fresh fork deviates from CURRENT by nothing');
+      var vsVanilla = window.StudioDiff.compare(f.vanilla, d);
+      assert(!vsVanilla.isEmpty, 'while still differing from Vanilla — Vanilla is a comparison, not the parent');
+      M.discard();
+    });
+  });
+
+  test('Solution Design consumes the selected project, not the generic Vanilla document', function () {
+    return kirklees.then(function (f) {
+      var cur = window.StudioSnapshots.currentModel(f.project);
+      var diff = window.StudioDiff.compare(f.vanilla, cur);
+      var doc = window.StudioSolDesign.generate(cur, {
+        edition: 'instance',
+        project: f.project,
+        stateLabel: 'Current configuration',
+        diff: diff,
+        deviations: window.StudioDiff.deviationSchedule(diff),
+        findings: window.StudioRules.runAll(cur)
+      });
+      assert(doc.indexOf('Kirklees Council') !== -1, 'the document names the customer');
+      assert(doc.indexOf('kirklees.concerto.co.uk') !== -1, 'and its instance');
+      assert(doc.indexOf('CHG-001') !== -1, 'and its verified changes');
+      assert(/customer decision/i.test(doc), 'and the decisions still open for the customer');
+      assert(doc.indexOf('Vanilla System Solution Design') === -1,
+        'and is NOT the generic Vanilla document');
+    });
+  });
+
+  test('Vanilla stays separate: the baseline registry is not a project', function () {
+    return kirklees.then(function () {
+      var keys = window.StudioProject.list().map(function (p) { return p.key; });
+      assert(keys.indexOf('vanilla') === -1, 'Vanilla is not in the project list');
+      assert(typeof window.StudioSettings.ratified === 'function',
+        'the Vanilla baseline registry lives in Settings');
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');

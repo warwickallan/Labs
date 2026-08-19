@@ -1,13 +1,19 @@
-/* design.js — DESIGN: the project design workspace. Fork Vanilla into an
- * editable desired state, then work the whole design flow through internal
- * tabs:  Edit → Compare → Findings → Build.
+/* design.js — DESIGN: the project design workspace.
+ *
+ *   PROJECT CURRENT → DESIGN → PROJECT DESIRED
+ *
+ * A design forks the project's CURRENT configuration, because a customer's
+ * desired state is "what we change from where they are now" — not "what we
+ * change from the standard product". Vanilla remains the comparison
+ * baseline (Compare tab) and is never the parent of a customer design.
+ * With no project open, the base IS Vanilla and the flow is unchanged.
  *
  *   CURRENT STATE → DESIRED STATE → DIFF → FINDINGS → BUILD PLAN →
  *   PREVIEW → EXECUTE → VERIFY
  *
  * Build is a function of Design (the action that applies the design), not a
  * separate destination. The Deviation Schedule is computed live against the
- * immutable Vanilla baseline.
+ * base the design was forked from.
  */
 (function () {
   'use strict';
@@ -29,24 +35,30 @@
     } catch (e) { window.alert(e.message); }
   }
 
-  function render(container, vanilla) {
+  function render(container, base, opts) {
     var el = window.StudioDom.el;
     var M = window.StudioModel;
+    opts = opts || {};
+    var vanilla = opts.vanilla || base;
+    var project = opts.project || null;
+    var baseName = project ? project.name + ' current configuration' : 'the Vanilla baseline';
     window.StudioDom.clear(container);
-    function rerender() { render(container, vanilla); }
+    function rerender() { render(container, base, opts); }
 
     if (!M.hasFork() && !panelState.restoredChecked) {
       panelState.restoredChecked = true;
-      if (M.restore(vanilla)) { rerender(); return; }
+      if (M.restore(base)) { rerender(); return; }
     }
 
     if (!M.hasFork()) {
       container.appendChild(el('div', { class: 'page' }, [
         el('div', { class: 'stub' }, [
-          el('h3', { text: 'Design this project' }),
-          el('p', { text: 'Design forks the immutable Vanilla baseline into an editable desired state for this project. Vanilla is never modified — every change becomes an explicit deviation, computed live against the pinned baseline. Work the flow: Edit → Compare → Findings → Build.' }),
+          el('h3', { text: project ? 'Design ' + project.name : 'Design against Vanilla' }),
+          el('p', { text: 'A design forks ' + baseName + ' into an editable desired state. ' +
+            (project ? 'It starts from where this customer actually is, not from the standard product — Vanilla stays available in Compare as the reference. ' : '') +
+            'The source is never modified: every change becomes an explicit deviation, computed live against the base it was forked from. Work the flow: Edit → Compare → Findings → Build.' }),
           el('p', {}, [
-            el('button', { class: 'btn', style: 'font-weight:600', text: 'Fork Vanilla → start designing', onclick: function () { M.fork(vanilla); rerender(); } }),
+            el('button', { class: 'btn', style: 'font-weight:600', text: 'Fork ' + (project ? 'current configuration' : 'Vanilla') + ' → start designing', onclick: function () { M.fork(base); rerender(); } }),
             document.createTextNode('  '),
             el('button', { class: 'btn', text: 'Import CUSTOMER-DESIRED-STATE.json…', onclick: function () { document.getElementById('designImportFile').click(); } })
           ]),
@@ -55,7 +67,7 @@
             onchange: function (ev) {
               var f = ev.target.files[0]; if (!f) return;
               f.text().then(function (text) {
-                try { var w = M.importJson(text, vanilla); if (w) window.alert(w); rerender(); }
+                try { var w = M.importJson(text, base); if (w) window.alert(w); rerender(); }
                 catch (e) { window.alert('Import failed: ' + e.message); }
               });
             }
@@ -66,7 +78,7 @@
     }
 
     var desired = M.desired();
-    var diff = window.StudioDiff.compare(vanilla, desired);
+    var diff = window.StudioDiff.compare(base, desired);
     function onChange() { rerender(); }
 
     var page = el('div', { class: 'page wide' });
@@ -80,7 +92,7 @@
       el('span', { class: 'seg' }, [tabBtn('edit', 'Edit'), tabBtn('compare', 'Compare'), tabBtn('findings', 'Findings'), tabBtn('build', 'Build')]),
       el('span', {
         class: 'src-chip',
-        html: diff.isEmpty ? 'No deviations from Vanilla yet'
+        html: diff.isEmpty ? 'No deviations from ' + (project ? 'current' : 'Vanilla') + ' yet'
           : '<b>' + diff.summary.added + '</b> added · <b>' + diff.summary.removed + '</b> removed · <b>' + diff.summary.modified + '</b> modified'
       }),
       el('span', { style: 'flex:1' }),
@@ -103,9 +115,9 @@
     var body = el('div', { style: 'flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto' });
     page.appendChild(body);
 
-    if (panelState.tab === 'compare') { window.StudioCompare.render(body, vanilla); return; }
-    if (panelState.tab === 'findings') { window.StudioFindings.render(body, vanilla); return; }
-    if (panelState.tab === 'build') { window.StudioBuild.render(body, vanilla); return; }
+    if (panelState.tab === 'compare') { window.StudioCompare.render(body, vanilla, { base: base, project: project }); return; }
+    if (panelState.tab === 'findings') { window.StudioFindings.render(body, base); return; }
+    if (panelState.tab === 'build') { window.StudioBuild.render(body, base); return; }
 
     /* ---- Edit tab ---- */
     var schedule = window.StudioDiff.deviationSchedule(diff);
@@ -126,7 +138,7 @@
           el('td', {}, [el('span', { class: 'conf-chip' + (r.kind === 'ADDED' ? ' observed' : r.kind === 'REMOVED' ? '' : ' parsed'), text: r.kind })]),
           el('td', { text: r.object }), el('td', { text: r.detail })
         ]);
-      }) : [el('tr', {}, [el('td', { colspan: '3', text: 'No deviations — the design is identical to Vanilla.' })])]);
+      }) : [el('tr', {}, [el('td', { colspan: '3', text: 'No deviations — the design is identical to ' + baseName + '.' })])]);
       body.appendChild(el('div', { style: 'padding:14px 22px;max-height:240px;overflow:auto;border-bottom:1px solid var(--border);background:var(--surface)' }, [
         el('table', { class: 'list' }, [el('thead', {}, [el('tr', {}, [el('th', { text: '' }), el('th', { text: 'Object' }), el('th', { text: 'Deviation' })])]), tbody])
       ]));

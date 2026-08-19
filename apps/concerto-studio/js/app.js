@@ -22,22 +22,65 @@
 
   var PAGES = { 'projects': 'Projects', 'settings': 'Settings' };
 
-  /* the model the read-only views render for the current context: the
-   * SELECTED SNAPSHOT of the open project, else its last ingested crawl,
-   * else the Vanilla reference. */
+  /* The model the read-only views render.
+   *
+   * THERE IS NO SILENT FALLBACK. With a project open, the views render that
+   * PROJECT's model or nothing at all: a customer view that quietly draws
+   * Vanilla while wearing the customer's name is worse than an empty view,
+   * because it is believed. Vanilla is rendered only when no project is
+   * open — i.e. when the context selector says "Vanilla baseline". */
   function ctxModel() {
     var p = currentProject();
-    if (p && window.StudioSnapshots) {
+    if (!p) return app.model;
+    if (window.StudioSnapshots) {
       var m = window.StudioSnapshots.modelFor(p);
       if (m) return m;
     }
-    if (p && p.instance && p.instance.model) return p.instance.model;
-    return app.model; /* Vanilla reference when a project has no ingested crawl */
+    if (p.instance && p.instance.model) return p.instance.model;
+    return null; /* not ingested — the view must say so, not substitute */
   }
 
   function ctxIsSnapshot() {
     var p = currentProject();
     return !!(p && window.StudioSnapshots && window.StudioSnapshots.modelFor(p));
+  }
+
+  /* The panel shown instead of a view when a project has no model yet. */
+  function renderNotIngested(container) {
+    var el = window.StudioDom.el;
+    var p = currentProject();
+    window.StudioDom.clear(container);
+    container.appendChild(el('div', { class: 'page' }, [
+      el('div', { class: 'stub not-ingested' }, [
+        el('h3', { text: 'PROJECT MODEL NOT YET INGESTED' }),
+        el('p', {}, [
+          document.createTextNode('Nothing has been ingested for '),
+          el('b', { text: p.name }),
+          document.createTextNode(', so there is no configuration to draw. The Vanilla baseline is NOT shown here — a view carrying this project’s name must never contain another instance’s configuration.')
+        ]),
+        el('p', {}, [
+          el('button', {
+            class: 'btn', text: 'BUILD FROM SAVED EVIDENCE',
+            title: 'Turn evidence already captured for this project into a model',
+            onclick: function () { location.hash = '#evidence'; }
+          }),
+          document.createTextNode('  '),
+          el('button', {
+            class: 'btn', text: 'CRAWL / REFRESH INSTANCE',
+            title: 'Connect to the instance read-only and capture a fresh snapshot',
+            onclick: function () { location.hash = '#evidence'; }
+          }),
+          document.createTextNode('  '),
+          el('button', {
+            class: 'btn', text: 'Show the Vanilla baseline instead',
+            title: 'Switch the context to Vanilla — explicitly, and labelled as Vanilla',
+            onclick: function () { setContext('vanilla'); }
+          })
+        ]),
+        el('p', { class: 'muted', style: 'font-size:12px' , text:
+          'Evidence can reach a project by any of four routes — browser crawl, assisted/manual discovery, import, or build read-back. All four produce the same snapshot format.' })
+      ])
+    ]));
   }
 
   /* CHANGES mode: render the selected capture, ring what moved since the
@@ -95,13 +138,38 @@
   }
   function currentProject() { return window.StudioProject ? window.StudioProject.current() : null; }
 
+  /* DESIGN forks the project's CURRENT configuration, not Vanilla: a
+   * customer's desired state is "what we change from where they are now".
+   * Vanilla stays available as a comparison baseline, never as the parent. */
+  function designBase() {
+    var p = currentProject();
+    if (!p) return app.model;
+    if (window.StudioSnapshots) {
+      var cur = window.StudioSnapshots.currentModel(p);
+      if (cur) return cur;
+    }
+    return (p.instance && p.instance.model) || null;
+  }
+
   var VIEWS = [
-    { id: 'diagram', label: 'Diagram', ctx: true, render: function (c) { window.StudioDiagram.render(c, ctxModel()); } },
-    { id: 'map', label: 'Action Map', ctx: true, render: function (c) { window.StudioActionMap.render(c, ctxModel()); } },
-    { id: 'matrix', label: 'Matrix', ctx: true, render: function (c) { window.StudioGrid.render(c, ctxModel()); } },
-    { id: 'config', label: 'Configuration', ctx: true, render: function (c) { window.StudioConfig.render(c, ctxModel()); } },
-    { id: 'design', label: 'Design', render: function (c) { window.StudioDesign.render(c, app.model); } },
-    { id: 'solution-design', label: 'Solution Design', render: function (c) { window.StudioSolutionDesignView.render(c, app.model); } },
+    { id: 'diagram', label: 'Diagram', ctx: true, needsModel: true, render: function (c) { window.StudioDiagram.render(c, ctxModel()); } },
+    { id: 'map', label: 'Action Map', ctx: true, needsModel: true, render: function (c) { window.StudioActionMap.render(c, ctxModel()); } },
+    { id: 'matrix', label: 'Matrix', ctx: true, needsModel: true, render: function (c) { window.StudioGrid.render(c, ctxModel()); } },
+    { id: 'config', label: 'Configuration', ctx: true, needsModel: true, render: function (c) { window.StudioConfig.render(c, ctxModel()); } },
+    {
+      id: 'design', label: 'Design', needsModel: true, base: designBase,
+      render: function (c) { window.StudioDesign.render(c, designBase(), { vanilla: app.model, project: currentProject() }); }
+    },
+    {
+      id: 'solution-design', label: 'Solution Design', needsModel: true, base: designBase,
+      render: function (c) {
+        window.StudioSolutionDesignView.render(c, designBase(), {
+          vanilla: app.model,
+          project: currentProject(),
+          baseline: currentProject() && window.StudioSnapshots ? window.StudioSnapshots.baselineModel(currentProject()) : null
+        });
+      }
+    },
     { id: 'evidence', label: 'Evidence', render: function (c) { window.StudioProjectEvidence.render(c, app.model); } }
   ];
   function viewById(id) { return VIEWS.filter(function (v) { return v.id === id; })[0]; }
@@ -221,19 +289,51 @@
       bar.appendChild(b);
     });
     var p = currentProject();
-    if (p && viewById(r.id).ctx) {
-      var note = document.createElement('span');
-      note.className = 'viewbar-note';
-      if (ctxIsSnapshot()) {
-        var e = window.StudioSnapshots.selectedEntry(p);
-        note.textContent = 'Showing ' + p.name + ' as captured ' + window.StudioSnapshots.stampLabel(e) + '.';
-      } else if (p.instance && p.instance.model) {
-        note.textContent = 'Showing the last ingested crawl of ' + p.name + '.';
-      } else {
-        note.textContent = 'No crawl ingested for ' + p.name + ' — showing Vanilla baseline for reference.';
-      }
-      bar.appendChild(note);
+    var v = viewById(r.id);
+    if (p && (v.ctx || v.needsModel)) bar.appendChild(truthIndicator(p, v));
+    else if (!p && (v.ctx || v.needsModel)) {
+      var vanillaNote = document.createElement('span');
+      vanillaNote.className = 'truth vanilla';
+      vanillaNote.innerHTML = '<b>Vanilla baseline</b><span>standard product reference · not a customer instance</span>';
+      bar.appendChild(vanillaNote);
     }
+  }
+
+  /* Subtle, always-present statement of WHAT is on screen. Three lines at
+   * most: whose configuration, which state of it, and what it is measured
+   * against. Ambiguity here is how a customer ends up looking at someone
+   * else's system. */
+  function truthIndicator(p, view) {
+    var el = window.StudioDom.el;
+    var ctx = window.StudioSnapshots ? window.StudioSnapshots.contextLabel(p) : null;
+    var isDesign = view.id === 'design' || view.id === 'solution-design';
+    var state, line, stamp = null, baseline = null;
+
+    if (isDesign) {
+      var forked = window.StudioModel && window.StudioModel.hasFork();
+      state = forked ? 'DESIRED' : 'CURRENT';
+      line = forked ? 'Desired design — forked from the current configuration'
+        : 'Current configuration (a design forks from here)';
+      stamp = ctx && ctx.stamp;
+      baseline = 'Vanilla ' + app.model.meta.generatedAt.helpdesk + ' (comparison only)';
+    } else if (!ctx || ctx.state === 'NOT-INGESTED') {
+      state = 'NOT INGESTED';
+      line = 'No model for this project yet';
+    } else {
+      state = ctx.state;
+      line = ctx.line;
+      stamp = ctx.stamp;
+      baseline = ctx.baseline ? 'Baseline: ' + ctx.baseline : null;
+    }
+
+    var node = el('span', { class: 'truth' + (state === 'NOT INGESTED' ? ' missing' : '') }, [
+      el('b', { text: p.name }),
+      el('span', { class: 'truth-state', text: state }),
+      el('span', { text: line }),
+      stamp ? el('span', { text: 'Snapshot: ' + stamp }) : null,
+      baseline ? el('span', { text: baseline }) : null
+    ]);
+    return node;
   }
 
   function route() {
@@ -259,7 +359,14 @@
 
     if (r.kind === 'page' && r.id === 'projects') { window.StudioProjects.render(content, app.model); return; }
     if (r.kind === 'page' && r.id === 'settings') { window.StudioSettings.render(content, app.model, app.invariants); return; }
-    viewById(r.id).render(content);
+
+    var v = viewById(r.id);
+    /* No silent substitution: a project view with no project model says so. */
+    if (v.needsModel && currentProject()) {
+      var m = v.base ? v.base() : ctxModel();
+      if (!m) { renderNotIngested(content); return; }
+    }
+    v.render(content);
 
     /* snapshot CHANGES overlay — only over the views that draw the model */
     applyOverlay();
@@ -324,6 +431,42 @@
   /* durable project files are authoritative: seed the store from
    * projects/manifest.json + each projects/<key>/project.json, and drop any
    * stale localStorage project not in the manifest. */
+  /* Project data comes from the DURABLE PRIVATE STORE when it is running,
+   * and from the repo-side projects/ folder otherwise. Either way the
+   * chosen source is authoritative over localStorage, and which one is in
+   * use is reported — never left to be assumed. */
+  function loadProjects() {
+    if (!window.StudioProject) return Promise.resolve();
+    if (!window.StudioStore) return loadProjectsFromFiles();
+    return window.StudioStore.probe().then(function () {
+      if (!window.StudioStore.available()) {
+        window.StudioStore.setSource('files');
+        return loadProjectsFromFiles();
+      }
+      return window.StudioStore.list().then(function (rows) {
+        var keys = rows.map(function (r) { return r.key; });
+        if (!keys.length) { /* an empty store is not an authority */
+          window.StudioStore.setSource('files');
+          return loadProjectsFromFiles();
+        }
+        window.StudioStore.setSource('store');
+        return Promise.all(keys.map(function (k) {
+          return window.StudioStore.get(k)
+            .then(function (payload) {
+              try { window.StudioProject.importProject(JSON.stringify(payload)); } catch (e) { /* */ }
+            })
+            .catch(function () { /* a single unreadable project must not blank the list */ });
+        })).then(function () {
+          try {
+            window.StudioProject.list().forEach(function (p) {
+              if (keys.indexOf(p.key) === -1) window.StudioProject.remove(p.key);
+            });
+          } catch (e) { /* */ }
+        });
+      });
+    });
+  }
+
   function loadProjectsFromFiles() {
     if (!window.StudioProject) return Promise.resolve();
     return fetch('projects/manifest.json', { cache: 'no-store' })
@@ -348,7 +491,7 @@
     window.addEventListener('hashchange', route);
     route();
     window.VanillaLoader.loadAll('../../model/')
-      .then(function (res) { app.model = res.model; app.invariants = res.invariants; return loadProjectsFromFiles(); })
+      .then(function (res) { app.model = res.model; app.invariants = res.invariants; return loadProjects(); })
       .then(function () {
         var cur = currentProject();
         app.instance = cur && cur.instance ? cur.instance : window.StudioHarness.instanceStore.load();

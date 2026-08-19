@@ -73,56 +73,159 @@
         id: s.id,
         label: s.label || s.id,
         path: s.path,
+        parts: s.parts || null,
+        derivedFrom: s.derivedFrom || null,
+        changes: s.changes || null,
+        /* baseline = as supplied; current = baseline + verified changes */
+        role: s.role || null,
         capturedAt: stamp,
         precision: precisionOf(stamp),
+        acquisition: s.acquisition || null,
         source: s.source || 'captured crawl'
       };
     }).sort(function (a, b) {
-      return String(b.capturedAt).localeCompare(String(a.capturedAt)) ||
-        a.id.localeCompare(b.id);
+      /* current above baseline when they share a stamp — the current
+       * configuration is what someone opening the project usually wants */
+      var byTime = String(b.capturedAt).localeCompare(String(a.capturedAt));
+      if (byTime) return byTime;
+      var rank = { current: 0, baseline: 1 };
+      var ra = rank[a.role] == null ? 2 : rank[a.role];
+      var rb = rank[b.role] == null ? 2 : rank[b.role];
+      return ra - rb || a.id.localeCompare(b.id);
     });
+  }
+
+  function entryById(project, id) {
+    return list(project).filter(function (e) { return e.id === id; })[0] || null;
+  }
+
+  function byRole(project, role) {
+    return list(project).filter(function (e) { return e.role === role; })[0] || null;
   }
 
   function projectDir(project) { return 'projects/' + project.key + '/'; }
 
-  /* Fetch + ingest every snapshot the project declares. Idempotent. */
-  function ensureLoaded(project, baseline) {
-    var entries = list(project);
-    return Promise.all(entries.map(function (e) {
-      if (!e.path) return Promise.resolve();
-      var url = projectDir(project) + e.path;
-      if (cache[url]) return Promise.resolve();
-      return fetch(url, { cache: 'no-store' })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (snap) {
-          if (!snap) return;
-          var rec = window.StudioIngest.toInstanceRecord(e.id, snap, baseline);
-          cache[url] = {
-            record: rec,
-            report: rec.meta.ingestReport || null,
-            fingerprint: S.fingerprint(snap)
-          };
-        })
-        .catch(function () { /* unreadable snapshot — stays absent, never faked */ });
-    })).then(function () { return entries; });
+  /* Read a snapshot file from whichever source the project came from —
+   * the durable private store when it is running, the repo-side folder
+   * otherwise. */
+  function readSnapshotFile(project, rel) {
+    if (window.StudioStore) return window.StudioStore.readFile(project.key, rel).then(JSON.parse);
+    return fetch(projectDir(project) + rel, { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; });
   }
 
-  /* A capture is either banked as a project file or held as the live
+  function cacheKey(project, entry) { return project.key + '::' + entry.id; }
+
+  /* Load one snapshot entry. Three ways a capture can be expressed:
+   *   path        — one file
+   *   parts       — several files (e.g. Helpdesk + Orders), merged
+   *   derivedFrom — an earlier capture plus verified changes, applied as an
+   *                 overlay so the earlier one is never edited
+   * Anything unreadable stays absent. It is never filled in from Vanilla. */
+  function loadEntry(project, entry, baseline) {
+    var key = cacheKey(project, entry);
+    if (cache[key]) return Promise.resolve(cache[key]);
+    if (entry.derivedFrom) {
+      var src = entryById(project, entry.derivedFrom);
+      if (!src) return Promise.resolve(null);
+      return loadParts(project, src).then(function (parts) {
+        return (parts && parts.length) ? store(project, entry, parts, baseline, entry.changes || []) : null;
+      });
+    }
+    return loadParts(project, entry).then(function (parts) {
+      return (parts && parts.length) ? store(project, entry, parts, baseline, null) : null;
+    });
+  }
+
+  function loadParts(project, entry) {
+    var paths = entry.parts || (entry.path ? [entry.path] : []);
+    if (!paths.length) return Promise.resolve(null);
+    return Promise.all(paths.map(function (p) {
+      return readSnapshotFile(project, p).catch(function () { return null; });
+    })).then(function (snaps) { return snaps.filter(Boolean); });
+  }
+
+  function store(project, entry, parts, baseline, changes) {
+    var head = parts.filter(function (p) { return p.actionsGroupedViewReactive || p.helpdesk; })[0] || parts[0];
+    var orders = parts.filter(function (p) { return p && p.ordersObserved; })[0] || null;
+    var opts = {};
+    if (orders && orders !== head) opts.orders = orders;
+    if (changes && changes.length) opts.changes = changes;
+    var rec = window.StudioIngest.toInstanceRecord(entry.id, head, baseline, opts);
+    rec.role = entry.role || null;
+    rec.label = entry.label;
+    var hit = {
+      record: rec,
+      report: rec.meta.ingestReport || null,
+      fingerprint: S.fingerprint({ parts: parts, changes: changes || [] })
+    };
+    cache[cacheKey(project, entry)] = hit;
+    return hit;
+  }
+
+  /* Fetch + ingest every snapshot the project declares. Idempotent.
+   * Plain captures load first so a derived CURRENT can be built on one. */
+  function ensureLoaded(project, baseline) {
+    var entries = list(project);
+    var plain = entries.filter(function (e) { return !e.derivedFrom; });
+    var derived = entries.filter(function (e) { return e.derivedFrom; });
+    return Promise.all(plain.map(function (e) { return loadEntry(project, e, baseline); }))
+      .then(function () {
+        return Promise.all(derived.map(function (e) { return loadEntry(project, e, baseline); }));
+      })
+      .then(function () { return entries; });
+  }
+
+  /* A capture is either banked as project files or held as the live
    * ingested crawl from this session — both belong on the timeline. */
   function entryRecord(project, entry) {
     if (!entry) return null;
-    if (!entry.path) {
+    var hit = cache[cacheKey(project, entry)];
+    if (hit) return hit.record;
+    if (!entry.path && !entry.parts && !entry.derivedFrom) {
       var live = project && project.instance;
       return live && live.snapshotId === entry.id ? live : null;
     }
-    var hit = cache[projectDir(project) + entry.path];
-    return hit ? hit.record : null;
+    return null;
   }
 
   function entryFingerprint(project, entry) {
-    if (!entry || !entry.path) return null;
-    var hit = cache[projectDir(project) + entry.path];
+    var hit = entry ? cache[cacheKey(project, entry)] : null;
     return hit ? hit.fingerprint : null;
+  }
+
+  /* The project's own truth, by role. */
+  function baselineModel(project) {
+    var rec = entryRecord(project, byRole(project, 'baseline'));
+    return rec ? rec.model : null;
+  }
+  function currentModel(project) {
+    var rec = entryRecord(project, byRole(project, 'current'));
+    if (rec) return rec.model;
+    var latest = list(project)[0];
+    var lr = entryRecord(project, latest);
+    return lr ? lr.model : null;
+  }
+
+  /* What the views are showing, in words — so a project view can never be
+   * mistaken for the Vanilla reference. */
+  function contextLabel(project) {
+    if (!project) return null;
+    var e = selectedEntry(project);
+    if (!e) return { state: 'NOT-INGESTED', title: project.name, line: 'Project model not yet ingested' };
+    var rec = entryRecord(project, e);
+    if (!rec) return { state: 'NOT-INGESTED', title: project.name, line: 'Project model not yet ingested' };
+    var base = byRole(project, 'baseline');
+    return {
+      state: e.role === 'baseline' ? 'BASELINE' : (e.role === 'current' ? 'CURRENT' : 'SNAPSHOT'),
+      title: project.name,
+      line: e.role === 'baseline' ? 'Day-One baseline (as supplied)'
+        : e.role === 'current' ? 'Current configuration'
+          : 'Snapshot',
+      stamp: stampLabel(e),
+      baseline: (base && base.id !== e.id) ? base.label : null,
+      changes: (e.changes || []).length
+    };
   }
 
   function selectedEntry(project) {
@@ -251,6 +354,9 @@
 
   var api = {
     list: list, ensureLoaded: ensureLoaded, selectedEntry: selectedEntry,
+    entryById: entryById, byRole: byRole, entryRecord: entryRecord,
+    baselineModel: baselineModel, currentModel: currentModel,
+    contextLabel: contextLabel,
     select: select, mode: mode, setMode: setMode,
     modelFor: modelFor, recordFor: recordFor,
     changesFor: changesFor, highlight: highlight, applyHighlight: applyHighlight,
