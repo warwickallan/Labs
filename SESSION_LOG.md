@@ -7,6 +7,18 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — Orders core-four Add schemas (EO-004)
+
+Per Warwick's 90%% steer: complete blank Add-form schemas captured for
+Order Status (34 controls - incl. journal/consumable defaults, PPM review
+pair, final-application/invoice-recall setters, remedial-action vocab),
+Priority (20), Order Type (10 - note: 'default type for PPM orders' field
+is unticked on BOTH records), and Supplier Action (114 controls - portal
+role flags, per-status availability, tri-state field controls, PPM
+review/certificate machinery, CAPI vocabulary, operative-status layer,
+email merge tags, constraints). With EO-001/EO-002 record values the four
+families are SCHEMA + VALUE complete.
+
 ## 2026-08-19 — ORDERS ADMIN DISCOVER complete (EO-001..EO-003)
 
 All 32 Orders Admin tabs crawled read-only; 7 populated / 25 empty.
