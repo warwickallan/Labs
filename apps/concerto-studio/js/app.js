@@ -1,0 +1,133 @@
+/* app.js — routing, model loading, shell wiring. The only file that owns
+ * global DOM state. Views receive (container, model) and render themselves.
+ */
+(function () {
+  'use strict';
+
+  var app = {
+    model: null,
+    invariants: [],
+    loadError: null
+  };
+  window.StudioApp = app; /* test hook */
+
+  var PAGES = {
+    'overview': { title: 'Overview' },
+    'vanilla-diagram': { title: 'Vanilla · Workflow Diagram' },
+    'vanilla-map': { title: 'Vanilla · Action Map' },
+    'vanilla-matrix': { title: 'Vanilla · Matrix' },
+    'vanilla-config': { title: 'Vanilla · Configuration' },
+    'instance': { title: 'Instance' },
+    'compare': { title: 'Compare' },
+    'findings': { title: 'Findings' },
+    'design': { title: 'Design' },
+    'build': { title: 'Build' },
+    'evidence': { title: 'Evidence' },
+    'settings': { title: 'Settings & Connection' }
+  };
+
+  var STUBS = {
+    'vanilla-matrix': 'A sortable, filterable grid of all 50 actions (code, group, availability, resulting status, tags, mobile, triggers) — the precise-editing projection of the same model as the Diagram. Next on the build list.',
+    'vanilla-config': 'Read-only representation of the full Vanilla configuration families (statuses, response categories, classifications, tags, working time, operative statuses) from the canonical model.',
+    'instance': 'Target-instance connection: URL, read-only browser-harness crawl, snapshot history. The harness is a separate local service (adapter) — planned; nothing here talks to Concerto yet.',
+    'compare': 'Instance-vs-Vanilla difference engine: Added / Removed / Modified / Unchanged at object and field level. Requires the Instance crawl.',
+    'findings': 'Evidence-backed anomaly detector seeded from VANILLA-ISSUES.md (severity, evidence, confidence, suggested correction, Fix Selected → build plan). The rule engine will run against any crawled instance.',
+    'design': 'The desired-state editor: fork Vanilla, drag-and-drop statuses/actions on the Diagram, edit in the Grid, all projections of one model with undo/redo. Vanilla itself remains immutable.',
+    'build': 'Desired-state changes → dependency-ordered build plan → Validate / Preview Build / BUILD, with receipts and read-back verification. Requires the execution adapter.',
+    'settings': 'Instance URL, browser-harness status, authentication/session state (a human signs in — the Studio never enters credentials), future adapter settings.'
+  };
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function currentPage() {
+    var h = (location.hash || '#overview').slice(1);
+    return PAGES[h] ? h : 'overview';
+  }
+
+  function renderStub(container, pageId) {
+    var el = window.StudioDom.el;
+    window.StudioDom.clear(container);
+    container.appendChild(el('div', { class: 'page' }, [
+      el('div', { class: 'stub' }, [
+        el('h3', { text: PAGES[pageId].title }),
+        el('p', { text: STUBS[pageId] || 'Planned.' }),
+        el('p', { class: 'muted', text: 'Honest stub — this section is designed but not yet built.' })
+      ])
+    ]));
+  }
+
+  function renderEvidence(container) {
+    var el = window.StudioDom.el;
+    window.StudioDom.clear(container);
+    var rows = app.model.evidenceIndex.map(function (e) {
+      return '<tr><td><code>' + esc(e.id) + '</code></td><td>' + esc(e.description) + '</td>' +
+        '<td><code>' + esc(e.path) + '</code></td><td>' + esc(e.capturedAt) + '</td></tr>';
+    }).join('');
+    container.appendChild(el('div', { class: 'page' }, [
+      el('p', { class: 'muted', text: 'Evidence index carried by the canonical Helpdesk model. Paths resolve inside the Labs repository. Crawls, builds and receipts will join this section later.' }),
+      el('table', { class: 'list', html: '<thead><tr><th>ID</th><th>Description</th><th>Path</th><th>Captured</th></tr></thead><tbody>' + rows + '</tbody>' })
+    ]));
+  }
+
+  function route() {
+    var pageId = currentPage();
+    document.getElementById('pageTitle').textContent = PAGES[pageId].title;
+    document.querySelectorAll('#sidenav a').forEach(function (a) {
+      a.classList.toggle('active', a.getAttribute('data-page') === pageId);
+    });
+    var content = document.getElementById('content');
+    window.StudioInspector.close();
+
+    if (app.loadError) {
+      content.innerHTML = '<div class="page"><div class="stub"><h3>Cannot load canonical models</h3><p>' +
+        esc(app.loadError) + '</p><p>Serve the Labs repository root (Start Studio.bat) so ../../model/*.json is reachable.</p></div></div>';
+      return;
+    }
+    if (!app.model) { content.innerHTML = '<div class="page"><p class="muted">Loading canonical models…</p></div>'; return; }
+
+    switch (pageId) {
+      case 'overview': window.StudioOverview.render(content, app.model, app.invariants); break;
+      case 'vanilla-diagram': window.StudioDiagram.render(content, app.model); break;
+      case 'vanilla-map': window.StudioActionMap.render(content, app.model); break;
+      case 'evidence': renderEvidence(content); break;
+      default: renderStub(content, pageId);
+    }
+  }
+
+  function updateChips() {
+    var chip = document.getElementById('srcChip');
+    var foot = document.getElementById('navFoot');
+    if (app.loadError) {
+      chip.className = 'src-chip bad';
+      chip.innerHTML = '<b>✘</b> models failed to load';
+      return;
+    }
+    var failing = app.invariants.filter(function (c) { return !c.pass; }).length;
+    chip.className = 'src-chip' + (failing ? ' bad' : '');
+    chip.innerHTML = failing
+      ? '<b>✘</b> ' + failing + ' fidelity invariant(s) failing'
+      : '<b>✔</b> Vanilla loaded · invariants ' + app.invariants.length + '/' + app.invariants.length;
+    foot.textContent = 'Vanilla ' + app.model.meta.generatedAt.helpdesk +
+      ' · hd:' + app.model.meta.sourceFingerprints.helpdesk +
+      ' · ord:' + app.model.meta.sourceFingerprints.orders;
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    window.addEventListener('hashchange', route);
+    route();
+    window.VanillaLoader.loadAll('../../model/')
+      .then(function (res) {
+        app.model = res.model;
+        app.invariants = res.invariants;
+        updateChips();
+        route();
+      })
+      .catch(function (err) {
+        app.loadError = String(err.message || err);
+        updateChips();
+        route();
+      });
+  });
+})();

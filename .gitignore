@@ -13,6 +13,12 @@ browser-profile/
 session-storage/
 cookies*
 
+# Studio local runtime data (instance-specific / customer-specific /
+# session material — never publishable). The app creates these on demand.
+apps/concerto-studio/data/
+apps/concerto-studio/snapshots/
+apps/concerto-studio/receipts/
+
 # Local scratch and OS noise
 scratch/
 tmp/

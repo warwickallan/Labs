@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Studio tests</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; background: #fafaf8; color: #222; }
+  h1 { font-size: 18px; }
+  .pass { color: #1a7f37; }
+  .fail { color: #b42318; font-weight: 600; }
+  li { margin: 2px 0; }
+  .detail { color: #667; font-size: 12px; margin-left: 8px; }
+</style>
+</head>
+<body>
+<h1>Concerto Configuration Studio — fidelity tests</h1>
+<p>Requires a served origin rooted at the Labs repository (Start Studio.bat).</p>
+<ul id="results"></ul>
+<script src="../js/studio-schema.js"></script>
+<script src="../js/vanilla-loader.js"></script>
+<script src="tests.js"></script>
+</body>
+</html>
