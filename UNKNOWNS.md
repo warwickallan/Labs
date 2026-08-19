@@ -47,6 +47,14 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
 
 ## Open
 
+*(U-009 residual RESOLVED structurally 2026-08-19 by Orders discovery:
+every T-action trigger source is a Supplier Action "Resulting action on
+the helpdesk status" link - T02<-SP01, T03<-SP02, T04<-SP03,
+T05<-ORC10/SP04/SP06, T06<-SP05, T07<-BC01; supplier completions fire
+RH10/RH11/PH06/PH07 (EO-002). Runtime confirmation = E2. Orders-domain
+unknowns: UO-001 approval-level source; UO-002 SP02 availability
+contradiction - see model/VANILLA-ORDERS.json.)*
+
 *(U-004 resolved 2026-08-18: "Not allocated" reflects hidden/machine-fired
 actions plus a grouped-view rendering quirk (VI-007); every action's true
 availability is now known from its form (E-015). U-009 sharpened: only the
@@ -80,18 +88,6 @@ E-016. Runtime confirmation = experiment E3.)*
 - **Confidence:** UNKNOWN.
 - **Safest experiment:** none needed; ask Concerto support or read map help.
 - **Blocks automated build:** no.
-
-## U-009 — Tag automation semantics [IMPORTANT]
-
-- **Question:** RH04 adds tag "01. Awaiting acceptance" and removes
-  "02. Supplier rejected". How do tags trigger Tag/Auto (T*) actions — e.g.
-  does T02 Accepted fire when the supplier accepts, clearing the tag?
-- **Current evidence:** E-008; Tags tab exists (E-002); T-actions in E-005.
-- **Confidence:** UNKNOWN (mechanism INFERRED).
-- **Safest experiment:** read the Tags and Helpdesk rules tabs and each
-  T-action record view (read-only).
-- **Blocks automated build:** yes — the reactive contractor loop appears to
-  run on tags.
 
 ## U-012 — Action "Constraints" semantics [IMPORTANT]
 

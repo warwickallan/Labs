@@ -171,6 +171,13 @@ owner of Vanilla.
 - **Evidence:** EO-002 (record flags), EO-005 (operational proof).
 - **Confidence:** CONFIGURATION DEFECT (structural) - behavioural
   confirmation would be E2's first finding.
-- **Suggested correction (NOT applied):** enable portal visibility on
-  SP01/SP02 (+ORC10), or clone as ZZ TEST actions for E2.
+- **Precision (final sweep):** SP01's status availability IS correct
+  (Awaiting acceptance); its only gap is portal visibility. **SP02 has TWO
+  independent gaps**: no portal visibility AND availability ticked only
+  for "In progress" (not Awaiting acceptance) despite
+  show-before-accepted (UO-002). ORC10: available AWA+AMO, not
+  portal-visible. A one-checkbox fix repairs SP01/ORC10; SP02 needs the
+  availability tick corrected too.
+- **Suggested correction (NOT applied):** portal visibility on SP01+ORC10;
+  portal visibility + AWA availability on SP02 - or ZZ TEST clones for E2.
 - **Correction verified?** No.

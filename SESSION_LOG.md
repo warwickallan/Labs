@@ -7,6 +7,20 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 (FINAL ROTATE) — Knowledge consolidation and handoff
+
+Cross-domain reconciliation completed (VI-009 precision: SP01/ORC10 =
+portal-visibility gap only; SP02 = portal visibility AND availability
+gaps; U-009 residual closed by Supplier Action links). Canonical
+operating-model document written
+(docs/CONCERTO-HELPDESK-ORDERS-OPERATING-MODEL.md) covering the five
+surfaces, ten core objects, the full cross-domain loop, the two-gate
+mobile model, three creation routes, and the 00000040/1 explanation.
+Discovery techniques + lessons banked
+(docs/DISCOVERY-TECHNIQUES-AND-LESSONS.md). All registers reconciled;
+CURRENT_STATE rewritten as the cold-start handoff. Validators green.
+E2 not begun; PPM not begun; Vanilla untouched. SAFE TO CLEAR issued.
+
 ## 2026-08-19 — Supplier Portal operational discovery (EO-005, read-only)
 
 Portal mapped as the Orders-side operational surface: dashboard tiles,

@@ -9,7 +9,10 @@ observes it and never changes it.
 > discovery is complete and frozen at tag `VANILLA-HELPDESK-STRUCTURAL-v1`;
 > the operational Helpdesk surface is mapped; experiments **E0 and E1 are
 > CONTROLLED VERIFIED** (TextMatch; full Reactive lifecycle + Cancelled).
-> E2+ await explicit authority. Current truth: [`CURRENT_STATE.md`](CURRENT_STATE.md).
+> Orders Admin + Supplier Portal are also structurally complete
+> (VI-009: the Vanilla supplier acceptance loop is broken). E2+ await
+> explicit authority. Current truth: [`CURRENT_STATE.md`](CURRENT_STATE.md);
+> canonical explainer: [`docs/CONCERTO-HELPDESK-ORDERS-OPERATING-MODEL.md`](docs/CONCERTO-HELPDESK-ORDERS-OPERATING-MODEL.md).
 > Reports: [`docs/VANILLA-HELPDESK-DISCOVERY.md`](docs/VANILLA-HELPDESK-DISCOVERY.md) ·
 > [`docs/EXPERIMENT-PROGRAMME.md`](docs/EXPERIMENT-PROGRAMME.md) ·
 > behaviours: [`model/VERIFIED-BEHAVIOURS.json`](model/VERIFIED-BEHAVIOURS.json).

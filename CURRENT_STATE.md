@@ -1,80 +1,68 @@
-# CURRENT_STATE — authoritative wayfinder (short-lived; supersedes stale phase text elsewhere)
+# CURRENT_STATE — authoritative wayfinder (short-lived)
 
-> Read order for a cold session: **CLAUDE.md → this file → SESSION_LOG.md →
-> the evidence/registers named below → `git log`.** This file states the
-> CURRENT truth; history lives in SESSION_LOG and git.
+> Cold-start order: **CLAUDE.md → this file → SESSION_LOG.md →
+> docs/CONCERTO-HELPDESK-ORDERS-OPERATING-MODEL.md →
+> models/registers/evidence → git log.** A fresh session must read the
+> operating-model document before touching anything.
 
-- **Updated:** 2026-08-19 (Orders Admin + Supplier Portal operational discovery complete; stopped).
-- **Phase/mode:** **ORDERS ADMIN DISCOVER** — structural discovery of the
-  Orders configuration domain (read-only: Add/Edit forms opened and
-  CANCELLED, transient unsaved probes allowed, nothing persisted).
-  E2 is BLOCKED until Orders structural truth exists. Standing rule
-  unchanged: never modify Vanilla; ZZ fixtures only under authorised
-  experiments. Domain separation mandatory: Orders artefacts live in
-  model/VANILLA-ORDERS.json, schemas/vanilla-orders.schema.json,
-  evidence/orders-admin/, docs/VANILLA-ORDERS-DISCOVERY.md; Helpdesk↔Orders
-  edges in model/CROSS-DOMAIN-RELATIONSHIPS.json. Do NOT fold Orders into
-  VANILLA-HELPDESK.json. PPM Scheduler and supplier-facing surfaces:
-  record references only, no crawl/testing yet.
-- **Frozen structural baseline:** tag `VANILLA-HELPDESK-STRUCTURAL-v1` =
-  `705ca2a11001b610bffaf30da6447475bea91675` (immutable; raw discovered
-  structure, defects unrepaired).
-- **Current HEAD:** see `git log -1` (this checkpoint commit). Remote:
-  github.com/warwickallan/Labs, branch `main` (public — no secrets ever).
+- **Updated:** 2026-08-19 — FINAL ROTATE of the discovery engagement.
+- **Phase:** structural discovery of Helpdesk + Orders + both operational
+  surfaces COMPLETE. Experiments E0/E1 COMPLETE (CONTROLLED VERIFIED).
+  **E2 NOT authorised/executed. PPM Scheduler NOT mapped. Vanilla NOT
+  modified — ever.**
+- **Standing rule:** Vanilla configuration is immutable; disposable ZZ
+  TEST fixtures only where an authorised experiment explicitly requires
+  them.
+- **Baselines:** structural tag `VANILLA-HELPDESK-STRUCTURAL-v1` =
+  705ca2a11001b610bffaf30da6447475bea91675 (immutable). Current HEAD =
+  this rotate commit (`git log -1`). Remote: github.com/warwickallan/Labs
+  `main` (public — never any secrets).
 
-## Completed
+## Completed (with canonical artefacts)
 
-- Discovery: all 43 Helpdesk-admin tabs; 14+ configurator schemas; all 50
-  actions individually configuration-mapped; nested classification
-  taxonomy; operational Helpdesk surface (E-019..E-021); evidence
-  E-001..E-021; registers UNKNOWNS / VANILLA-ISSUES /
-  OPERATIONAL-DISCREPANCIES.
-- Experiments: **E0 (TextMatch) ✔ CONTROLLED VERIFIED** (commit 4373790);
-  **E1 (Reactive lifecycle + Cancelled) ✔ CONTROLLED VERIFIED** (commit
-  781af1f). Behavioural claims: `model/VERIFIED-BEHAVIOURS.json`.
+- **Helpdesk domain:** 43 tabs; Core Five SCHEMA+VALUE complete
+  (CORE-FIVE-COMPLETENESS.md); model/VANILLA-HELPDESK.json (generated,
+  validator green); evidence E-001..E-023.
+- **Operational Helpdesk:** landing/wizard/quick-add/action surfaces
+  (E-019..E-021; OPERATIONAL-DISCREPANCIES.md OD-001..007).
+- **Orders domain:** 32 tabs; core four (Status/Priority/Types/Budget
+  Cats) + all 13 Supplier Actions SCHEMA+VALUE complete;
+  model/VANILLA-ORDERS.json; evidence EO-001..EO-005.
+- **Supplier Portal:** operational surface mapped (EO-005); order ref =
+  parent job ref + "/n"; portal rendering formula validated.
+- **Cross-domain:** model/CROSS-DOMAIN-RELATIONSHIPS.json (X-001..X-018);
+  T-action trigger map fully structural.
+- **Behaviour:** model/VERIFIED-BEHAVIOURS.json (B-001..B-013 from E0/E1
+  + passives). Experiment programme: docs/EXPERIMENT-PROGRAMME.md (Rev 2).
 
-## Retained ZZ TEST fixtures (cleanup needs separate approval)
+## Retained ZZ TEST fixtures
 
-- Tag "ZZ TEST textmatch tag" (Helpdesk, TextMatch=zzmatchphrase).
-- Jobs 00000052 (With Helpdesk), 00000053 (Closed), 00000054 (Cancelled)
-  on demo site Aintree/S0001.
+Tag "ZZ TEST textmatch tag"; jobs 00000052 (With Helpdesk), 00000053
+(Closed), 00000054 (Cancelled) on demo site Aintree/S0001. Cleanup needs
+approval.
 
-## Authorisation boundary (explicit)
+## Known Vanilla defects (headline)
 
-- E0, E1: executed and closed.
-- **E2 (contractor/order/tag engine): AWAITING WARWICK'S AUTHORITY — do
-  not begin.** E3–E6 likewise unauthorised. Vanilla configuration remains
-  immutable under all circumstances.
+**VI-009/VO-002: the supplier acceptance loop is broken** — SP01/ORC10
+lack portal visibility; SP02 lacks portal visibility AND correct
+availability. Also: VI-002 BC-R dead end · VI-005/VI-006 SLA wiring unset
+· VI-008 empty email templates (+observed send failures) · VI-007
+view/form mismatches · VO-001 duplicate Default priorities. Full detail:
+VANILLA-ISSUES.md.
 
-## Next permitted step
+## Genuine unknowns
 
-Orders Admin crawl + core-four schemas + Supplier Portal operational
-discovery COMPLETE (EO-001..EO-005; X-001..X-018). HEADLINE: VI-009/VO-002
-- Vanilla's supplier acceptance loop is broken (SP01/SP02/ORC10 not
-portal-visible). E2 remains BLOCKED and now depends on Warwick's decision:
-fix the portal flags (a Vanilla config change - needs explicit approval)
-or clone ZZ TEST supplier actions.
+UO-001 order approval-level source · UO-002 (folded into the VI-009 fix
+decision) · U-007 map warning logic · U-012 residual constraints
+semantics (E5) · (+)-flagged tag-list re-reads (E-023) · classification
+'resource' grids · report-level open-jobs definitions · PPM domain
+entirely · runtime truth of every cross-domain edge (E2/E3).
 
-## Important unresolved items
+## Next programme options (Warwick to choose)
 
-- U-009 residual: T03/T05/T06/T07 trigger sources (E2/E3).
-- U-012 residual: Constraints=prerequisites inference (E5). Per-status
-  mobile flags now READ (E-022): only WMT and WMT-R download to the app.
-- VI-002 (Business Case - R dead end), VI-005/VI-006 (SLA wiring — E6),
-  VI-008 (empty email templates; email delivery fails in this
-  environment, OD-006).
-- Minor residuals listed in UNKNOWNS.md "Open" preamble.
-
-## Core Five status
-
-CORE-FIVE-COMPLETENESS.md: all five families SCHEMA + VALUES + OPERATIONAL
-complete with named residuals; behaviour partial pending E2-E6.
-
-## Files to read next (by task)
-
-- Experiment execution: `docs/EXPERIMENT-PROGRAMME.md`,
-  `evidence/experiments/`.
-- Configuration questions: `model/VANILLA-HELPDESK.json`,
-  `model/IDENTITIES.json`, `evidence/reactive-helpdesk/actions/004-*`.
-- Behaviour claims: `model/VERIFIED-BEHAVIOURS.json`.
-- Operational UI: `evidence/helpdesk-runtime/`, OPERATIONAL-DISCREPANCIES.md.
+1. **E2** — first requires the VI-009 decision: fix 3 flags on Vanilla
+   (explicit approval needed; documented deviation) OR clone ZZ TEST
+   supplier actions.
+2. E3 (quote bridge) / E6 (SLA) — runnable without the portal.
+3. PPM Scheduler structural discovery (new domain).
+4. Residual re-reads ((+) tags, resource grids).
