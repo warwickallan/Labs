@@ -118,13 +118,33 @@
         page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
           el('h3', { text: 'How this capture was read' }),
           el('p', { class: 'muted', style: 'margin-top:0;font-size:12px', text: rep.crawlMethod || '' }),
-          el('p', { style: 'font-size:12px' }, [
-            document.createTextNode('Captured fields: '),
-            el('code', { text: rep.capturedActionFields.join(', ') }),
-            document.createTextNode('. NOT captured by this crawl (so never compared, never shown as a deviation): '),
-            el('code', { text: rep.notCaptured.join(', ') }),
-            document.createTextNode('.')
-          ]),
+          /* A field-limited crawl lists what it read; a full discovery
+           * capture has no such limit and must not pretend to one. */
+          (rep.capturedActionFields && rep.capturedActionFields.length)
+            ? el('p', { style: 'font-size:12px' }, [
+              document.createTextNode('Captured fields: '),
+              el('code', { text: rep.capturedActionFields.join(', ') }),
+              document.createTextNode('. NOT captured by this crawl (so never compared, never shown as a deviation): '),
+              el('code', { text: (rep.notCaptured || []).join(', ') }),
+              document.createTextNode('.')
+            ])
+            : el('p', { style: 'font-size:12px', text: 'Full configuration capture — no per-field limit recorded for this acquisition.' }),
+          (rep.knownDeltas && rep.knownDeltas.length) ? el('div', {}, [
+            el('h4', { class: 'warn-text', text: 'Known to have changed since this capture (' + rep.knownDeltas.length + ')' }),
+            el('ul', {}, rep.knownDeltas.map(function (d) {
+              return el('li', { style: 'font-size:12px', text: d.kind + ' · ' + d.object + ' — ' + d.detail });
+            }))
+          ]) : null,
+          (rep.appliedChanges && rep.appliedChanges.length) ? el('div', {}, [
+            el('h4', { text: 'Verified changes applied to build this state (' + rep.appliedChanges.length + ')' }),
+            el('ul', {}, rep.appliedChanges.map(function (c) {
+              return el('li', { style: 'font-size:12px' }, [
+                el('code', { text: c.ref || '' }),
+                document.createTextNode(' ' + c.object + ' · ' + c.field + ': ' +
+                  JSON.stringify(c.from) + ' → ' + JSON.stringify(c.to))
+              ]);
+            }))
+          ]) : null,
           rep.unresolved.length ? el('div', {}, [
             el('h4', { class: 'warn-text', text: 'Unresolved in the source (' + rep.unresolved.length + ')' }),
             el('ul', {}, rep.unresolved.map(function (u) {

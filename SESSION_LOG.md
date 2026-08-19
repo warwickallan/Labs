@@ -7,6 +7,42 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-20 — Studio: projects made real; private store; harness proven offline
+
+**Projects now render their own configuration.** Opening a project shows that
+project's model or says `PROJECT MODEL NOT YET INGESTED` — the silent Vanilla
+fallback is gone, because a customer view containing another instance's
+configuration is worse than an empty one. A project owns a Day-One baseline
+and a CURRENT state expressed as Day-One plus its verified changes, so the
+baseline cannot drift and every difference traces to a change receipt. Design
+forks CURRENT, not Vanilla; Solution Design describes the engagement.
+
+Generic lessons banked (no customer data in this repo):
+- **Absence, ignorance and emptiness are different.** Models now carry
+  `OBSERVED-ABSENT`, `PRESENT-DETAIL-NOT-OBSERVED`, `REFERENCED-NOT-
+  ENUMERATED` and `NOT-CAPTURED`, and views render the distinction. An empty
+  configuration family says "not captured", never "none".
+- **Four acquisition routes, one format** — browser crawl, assisted/manual
+  discovery, import, build read-back. Re-crawling an instance merely to
+  satisfy the application is waste.
+- **A discovery instance is a project too.** Where the canonical model was
+  generated FROM an instance, using it for that instance is the capture, not
+  a fallback — but it must be declared, fingerprint-checked, and carry its
+  known deltas and gaps.
+
+**Durable private project store built** (`apps/concerto-studio/store/`): data
+outside the repo, refuses to start inside it, versions every save, commits to
+a private git repo, never deletes, and reports its real durability. A store
+test caught a real defect — two saves in the same second collided and
+silently discarded a banked version.
+
+**Harness proven end to end offline**: a fixture Concerto reproduces the DOM
+conventions and the real adapter + crawlers run against it (21/21), including
+byte-identical repeat crawls and loud failure on a wrong-record render. Only
+authentication remains unproven — it needs a human to sign in.
+
+Tests: Studio 66/66 · store 24/24 · harness offline 6/6 · end-to-end 21/21.
+
 ## 2026-08-20 — Studio: real instance ingest + stamped snapshot timeline
 
 A project's views now render the **customer instance**, not the Vanilla

@@ -53,10 +53,15 @@
     });
   }
 
-  /* Read a companion file (snapshot, changelog) belonging to a project,
-   * from whichever source that project came from. */
+  /* Read a companion file (snapshot, changelog) belonging to a project.
+   *
+   * Keyed on whether the store is REACHABLE, not on the `source` flag:
+   * `source` describes where the project RECORDS were listed from and is
+   * set during startup, so keying file reads on it makes a concurrent load
+   * silently fall back to a relative fetch and lose the file. Reachability
+   * is the only thing that actually decides where a file can be read. */
   function readFile(key, rel) {
-    if (available() && state.source === 'store') {
+    if (available()) {
       return req('/project/' + encodeURIComponent(key) + '/' + rel)
         .then(function (r) { return r.content; });
     }

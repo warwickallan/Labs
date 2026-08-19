@@ -66,7 +66,72 @@ action code against the baseline's known outcome — logged as
 DISAMBIGUATED-VS-BASELINE — and otherwise left UNRESOLVED and reported. The
 ingest report is shown in the project's Evidence view.
 
-**REQUIREMENT — durable private project storage (not yet built).** Customer
+## Project models: what a project view is allowed to show (2026-08-20)
+
+A project owns three model states, all in the SAME shape as Vanilla so one
+renderer and one differ serve all of them:
+
+```
+PROJECT BASELINE (Day-One, as supplied)
+        │  + changes applied and read-back verified, as an overlay
+        ▼
+PROJECT CURRENT
+        │  fork
+        ▼
+PROJECT DESIRED        (Vanilla ↔ CURRENT, CURRENT ↔ DESIRED, VANILLA ↔ DESIRED
+                        are all the same diff engine)
+```
+
+**A design forks CURRENT, never Vanilla.** A customer's desired state is what
+changes from where they are, not from the standard product. Vanilla remains
+the comparison baseline and is never the parent of a customer design.
+
+**There is no silent Vanilla fallback.** With a project open, the views draw
+that project's model or show `PROJECT MODEL NOT YET INGESTED` with routes to
+get one. A customer view that quietly contains another instance's
+configuration is worse than an empty one, because it is believed. Vanilla is
+rendered only when the context is explicitly Vanilla, and labelled as such.
+A source/truth indicator states whose configuration is on screen, which state
+it is, its snapshot stamp, and what it is measured against.
+
+**CURRENT is a derivation, not a second capture.** It is expressed as
+`derivedFrom: <baseline>` plus the verified changes, so Day-One cannot drift
+and every difference between the two traces to a change receipt.
+
+**Four acquisition routes, one snapshot format.** A browser crawl is only one
+way to learn an instance's truth; assisted/manual discovery, import, and
+build read-back are equally valid and produce the same format. A snapshot may
+be one file, several parts (e.g. Helpdesk + Orders), or a derivation.
+Re-crawling an instance merely to satisfy the application is waste.
+
+**Absence, ignorance and emptiness are three different things**, and the
+model says which: `OBSERVED-ABSENT` (looked, not there — e.g. ORC10 and SPWA
+in Kirklees), `PRESENT-DETAIL-NOT-OBSERVED` (counted but never opened — its
+fields stay unknown rather than being filled in from the baseline),
+`REFERENCED-NOT-ENUMERATED` (known to exist because something points at it),
+`NOT-CAPTURED` (never looked). Views render these distinctions rather than
+flattening them into a blank cell.
+
+## Durable private project storage — BUILT (2026-08-20, `store/`)
+
+`store/store_server.py` (port 8603) owns customer project data OUTSIDE the
+repository and **refuses to start if its root is inside it**. Every save
+banks the previous version first and commits to a private git repository;
+there is no delete or prune operation. `store/migrate_to_store.py` moves the
+repo-side folder into it and verifies every file byte-for-byte.
+
+The Studio loads projects from the store when it is running and from the
+repo-side `projects/` folder otherwise; localStorage is only ever a session
+mirror. Settings → Storage reports the REAL state — `OFF-MACHINE`,
+`LOCAL-HISTORY`, `LOCAL-VERSIONS`, `SINGLE-COPY` — so a store with no remote
+says it has no backup rather than implying one.
+
+**Still outstanding: an off-machine remote.** The store is a local git
+repository with no remote, so it survives a bad save but not a lost machine.
+Creating a PRIVATE remote is a decision for Warwick; the Settings panel
+carries the exact command.
+
+**ORIGINAL REQUIREMENT (now met by the above).** Customer
 project data lives under `apps/concerto-studio/projects/<key>/` and is
 **git-ignored** — it must never enter the PUBLIC Labs repo (instance URLs,
 configuration evidence, findings, change receipts). But *git-ignored must not

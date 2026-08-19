@@ -1052,11 +1052,8 @@
    * same way the app does — through the store when it is up. */
   function projectFixture(key) {
     return storeProbe.then(function () { return loadProjectFile(key); }).then(function (rec) {
-      var saveSource = window.StudioStore.source();
-      window.StudioStore.setSource(window.StudioStore.available() ? 'store' : 'files');
       return loadedPromise.then(function (res) {
         return window.StudioSnapshots.ensureLoaded(rec, res.model).then(function () {
-          window.StudioStore.setSource(saveSource);
           return { project: rec, vanilla: res.model };
         });
       });
