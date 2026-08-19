@@ -37,17 +37,28 @@
       return r.action === action.name && typeVisible(r.type);
     });
     if (!results.length) return el('div', { class: 'dresult', text: 'no status change' });
-    var seen = {}, parts = [];
+    var seen = {}, sets = [], selects = [];
     results.forEach(function (r) {
-      var label = (r.kind === 'userSelects' ? 'user selects · ' : '') + r.toStatus;
-      if (!seen[label]) { seen[label] = true; parts.push({ label: label, kind: r.kind }); }
+      var k = r.kind + '|' + r.toStatus;
+      if (seen[k]) return;
+      seen[k] = true;
+      (r.kind === 'userSelects' ? selects : sets).push(r.toStatus);
     });
-    var chip = el('div', { class: 'dresult' + (parts[0].kind === 'userSelects' ? ' userselects' : '') });
-    parts.forEach(function (p, i) {
-      if (i > 0) chip.appendChild(document.createTextNode('  ·  '));
+    var chip = el('div', { class: 'dresult' + (!sets.length ? ' userselects' : '') });
+    if (sets.length) {
       chip.appendChild(el('span', { class: 'arrow', text: '→ ' }));
-      chip.appendChild(document.createTextNode(p.label));
-    });
+      chip.appendChild(document.createTextNode(sets.join(' · ')));
+    }
+    if (selects.length) {
+      if (sets.length) chip.appendChild(document.createTextNode('  ·  '));
+      chip.appendChild(el('span', { class: 'arrow', text: '→ ' }));
+      /* keep cards calm: many user-select targets compress in simple view */
+      var label = (state.detail === 'simple' && selects.length > 2)
+        ? 'user selects (' + selects.length + ' statuses)'
+        : 'user selects: ' + selects.join(' · ');
+      chip.appendChild(document.createTextNode(label));
+      chip.title = 'User selects: ' + selects.join(', ');
+    }
     return chip;
   }
 

@@ -56,24 +56,38 @@ desired-state model.
 git-ignored: anything instance-specific, customer-specific or
 session-related stays out of the public repository.
 
-## Status
+## Status (foundation complete)
 
-Built so far: model loader + 18 fidelity invariants (browser test suite,
-17 tests), application shell with left navigation, Overview dashboard,
-read-only Vanilla views (Workflow Diagram, Action Map, Matrix,
-Configuration, Evidence index), and DESIGN mode v1: fork Vanilla into an
-editable desired state (`model.js` — mutation API, JSON-snapshot
-undo/redo, localStorage autosave, CUSTOMER-DESIRED-STATE.json
-export/import with pinned baseline fingerprints), drag-and-drop
-availability editing on the same Diagram component (move / Alt-copy /
-remove / add status / reorder columns), and a live Deviation Schedule
-computed by the pure differ (`diff.js`), and the Findings engine
-(`rules.js`): explicit evidence-referenced rules that recover the known
-Vanilla defects from the loaded model (VI-009 portal gaps, SP02/UO-002
-availability contradiction, dead-end statuses, circular entries, VO-001
-duplicates), checkbox selection of fixable findings and a desired-state
-patch preview — execution stays disabled until the harness adapter
-exists. Findings the models cannot yet compute (VI-005/006/007/008/010)
-are quoted from the register, clearly separated. Instance crawl, Compare
-against a crawled instance, Build pipeline and the Solution Design
-generator are designed but not yet built — see docs/ARCHITECTURE.md.
+Working today, all fed from the real Labs models (browser test suite:
+23 tests green):
+
+- **Vanilla projections** — Workflow Diagram (status columns / action
+  cards / machine-fired column / inspector), Action Map (three-lane,
+  hover/pin-focused edges), Matrix (sortable 50-action grid),
+  Configuration (every family, both domains), Overview, Evidence index.
+- **DESIGN** — fork of the immutable Vanilla baseline; Diagram
+  drag-and-drop (move / Alt-copy / remove availability, add/remove/reorder
+  statuses), editable Grid, inspector editing (resulting status per type,
+  sets/user-selects, mobile flag, button group, availability checklist,
+  add/remove action), undo/redo, autosave, CUSTOMER-DESIRED-STATE.json
+  export/import pinned to the baseline fingerprints.
+- **COMPARE** — Added/Removed/Modified/Unchanged at object and field
+  level (Vanilla vs design fork today; the same engine takes a crawled
+  instance later).
+- **FINDINGS** — evidence-referenced computed rules + register-quoted
+  findings; fixable selection compiles a desired-state patch preview.
+- **SOLUTION DESIGN** — print-quality HTML generated from the canonical
+  model: Vanilla edition and Customer edition with a computed Deviation
+  Schedule; in-app preview, open-for-printing, download.
+- **INSTANCE** — connection page (persisted URL, read-only Connect/Crawl
+  controls, snapshot store) over the declared harness adapter contract
+  (`harness-client.js`) — the adapter itself is honestly not built.
+- **BUILD** — `buildplan.js` compiles diffs into the staged plan
+  (create → resolve identities → relationships → defaults/gated deletions
+  → read-back → verify-empty) with validation and unresolved-identity
+  listing; Validate / Preview Build work, BUILD is disabled until the
+  execution adapter and explicit authorisation exist.
+
+Not built yet: the browser-harness Python service (crawl, then gated
+execution with receipts and read-back) and the instance-side Compare it
+enables; Orders-domain editing; DOCX export. See docs/ARCHITECTURE.md.

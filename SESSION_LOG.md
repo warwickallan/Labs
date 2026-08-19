@@ -43,8 +43,27 @@ findings compile to a desired-state patch PREVIEW (3 ops; execution
 disabled until the harness adapter exists). VI-010 could NOT be computed:
 the canonical model does not carry per-action tag automation for GM06 —
 recorded as a register-only finding and flagged as a candidate
-build_model.py enhancement (models NOT modified). Tests 18/18 green.
-Next: result-editing in the inspector, Compare, Python harness service.
+build_model.py enhancement (models NOT modified).
+
+Fourth pass (continuous build, Warwick-directed no-checkpoint-stops):
+DESIGN completed (addAction/removeAction/modifyAction with rollback-safe
+mutate; inspector edit section - resulting status per type, mobile,
+button group, availability checklist; editable Grid with inline Mobile;
+Diagram|Grid tabs; + Action). COMPARE page (object+field level, filters;
+same engine will take a crawled instance). SOLUTION DESIGN generator
+(soldesign.js - print-quality standalone HTML from the canonical model;
+Vanilla + Customer editions, computed Deviation Schedule; register-quoted
+facts marked; in-app preview/print/download). INSTANCE shell (persisted
+URL, honest read-only Connect/Crawl, snapshot store) over the declared
+harness adapter contract (harness-client.js; execute() refuses).
+BUILD (buildplan.js staged compiler: create -> resolve GUIDs ->
+relationships -> defaults/gated deletions -> read-back -> verify-empty;
+validation warnings; unresolved identities; BUILD disabled). Diagram
+user-selects chips decluttered. Tests 23/23 green against the real
+models. NO Concerto contact; NO writes; Vanilla and evidence untouched.
+Foundation for the agreed application is complete; next genuine step is
+the Python browser-harness service (needs Playwright install + Warwick's
+go-ahead) and Orders-domain editing.
 
 ## 2026-08-19 (repo-only rotate patch) — Final durability inconsistencies fixed
 
