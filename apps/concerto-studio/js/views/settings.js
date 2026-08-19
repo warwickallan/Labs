@@ -41,27 +41,68 @@
       ])])
     ));
 
-    /* ---- VANILLA BASELINES (registry) ---- */
+    /* ---- VANILLA BASELINES (registry) ----
+     * Only baselines that actually exist appear here, each with the state
+     * it is really in. A row that implies a model we do not hold would make
+     * this registry worse than no registry. States:
+     *   RATIFIED   — adopted as the standard, with a date
+     *   CAPTURED   — a real captured baseline, not (yet) ratified
+     *   PARTIAL    — captured, but knowingly incomplete
+     *   HISTORICAL — superseded, kept for comparison
+     */
+    var baselines = [{
+      name: 'Labs discovery baseline (' + model.meta.generatedAt.helpdesk + ')',
+      state: ratified() ? 'RATIFIED' : 'CAPTURED',
+      ratifiedControl: true,
+      fingerprints: 'hd:' + model.meta.sourceFingerprints.helpdesk + ' ord:' + model.meta.sourceFingerprints.orders,
+      source: 'Discovery of warwick.concertodemo.co.uk (evidence E-001..E-024 / EO-001..EO-006)',
+      note: 'The model the Studio loads. Set the ratified date when this version is adopted as the standard.'
+    }];
+
+    /* Each project's Day-One IS a captured baseline in its own right — but
+     * only list the ones we actually hold a model for. */
+    (projects || []).forEach(function (p) {
+      var SS = window.StudioSnapshots;
+      if (!SS) return;
+      var entry = SS.byRole(p, 'baseline');
+      if (!entry) return;
+      var rec = SS.entryRecord(p, entry);
+      baselines.push({
+        name: p.name + ' Day-One (' + SS.formatStamp(entry.capturedAt) + ')',
+        state: rec ? 'CAPTURED' : 'PARTIAL',
+        fingerprints: rec ? 'project baseline' : '—',
+        source: entry.source || 'project capture',
+        note: rec
+          ? 'This deployment\u2019s configuration as supplied. Vanilla is versioned: newer deployments differ from the Labs baseline (see docs/VANILLA-VERSIONING.md).'
+          : 'Declared by the project but no model is loaded for it — nothing here claims otherwise.'
+      });
+    });
+
     var registry = el('table', { class: 'list' }, [
-      el('thead', {}, [el('tr', {}, ['Baseline', 'Ratified', 'Fingerprints', 'Source', 'Notes'].map(function (h) { return el('th', { text: h }); }))]),
-      el('tbody', {}, [
-        el('tr', {}, [
-          el('td', {}, [el('b', { text: 'Current (' + model.meta.generatedAt.helpdesk + ')' }), document.createTextNode(' '), el('span', { class: 'conf-chip observed', text: 'active' })]),
-          el('td', {}, [el('input', { type: 'date', value: ratified(), style: 'font:inherit;padding:3px 6px;border:1px solid var(--border-strong);border-radius:5px', onchange: function (e) { setRatified(e.target.value); } })]),
-          el('td', {}, [el('code', { text: 'hd:' + model.meta.sourceFingerprints.helpdesk }), document.createTextNode(' '), el('code', { text: 'ord:' + model.meta.sourceFingerprints.orders })]),
-          el('td', { text: 'Labs discovery deployment' }),
-          el('td', { style: 'font-size:12px', text: 'The Labs model baseline. Set the ratified date when this version is adopted as the standard.' })
-        ]),
-        el('tr', {}, [
-          el('td', { text: 'Newer project deployments' }),
-          el('td', { text: '—' }),
-          el('td', { text: 'per-project' }),
-          el('td', { text: 'captured at project Day-One' }),
-          el('td', { style: 'font-size:12px', text: 'Vanilla is versioned — newer deployments differ (e.g. Orders re-seeded, 11 supplier actions not 13, healthier Quote/Business Case engines). Each project records the baseline it started from; Compare can show older → newer. See docs/VANILLA-VERSIONING.md.' })
-        ])
-      ])
+      el('thead', {}, [el('tr', {}, ['Baseline', 'State', 'Ratified', 'Fingerprints', 'Source'].map(function (h) { return el('th', { text: h }); }))]),
+      el('tbody', {}, baselines.map(function (b) {
+        return el('tr', {}, [
+          el('td', {}, [el('b', { text: b.name }), b.note ? el('div', { class: 'muted', style: 'font-size:11.5px', text: b.note }) : null]),
+          el('td', {}, [el('span', {
+            class: 'conf-chip' + (b.state === 'RATIFIED' ? ' observed' : b.state === 'PARTIAL' ? '' : ' structural'),
+            text: b.state
+          })]),
+          el('td', {}, [b.ratifiedControl
+            ? el('input', {
+              type: 'date', value: ratified(),
+              style: 'font:inherit;padding:3px 6px;border:1px solid var(--border-strong);border-radius:5px',
+              onchange: function (e) { setRatified(e.target.value); render(container, model, invariants); }
+            })
+            : document.createTextNode('—')]),
+          el('td', {}, [el('code', { text: b.fingerprints })]),
+          el('td', { style: 'font-size:12px', text: b.source })
+        ]);
+      }))
     ]);
-    page.appendChild(section(el, 'Vanilla baselines', 'Vanilla is the standard Concerto product — a versioned reference, not a project. Projects reference the baseline they started from.', registry));
+    page.appendChild(section(el, 'Vanilla baselines',
+      'Vanilla is the standard Concerto product — a versioned reference, not a project. ' +
+      'Each project records the baseline it started from. Only baselines a model is actually held for are listed.',
+      registry));
 
     /* ---- VANILLA / GENERIC EVIDENCE ---- */
     var rows = model.evidenceIndex.map(function (e) {
