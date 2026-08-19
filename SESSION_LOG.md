@@ -34,8 +34,17 @@ the baseline fingerprints), diff.js (pure Added/Removed/Modified differ +
 deviation schedule; serves DESIGN now, Compare/Build later), and the
 Diagram component gained an editable mode (drag card = move availability,
 Alt-drag = copy, drop on Not-allocated = remove, ✕ affordances, + Status,
-column-header drag reorder). Tests 17/17 green. Next: Findings rule
-engine, result-editing in the inspector, Compare, Python harness service.
+column-header drag reorder). Third pass: Findings engine (rules.js) —
+computed, evidence-referenced rules recover VI-009 (SP01/ORC10 portal
+gaps), the SP02/UO-002 availability contradiction, dead-end statuses
+(BC-R + QR-R with its by-design note), circular entries (New PPM), VO-001
+duplicates and VI-004 groupless actions from the loaded model; fixable
+findings compile to a desired-state patch PREVIEW (3 ops; execution
+disabled until the harness adapter exists). VI-010 could NOT be computed:
+the canonical model does not carry per-action tag automation for GM06 —
+recorded as a register-only finding and flagged as a candidate
+build_model.py enhancement (models NOT modified). Tests 18/18 green.
+Next: result-editing in the inspector, Compare, Python harness service.
 
 ## 2026-08-19 (repo-only rotate patch) — Final durability inconsistencies fixed
 

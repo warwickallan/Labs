@@ -1,0 +1,240 @@
+/* rules.js — the Findings engine. NOT a generic AI opinion page: every
+ * finding is produced by an explicit, evidence-referenced rule evaluated
+ * against a loaded model, or is a quoted register entry for facts the
+ * canonical models do not (yet) carry. Inference is never silently
+ * upgraded to fact — every finding carries its category and confidence.
+ *
+ * Categories (from VANILLA-ISSUES.md):
+ *   CONFIRMED DEFECT · CONFIGURATION INCONSISTENCY · STRONG ANOMALY ·
+ *   POSSIBLE DEFECT · INFORMATION
+ *
+ * The same rules will later run against any crawled instance model.
+ */
+(function () {
+  'use strict';
+
+  /* ---- computed rules (run against a model) ----------------------------- */
+
+  var RULES = [
+    {
+      id: 'R-PORTAL-ACCEPTANCE',
+      register: 'VI-009 / VO-002',
+      category: 'CONFIRMED DEFECT',
+      domain: 'Orders',
+      run: function (m) {
+        var out = [];
+        var defaultStatus = (m.orders.orderStatuses.filter(function (s) { return s.isDefault; })[0] || {}).name;
+        if (!defaultStatus) return out;
+        m.orders.supplierActions.forEach(function (sa) {
+          if ((sa.availableIn || []).indexOf(defaultStatus) !== -1 && sa.portalVisible === false) {
+            out.push({
+              object: sa.observedCode + ' ' + sa.name,
+              objectKey: sa.key,
+              finding: 'Available in the default order status ("' + defaultStatus + '") but NOT visible on the supplier portal.',
+              why: 'The order lifecycle entry point offers this action structurally, yet the portal cannot render it — the acceptance loop is dead on arrival (operationally confirmed, EO-005).',
+              evidence: ['EO-002', 'EO-005'],
+              confidence: 'VERIFIED — STRUCTURAL (operationally confirmed)',
+              current: 'Show this action on the supplier portal = unticked',
+              proposed: 'Show this action on the supplier portal = ticked',
+              fixable: true,
+              fix: { target: sa.key, field: 'portalVisible', from: false, to: true }
+            });
+          }
+        });
+        return out;
+      }
+    },
+    {
+      id: 'R-REJECT-AVAILABILITY',
+      register: 'VI-009 (SP02 precision) / UO-002',
+      category: 'CONFIRMED DEFECT',
+      domain: 'Orders',
+      run: function (m) {
+        var out = [];
+        var defaultStatus = (m.orders.orderStatuses.filter(function (s) { return s.isDefault; })[0] || {}).name;
+        m.orders.supplierActions.forEach(function (sa) {
+          /* the reject action (fires T03, cancels the order) should be
+           * offerable BEFORE acceptance — i.e. in the default status */
+          if (sa.firesHelpdeskAction === 'T03' && defaultStatus &&
+              (sa.availableIn || []).indexOf(defaultStatus) === -1) {
+            out.push({
+              object: sa.observedCode + ' ' + sa.name,
+              objectKey: sa.key,
+              finding: 'Reject action is not available in "' + defaultStatus + '" (ticked only: ' + (sa.availableIn || []).join(', ') + ') despite being the acceptance-stage rejection.',
+              why: 'Its when-to-show is before-acceptance, but the availability tick contradicts that (UO-002) — a supplier can never reject an unaccepted order.',
+              evidence: ['EO-002', 'EO-004'],
+              confidence: 'VERIFIED — STRUCTURAL',
+              current: 'Availability: ' + (sa.availableIn || []).join(', '),
+              proposed: 'Availability includes "' + defaultStatus + '"',
+              fixable: true,
+              fix: { target: sa.key, field: 'availableIn', from: sa.availableIn, to: (sa.availableIn || []).concat([defaultStatus]) }
+            });
+          }
+        });
+        return out;
+      }
+    },
+    {
+      id: 'R-DEAD-END-STATUS',
+      register: 'VI-002 (Business Case - R) · VI-003 history (Quote Requested - R)',
+      category: 'STRONG ANOMALY',
+      domain: 'Helpdesk',
+      run: function (m) {
+        var out = [];
+        m.helpdesk.statuses.forEach(function (s) {
+          if (s.name === 'Closed' || s.name === 'Cancelled') return; /* terminal by design */
+          var exits = m.helpdesk.availability.filter(function (e) { return e.status === s.name; });
+          if (exits.length === 0) {
+            var known = s.name === 'Quote Requested - R'
+              ? ' KNOWN: downgraded to by-design — the quote engine (RE05→RH03b) advances these jobs (E-016); runtime proof is experiment E3.'
+              : (s.name === 'Business Case - R' ? ' KNOWN: VI-002 — doubly dead (also unreachable per the map warning).' : '');
+            out.push({
+              object: s.name,
+              objectKey: s.key,
+              finding: 'Status offers ZERO actions — jobs arriving here cannot leave via the action system.' + known,
+              why: 'A non-terminal status with no exit actions strands jobs unless an engine moves them.',
+              evidence: ['E-005', 'E-007'],
+              confidence: 'VERIFIED — OBSERVED',
+              current: 'No actions available in this status',
+              proposed: s.name === 'Quote Requested - R' ? 'None — by design (quote engine exit)' : 'Allocate an exit action, or remove/repurpose the status',
+              fixable: false
+            });
+          }
+        });
+        return out;
+      }
+    },
+    {
+      id: 'R-CIRCULAR-ENTRY',
+      register: 'VI-001 (New PPM)',
+      category: 'INFORMATION',
+      domain: 'Helpdesk',
+      run: function (m) {
+        var out = [];
+        m.helpdesk.statuses.forEach(function (s) {
+          var inbound = m.helpdesk.results.filter(function (r) { return r.toStatus === s.name; });
+          if (!inbound.length) return;
+          var allSelfCircular = inbound.every(function (r) {
+            var av = m.helpdesk.availability.filter(function (e) { return e.action === r.action; });
+            return av.length > 0 && av.every(function (e) { return e.status === s.name; });
+          });
+          if (allSelfCircular && !s.isDefaultFor.length) {
+            out.push({
+              object: s.name,
+              objectKey: s.key,
+              finding: 'Only reachable from itself — every action that sets this status is only available FROM it.',
+              why: 'Jobs can only arrive here at creation (job-type default action) or via an engine; the Action map flags this as "unreachable". For New PPM this is explained by PH01 being Planned’s creation default (E-010).',
+              evidence: ['E-007', 'E-010'],
+              confidence: 'VERIFIED — OBSERVED (interpretation per register)',
+              current: 'Circular entry only',
+              proposed: 'None required if creation-path entry is intended',
+              fixable: false
+            });
+          }
+        });
+        return out;
+      }
+    },
+    {
+      id: 'R-DUPLICATE-NAMES',
+      register: 'VO-001',
+      category: 'STRONG ANOMALY',
+      domain: 'Orders',
+      run: function (m) {
+        var out = [];
+        var seen = {};
+        m.orders.orderPriorities.forEach(function (p) {
+          if (seen[p.name]) {
+            out.push({
+              object: 'Order priority "' + p.name + '"',
+              objectKey: p.key,
+              finding: 'Duplicate display name — two priority records are both called "' + p.name + '".',
+              why: 'Display names are not unique identities; automation keyed by name would be ambiguous.',
+              evidence: ['EO-001'],
+              confidence: 'VERIFIED — OBSERVED',
+              current: 'Two records named "' + p.name + '"',
+              proposed: 'Rename or remove one record',
+              fixable: false
+            });
+          }
+          seen[p.name] = true;
+        });
+        return out;
+      }
+    },
+    {
+      id: 'R-GROUPLESS-ACTION',
+      register: 'VI-004',
+      category: 'INFORMATION',
+      domain: 'Helpdesk',
+      run: function (m) {
+        return m.helpdesk.actions
+          .filter(function (a) { return !a.buttonGroup && !a.machineFired; })
+          .map(function (a) {
+            return {
+              object: a.name,
+              objectKey: a.key,
+              finding: 'Action has no button group and is not machine-fired — it may render nowhere.',
+              why: 'Toolbar rendering groups actions by button group; a groupless, user-facing action has no surface.',
+              evidence: ['E-006'],
+              confidence: 'VERIFIED — OBSERVED',
+              current: 'Button group: (blank)',
+              proposed: 'Assign a button group or confirm machine-fired intent',
+              fixable: false
+            };
+          });
+      }
+    }
+  ];
+
+  /* ---- register-known findings the models cannot (yet) compute --------- */
+
+  var REGISTER_ONLY = [
+    { register: 'VI-010', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'GM06 Take off hold', finding: 'Tag automation appears inverted — identical to GM05 (adds "05. On hold", removes "04. In progress"); its purpose implies the inverse. Runtime effect untested (E5).', evidence: ['E-023', 'E-024'], note: 'Per-action tag-automation lists are evidenced (E-023/E-024) but not carried in the machine-readable model for most actions — a candidate build_model.py enhancement; becomes a computed rule then.' },
+    { register: 'VI-005', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'Response categories', finding: 'No default Response category — reporter-wizard jobs arrive with NO SLA (CONTROLLED VERIFIED, B-010).', evidence: ['E-012', 'E1'], note: 'Response-category records are not yet carried in the machine-readable model; quoted from the register.' },
+    { register: 'VI-006', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'Classifications (all 90)', finding: 'Classification → SLA/asset/budget wiring entirely unset at both levels.', evidence: ['E-012', 'E-023'], note: 'Classification records not yet in the model.' },
+    { register: 'VI-007', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'LM01 · PH05 · RH10/RH11 · PH02/PH02a', finding: 'Grouped-view vs record-form mismatches; config-identical action pairs.', evidence: ['E-005', 'E-015'], note: 'Record-form values not yet in the model.' },
+    { register: 'VI-008', category: 'CONFIGURATION INCONSISTENCY', domain: 'Helpdesk', object: 'Email templates (5)', finding: 'All five templates have empty subject AND body; "Email failed to send" passively observed (OD-006).', evidence: ['E-017', 'E-020'], note: 'Template records not yet in the model.' }
+  ];
+
+  function runAll(model) {
+    var findings = [];
+    RULES.forEach(function (rule) {
+      rule.run(model).forEach(function (f) {
+        findings.push(Object.assign({
+          ruleId: rule.id,
+          register: rule.register,
+          category: rule.category,
+          domain: rule.domain,
+          source: 'COMPUTED'
+        }, f));
+      });
+    });
+    return findings;
+  }
+
+  /* Compile selected fixable findings into a desired-state patch — the
+   * artefact a build plan consumes. Preview only until the execution
+   * adapter exists; nothing here touches Concerto. */
+  function compileFixPatch(findings) {
+    return {
+      kind: 'DESIRED-STATE-PATCH',
+      generatedAt: new Date().toISOString(),
+      note: 'Preview only. Execution requires the browser-harness adapter (not yet built) plus explicit per-plan authorisation. Every operation will produce a receipt and read-back verification.',
+      operations: findings.filter(function (f) { return f.fixable && f.fix; }).map(function (f) {
+        return {
+          register: f.register,
+          rule: f.ruleId,
+          target: f.fix.target,
+          field: f.fix.field,
+          from: f.fix.from,
+          to: f.fix.to
+        };
+      })
+    };
+  }
+
+  var api = { runAll: runAll, compileFixPatch: compileFixPatch, REGISTER_ONLY: REGISTER_ONLY, RULES: RULES };
+  if (typeof window !== 'undefined') window.StudioRules = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})();

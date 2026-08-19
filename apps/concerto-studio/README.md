@@ -67,7 +67,13 @@ undo/redo, localStorage autosave, CUSTOMER-DESIRED-STATE.json
 export/import with pinned baseline fingerprints), drag-and-drop
 availability editing on the same Diagram component (move / Alt-copy /
 remove / add status / reorder columns), and a live Deviation Schedule
-computed by the pure differ (`diff.js`). Instance crawl, Compare against
-a crawled instance, Findings engine, Build pipeline and the Solution
-Design generator are designed but not yet built — see
-docs/ARCHITECTURE.md.
+computed by the pure differ (`diff.js`), and the Findings engine
+(`rules.js`): explicit evidence-referenced rules that recover the known
+Vanilla defects from the loaded model (VI-009 portal gaps, SP02/UO-002
+availability contradiction, dead-end statuses, circular entries, VO-001
+duplicates), checkbox selection of fixable findings and a desired-state
+patch preview — execution stays disabled until the harness adapter
+exists. Findings the models cannot yet compute (VI-005/006/007/008/010)
+are quoted from the register, clearly separated. Instance crawl, Compare
+against a crawled instance, Build pipeline and the Solution Design
+generator are designed but not yet built — see docs/ARCHITECTURE.md.

@@ -193,6 +193,45 @@
     });
   });
 
+  /* ---- findings engine -------------------------------------------------- */
+
+  test('rules recover the known Vanilla defects with correct fixability', function () {
+    return loadedPromise.then(function (res) {
+      var findings = window.StudioRules.runAll(res.model);
+      function byRule(id) { return findings.filter(function (f) { return f.ruleId === id; }); }
+
+      var portal = byRule('R-PORTAL-ACCEPTANCE');
+      var portalObjs = portal.map(function (f) { return f.object.split(' ')[0]; }).sort().join(',');
+      assert(portalObjs === 'ORC10,SP01', 'VI-009 portal findings = SP01 + ORC10, got ' + portalObjs);
+      assert(portal.every(function (f) { return f.fixable && f.fix.field === 'portalVisible'; }), 'portal findings fixable');
+
+      var reject = byRule('R-REJECT-AVAILABILITY');
+      assert(reject.length === 1 && reject[0].object.indexOf('SP02') === 0, 'SP02 availability contradiction found');
+      assert(reject[0].fix.to.indexOf('Awaiting acceptance') !== -1, 'proposed availability includes AWA');
+
+      var dead = byRule('R-DEAD-END-STATUS').map(function (f) { return f.object; }).sort();
+      assert(dead.indexOf('Business Case - R') !== -1 && dead.indexOf('Quote Requested - R') !== -1,
+        'dead ends include BC-R and QR-R, got ' + dead.join(', '));
+
+      assert(byRule('R-DUPLICATE-NAMES').length === 1, 'VO-001 duplicate Default priority found');
+
+      /* VI-010 (GM06 inverted tags) is register-only: the canonical model
+       * does not carry per-action tag automation for GM06 — the Studio
+       * must not fabricate a computed finding for it. */
+      assert(window.StudioRules.REGISTER_ONLY.some(function (f) { return f.register === 'VI-010'; }),
+        'VI-010 quoted from the register, not computed');
+
+      /* four VI-009 field changes total: SP01 + ORC10 portal, SP02 portal?
+       * (SP02 is not AWA-available so not caught by the portal rule) + SP02
+       * availability — the fix patch for all fixable = 3 operations here;
+       * SP02's portal-visibility gap becomes computable once when-to-show
+       * is carried in the model. Assert the patch compiles deterministically. */
+      var patch = window.StudioRules.compileFixPatch(findings);
+      assert(patch.operations.length === 3, '3 fixable operations, got ' + patch.operations.length);
+      assert(patch.operations.every(function (op) { return op.target && op.field; }), 'ops well-formed');
+    });
+  });
+
   /* ---- view smoke tests: render real projections into a sandbox -------- */
 
   function sandbox() {

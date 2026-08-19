@@ -29,7 +29,6 @@
   var STUBS = {
     'instance': 'Target-instance connection: URL, read-only browser-harness crawl, snapshot history. The harness is a separate local service (adapter) — planned; nothing here talks to Concerto yet.',
     'compare': 'Instance-vs-Vanilla difference engine: Added / Removed / Modified / Unchanged at object and field level. Requires the Instance crawl.',
-    'findings': 'Evidence-backed anomaly detector seeded from VANILLA-ISSUES.md (severity, evidence, confidence, suggested correction, Fix Selected → build plan). The rule engine will run against any crawled instance.',
     'build': 'Desired-state changes → dependency-ordered build plan → Validate / Preview Build / BUILD, with receipts and read-back verification. Requires the execution adapter.',
     'settings': 'Instance URL, browser-harness status, authentication/session state (a human signs in — the Studio never enters credentials), future adapter settings.'
   };
@@ -91,6 +90,7 @@
       case 'vanilla-matrix': window.StudioGrid.render(content, app.model); break;
       case 'vanilla-config': window.StudioConfig.render(content, app.model); break;
       case 'design': window.StudioDesign.render(content, app.model); break;
+      case 'findings': window.StudioFindings.render(content, app.model); break;
       case 'evidence': renderEvidence(content); break;
       default: renderStub(content, pageId);
     }
