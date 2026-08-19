@@ -49,12 +49,13 @@ EVIDENCE = [
     ("E-021", "evidence/helpdesk-runtime/003-raise-job-wizard.md", "Raise Job wizard (Reactive) and Planned creation route"),
     ("E-022", "evidence/helpdesk-admin/011-status-records-matrix.md", "Per-status record values: mobile-app flags and full flag matrix"),
     ("E-023", "evidence/helpdesk-admin/012-core-five-value-completion.md", "Core Five completion: Job Type records, action tag matrix, all 90 classifications"),
+    ("E-024", "evidence/helpdesk-admin/013-residual-closure.md", "Residual closure: small Add schemas, all 20 root causes, tag corrections, VI-010"),
 ]
 
 DISCOVERY_PHASE = (
     "Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, "
     "14 configurator schemas + all 50 action configs + record values captured. "
-    "Operational surface mapped (E-019..E-021). Controlled EXPERIMENT phase not started."
+    "Operational surfaces mapped (Helpdesk E-019..E-021; Supplier Portal EO-005). Experiments E0/E1 complete; E2+ not authorised."
 )
 
 # ---- statuses (E-003). type: R / P / both. "With AMO" excluded: user-declared non-Vanilla addition.
@@ -303,8 +304,8 @@ def build():
             "statuses": [status_entry(n, sort, d, c, t == "both") for (n, t, sort, d, c) in st],
             "operativeStatuses": [
                 {"name": n, "confidence": OBS, "evidence": ["E-004"],
-                 "notes": "Same 9 records returned under both Type filters; whether genuinely "
-                          "shared or filter-ignored is U-003."}
+                 "notes": "Type-agnostic: the operative-status object has no Type "
+                          "field at all (U-003 RESOLVED, E-013)."}
                 for n in OPERATIVE_STATUSES
             ],
             "actions": [action_entry(c, letter) for c in sorted(type_actions(letter))],
@@ -393,8 +394,8 @@ def build():
             {
                 "statement": "A parallel quote workflow exists: 1 process ('Standard process'), "
                              "8 RE-actions, 5 quote-request statuses, 2 quote statuses, "
-                             "2 categories, 3 priorities. Its bridge back to job statuses is "
-                             "unevidenced (U-005).",
+                             "2 categories, 3 priorities. Bridge to the job: RE05 fires RH03b "
+                             "(U-005 RESOLVED, E-016).",
                 "confidence": OBS, "evidence": ["E-011"],
             },
             {

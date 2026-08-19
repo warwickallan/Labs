@@ -21,41 +21,32 @@ observes it and never changes it.
 
 ## What this is
 
-The first bounded objective of the Concerto programme: establish an
-evidence-backed, machine-readable definition of the Vanilla Helpdesk
-configuration — statuses, actions, transitions, defaults, roles, timers —
-under **Helpdesk Admin**, covering its **Helpdesk Types** (at minimum
-Reactive and Planned; discover what actually exists).
+An evidence-backed, machine-readable definition of Vanilla Concerto
+configuration across TWO domains — **Helpdesk Admin** (43 tabs) and
+**Orders Admin** (32 tabs) — plus their operational surfaces (Helpdesk UI,
+Supplier Portal) and the explicit cross-domain relationship map. Vanilla
+configuration is never modified; disposable `ZZ TEST` fixtures exist only
+where authorised experiments (E0/E1, both complete) required them.
 
-This is a **read-only discovery exercise**. Nothing is configured, corrected,
-improved, rationalised or redesigned during this phase. Behavioural
-experiments belong to a later, separately approved EXPERIMENT phase using
-disposable `ZZ TEST` objects.
-
-## Discovery hierarchy
+## Domain map
 
 ```
-Helpdesk Admin                      ← parent configuration area (discover first)
-    ├── Helpdesk Type: Reactive    ← first detailed discovery target
-    │      statuses / actions / relationships / operative statuses /
-    │      mobile / roles / timers / defaults / other type-specific config
-    └── Helpdesk Type: Planned     ← inspect enough to judge structural parity
-           (full discovery only if required or instructed)
+Helpdesk Admin (43 tabs)  ── model/VANILLA-HELPDESK.json  (frozen tag v1)
+Orders  Admin (32 tabs)   ── model/VANILLA-ORDERS.json
+Cross-domain edges        ── model/CROSS-DOMAIN-RELATIONSHIPS.json
+Behaviour (graded)        ── model/VERIFIED-BEHAVIOURS.json
+Canonical explainer       ── docs/CONCERTO-HELPDESK-ORDERS-OPERATING-MODEL.md
 ```
-
-Do not assume configuration seen under Reactive applies to Planned, nor that
-identically named objects are identically configured across types.
 
 ## Deliverables
 
 | Deliverable | Location | Status |
 | --- | --- | --- |
-| Machine-readable Vanilla model | [`model/VANILLA-HELPDESK.json`](model/VANILLA-HELPDESK.json) | populated (2 types, 75 actions, 137 relationships) |
-| Model schema | [`schemas/vanilla-helpdesk.schema.json`](schemas/vanilla-helpdesk.schema.json) | v1 |
-| Human-readable discovery report | [`docs/VANILLA-HELPDESK-DISCOVERY.md`](docs/VANILLA-HELPDESK-DISCOVERY.md) | complete |
-| Unknowns register | [`UNKNOWNS.md`](UNKNOWNS.md) | 5 resolved, 7 open |
-| Evidence repository | [`evidence/`](evidence) | E-001..E-014 |
-| Round-trip / schema validator | [`scripts/validate_model.py`](scripts/validate_model.py) | working |
+| Helpdesk model | [`model/VANILLA-HELPDESK.json`](model/VANILLA-HELPDESK.json) | generated; validator green; evidence E-001..E-024 |
+| Orders model | [`model/VANILLA-ORDERS.json`](model/VANILLA-ORDERS.json) | validated; evidence EO-001..EO-006 |
+| Cross-domain map | [`model/CROSS-DOMAIN-RELATIONSHIPS.json`](model/CROSS-DOMAIN-RELATIONSHIPS.json) | X-001..X-018 |
+| Behaviour layer | [`model/VERIFIED-BEHAVIOURS.json`](model/VERIFIED-BEHAVIOURS.json) | E0/E1 CONTROLLED VERIFIED + passives |
+| Registers | UNKNOWNS · VANILLA-ISSUES · OPERATIONAL-DISCREPANCIES · CORE-FIVE-COMPLETENESS | reconciled 2026-08-19 |
 
 ## Repository map
 

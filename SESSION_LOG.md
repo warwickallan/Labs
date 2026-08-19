@@ -7,6 +7,29 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 (ROTATE CORRECTION) — Cold-review gaps closed
+
+External review found the first rotate incomplete. Closed this pass:
+(A) discovery tail - ALL 32 Orders Add-schemas captured incl. Budget
+Category/13 controls with CIS pairing (EO-006); 7 Helpdesk residual Add
+schemas + all 20 root causes + (+)-flag tag corrections (RH03b adds
+01.Awaiting acceptance; LM01/T09 have NO tag automation; GM06 = VI-010
+inverted tags) + classification resource grids empty (E-024).
+(B) operating-model precision: RH04 is CONFIG not VERIFIED; mobile
+allocation wording corrected to the status-gate formulation; 40/1
+acceptance route marked UNKNOWN; VI-009 = FOUR field changes across three
+actions. (C) stale docs reconciled: README/CLAUDE.md rewritten to
+two-domain reality; Helpdesk report given a historical-snapshot banner;
+Orders report updated (portal IS discovered); EXPERIMENT-PROGRAMME E2
+rewritten as verification with VI-009 precondition, .invalid containment,
+E1-route note, E4 wording; OD-005 resolved; UNKNOWNS debris removed;
+VI-005/VI-006/VI-008 refreshed. (D) build_model.py no longer regenerates
+stale claims (U-003/U-005/phase); VANILLA-ORDERS carries portalVisible
+per supplier action + observedCode vs canonicalKey; IDENTITIES
+canonical-key collision caveat. (E) vanilla-orders.schema.json +
+validate_orders.py added (orders/cross-domain/behaviours now VALIDATE,
+not merely parse).
+
 ## 2026-08-19 (FINAL ROTATE) — Knowledge consolidation and handoff
 
 Cross-domain reconciliation completed (VI-009 precision: SP01/ORC10 =

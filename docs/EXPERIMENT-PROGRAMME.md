@@ -36,7 +36,7 @@ gate. Global rules for every experiment:
   (E4), a disposable ZZ-prefixed config object is created instead and
   deleted afterwards only with separate approval.
 - Email containment: any ZZ TEST supplier/user uses a non-routable address
-  (e.g. `zz-test@invalid.local`) so nothing escapes; where the platform
+  (e.g. `zz-test.example.invalid (RFC-2606-reserved .invalid TLD)`) so nothing escapes; where the platform
   queues mail, capture the queue evidence rather than delivery.
 - One controlled variable per step; before/after state captured to an
   `evidence/experiments/` file per experiment; each run appends to
@@ -62,6 +62,8 @@ gate. Global rules for every experiment:
 
 - **Objects:** ZZ TEST site; ZZ TEST job A (lifecycle), job B (cancel).
 - **Initial:** both jobs raised via RH01 (default action) → With Helpdesk.
+  (As executed: creation used the ADMIN QUICK-ADD modal, not the reporter
+  wizard — see evidence/experiments/E1-reactive-lifecycle.md.)
 - **Variables (A, one per step):** RH02 → WMT-R; RH03 assign ZZ operative;
   RH10 → Work Complete - R; G004 → Closed. (B): G003 Cancel.
 - **Expected:** status transitions per E-015; RH01/RH02 email originator
@@ -81,16 +83,18 @@ gate. Global rules for every experiment:
   then drive the ORDER through statuses: Awaiting acceptance → Accepted →
   Appointment Made → In progress → Work complete, one change at a time
   (via the supplier-portal/order surfaces).
-- **Expected (structural):** order at Accepted fires T02; Appointment Made
-  fires T04; tags 01/02/03/04 move per the numbered ladder; RH05 fires on
-  order approval; T03 fires on supplier rejection (its trigger is not
-  visible in config — this experiment identifies it); T05/T06 firing
-  sources identified.
+- **Expected (structural — E2 is now VERIFICATION of a fully mapped
+  mechanism, not exploration):** Supplier Actions fire the linked Helpdesk
+  actions directly (SP01→T02, SP02→T03, SP03→T04, ORC10/SP04/SP06→T05,
+  SP05→T06; completions→RH10/RH11; EO-002/X-001..X-008); order statuses
+  and tag ladder move as configured; RH05 fires on order approval.
+  **PRECONDITION: VI-009 — the portal cannot reach SP01/SP02 as shipped;
+  Warwick must first choose the 4-field Vanilla fix or ZZ TEST clones.**
 - **Observe:** which T-actions appear in the job timeline after each order
   transition; tag add/remove; any emails.
-- **Success:** trigger map confirmed/completed. **Resolves:** U-009
-  residual; T03/T05/T06 trigger sources; VI-002 reachability logic;
-  BEHAVIOUR gate for the auto layer.
+- **Success:** the structural trigger map behaves as modelled.
+  **Resolves:** BEHAVIOUR gate for the cross-domain auto layer; VI-009
+  operational confirmation; GM05/GM06 tag inversion check (VI-010).
 
 ## E3 — Quote→original-job bridge runtime confirmation
 
@@ -136,7 +140,7 @@ gate. Global rules for every experiment:
 - **Success:** constraint semantics proven. **Resolves:** U-012;
   mobile-layer BEHAVIOUR gate.
 
-## E4 — Status target/expiry behaviour (only experiment needing config — ZZ object)
+## E4 — Status target/expiry behaviour (needs a disposable ZZ config object, like E0)
 
 - **Objects:** **ZZ TEST status** (`ZZ TEST expiry`, Reactive, target_days
   = 1, expiry action = G001 note) + ZZ action to enter it, or — if

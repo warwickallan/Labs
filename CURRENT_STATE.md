@@ -25,9 +25,10 @@
   validator green); evidence E-001..E-023.
 - **Operational Helpdesk:** landing/wizard/quick-add/action surfaces
   (E-019..E-021; OPERATIONAL-DISCREPANCIES.md OD-001..007).
-- **Orders domain:** 32 tabs; core four (Status/Priority/Types/Budget
-  Cats) + all 13 Supplier Actions SCHEMA+VALUE complete;
-  model/VANILLA-ORDERS.json; evidence EO-001..EO-005.
+- **Orders domain:** 32 tabs; ALL 32 configurator Add-schemas captured
+  (EO-004/EO-006) incl. Budget Category; priority five SCHEMA+VALUE
+  complete; model/VANILLA-ORDERS.json (validated); evidence
+  EO-001..EO-006.
 - **Supplier Portal:** operational surface mapped (EO-005); order ref =
   parent job ref + "/n"; portal rendering formula validated.
 - **Cross-domain:** model/CROSS-DOMAIN-RELATIONSHIPS.json (X-001..X-018);
@@ -54,15 +55,17 @@ VANILLA-ISSUES.md.
 
 UO-001 order approval-level source · UO-002 (folded into the VI-009 fix
 decision) · U-007 map warning logic · U-012 residual constraints
-semantics (E5) · (+)-flagged tag-list re-reads (E-023) · classification
-'resource' grids · report-level open-jobs definitions · PPM domain
+semantics (E5) · report-level open-jobs definitions · PPM domain
 entirely · runtime truth of every cross-domain edge (E2/E3).
 
 ## Next programme options (Warwick to choose)
 
-1. **E2** — first requires the VI-009 decision: fix 3 flags on Vanilla
-   (explicit approval needed; documented deviation) OR clone ZZ TEST
-   supplier actions.
+1. **E2** — first requires the VI-009 decision: correct FOUR fields
+   across three Supplier Actions on Vanilla (SP01 portal visibility;
+   ORC10 portal visibility; SP02 portal visibility + Awaiting-acceptance
+   availability) — explicit approval needed — OR clone ZZ TEST supplier
+   actions.
 2. E3 (quote bridge) / E6 (SLA) — runnable without the portal.
 3. PPM Scheduler structural discovery (new domain).
-4. Residual re-reads ((+) tags, resource grids).
+4. (Residual re-reads closed 2026-08-19: (+) tags corrected in E-024;
+   resource grids empty; root causes complete.)

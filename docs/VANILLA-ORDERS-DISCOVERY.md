@@ -42,11 +42,22 @@ resolved.**
 ## Gates
 
 Order Status / Priority / Order Types / Budget Categories / Supplier
-Actions: **SCHEMA + VANILLA VALUES COMPLETE.** Behaviour: NOT verified
+Actions: **SCHEMA + VANILLA VALUES COMPLETE** (Budget Category schema
+completed in EO-006). Behaviour: NOT verified
 (E2). Supplier-portal operational surface: not yet discovered — proposed
 next programme below.
 
-## Proposed next programme
+## Update (2026-08-19, post-report)
+
+Supplier Portal operational discovery IS COMPLETE (EO-005): order ref =
+parent job ref + "/n"; portal rendering formula validated on order
+00000040/1; VI-009 (broken acceptance loop) found and precisely diagnosed
+(SP01/ORC10 portal visibility; SP02 portal visibility + availability).
+ALL 32 Orders Add-form schemas captured (EO-006), including Budget
+Category (13 controls, CIS pairing). Gates: all five priority families
+SCHEMA + VALUE complete.
+
+## Proposed next programme (historical wording below; portal discovery is done)
 
 1. **Supplier Helpdesk operational discovery** (read-only): supplier
    portal (`supplier_portal.aspx`) + contractor app surfaces as the

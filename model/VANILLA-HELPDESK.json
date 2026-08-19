@@ -4,7 +4,7 @@
     "environment": "https://warwick.concertodemo.co.uk",
     "mode": "DISCOVER",
     "generatedAt": "2026-08-19",
-    "notes": "Built by scripts/build_model.py from evidence E-001..E-023 (23 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Operational surface mapped (E-019..E-021). Controlled EXPERIMENT phase not started. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys."
+    "notes": "Built by scripts/build_model.py from evidence E-001..E-024 (24 files; Concerto build 2026.08.9968-main). 'With AMO' status excluded: user-declared non-Vanilla addition. Structural baseline VANILLA-HELPDESK-STRUCTURAL-v1: all 43 tabs crawled, 14 configurator schemas + all 50 action configs + record values captured. Operational surfaces mapped (Helpdesk E-019..E-021; Supplier Portal EO-005). Experiments E0/E1 complete; E2+ not authorised. GUIDs referenced via model/IDENTITIES.json are environment-specific observed identities, not portable keys."
   },
   "sharedConfiguration": [
     {
@@ -75,7 +75,7 @@
       ]
     },
     {
-      "statement": "A parallel quote workflow exists: 1 process ('Standard process'), 8 RE-actions, 5 quote-request statuses, 2 quote statuses, 2 categories, 3 priorities. Its bridge back to job statuses is unevidenced (U-005).",
+      "statement": "A parallel quote workflow exists: 1 process ('Standard process'), 8 RE-actions, 5 quote-request statuses, 2 quote statuses, 2 categories, 3 priorities. Bridge to the job: RE05 fires RH03b (U-005 RESOLVED, E-016).",
       "confidence": "VERIFIED — OBSERVED",
       "evidence": [
         "E-011"
@@ -198,7 +198,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Waiting for parts",
@@ -206,7 +206,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Paused",
@@ -214,7 +214,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "In progress",
@@ -222,7 +222,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Finished shift (pause)",
@@ -230,7 +230,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "On site",
@@ -238,7 +238,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "On break",
@@ -246,7 +246,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Travelling",
@@ -254,7 +254,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Complete",
@@ -262,7 +262,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         }
       ],
       "actions": [
@@ -1647,7 +1647,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Waiting for parts",
@@ -1655,7 +1655,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Paused",
@@ -1663,7 +1663,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "In progress",
@@ -1671,7 +1671,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Finished shift (pause)",
@@ -1679,7 +1679,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "On site",
@@ -1687,7 +1687,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "On break",
@@ -1695,7 +1695,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Travelling",
@@ -1703,7 +1703,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         },
         {
           "name": "Complete",
@@ -1711,7 +1711,7 @@
           "evidence": [
             "E-004"
           ],
-          "notes": "Same 9 records returned under both Type filters; whether genuinely shared or filter-ignored is U-003."
+          "notes": "Type-agnostic: the operative-status object has no Type field at all (U-003 RESOLVED, E-013)."
         }
       ],
       "actions": [
@@ -2996,6 +2996,12 @@
       "path": "evidence/helpdesk-admin/012-core-five-value-completion.md",
       "capturedAt": "2026-08-18",
       "description": "Core Five completion: Job Type records, action tag matrix, all 90 classifications"
+    },
+    {
+      "id": "E-024",
+      "path": "evidence/helpdesk-admin/013-residual-closure.md",
+      "capturedAt": "2026-08-18",
+      "description": "Residual closure: small Add schemas, all 20 root causes, tag corrections, VI-010"
     }
   ]
 }

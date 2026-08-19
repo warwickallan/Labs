@@ -30,12 +30,12 @@ Operational filters expose PPM discipline (8 values) and works-order type
 "Statutory PPM" that no crawled admin tab defines. Candidate source: PPM
 scheduler / site admin (outside Helpdesk admin scope). (E-019)
 
-## OD-005 — Raise Job wizard collects no SLA/triage; Priority-2 job exists anyway [UNKNOWN — needs experiment/evidence]
+## OD-005 — Raise Job wizard collects no SLA/triage [RESOLVED 2026-08-19 by E1]
 
-The wizard offers no urgency/call-type/assignment; job 00000051 (wizard-
-raised) has no SLA targets, but job 00000050 carries Priority 2 with
-computed targets. The route that applied P2 (RH07 Amend SLA, an admin-side
-creation form, or other) is unevidenced. (E-019/E-021; feeds E6.)
+RESOLVED: two creation routes exist. The reporter wizard collects no
+urgency (jobs arrive SLA-less); the ADMIN QUICK-ADD modal REQUIRES
+Urgency and applies the SLA at creation (E1, CONTROLLED VERIFIED; B-010).
+Historical note: job 00000050's P2 came from such an admin-side entry.
 
 ## OD-006 — "Email failed to send" recorded on RH01 [BEHAVIOUR OBSERVATION, cause unknown]
 

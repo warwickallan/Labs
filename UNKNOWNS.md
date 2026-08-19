@@ -18,9 +18,8 @@ Priorities: **BLOCKING** (prevents a future automated customer build) ·
   actions filter returns zero records; the 50 live actions are the complete
   set (E-006).
 - **U-008 — Meaning of "suppressed / hidden" in the Action map.** Resolved
-  structurally 2026-08-18: the action form carries explicit "Suppress this
-  action" and "Hide this action from the user options" checkboxes (E-009).
-  Which of the two the map keys on remains minor residual unknown.
+  structurally 2026-08-18/19: explicit Suppress + Hide checkboxes (E-009);
+  mobile actions use hide_from_use (E-014/E-015).
 - **U-010 — Configurator field inventory.** Resolved 2026-08-18: all 211
   controls of the Add/Edit Action form inventoried with DOM ids and full
   option lists (E-009). Conditional-UI mapping (which controls toggle
@@ -55,13 +54,10 @@ RH10/RH11/PH06/PH07 (EO-002). Runtime confirmation = E2. Orders-domain
 unknowns: UO-001 approval-level source; UO-002 SP02 availability
 contradiction - see model/VANILLA-ORDERS.json.)*
 
-*(U-004 resolved 2026-08-18: "Not allocated" reflects hidden/machine-fired
-actions plus a grouped-view rendering quirk (VI-007); every action's true
-availability is now known from its form (E-015). U-009 sharpened: only the
-T03/T05/T06/T07 trigger sources remain, for E2/E3. Minor residual reads:
-one Lifts child classification (transient 502), classification 'resource'
-grids, remaining classification record forms, root causes p.2, full
-postback map.)*
+*(U-004 resolved: "Not allocated" = hidden/machine-fired + VI-007
+rendering. All classification records read (E-023: Lifts has exactly 3
+children — no missing child). T02-T09 trigger sources RESOLVED by Orders
+discovery. (+)-flagged tag captures corrected in E-024.)*
 
 *(U-005 resolved 2026-08-18, second session: RE05 "Raise Order" carries
 "Action to be triggered against the original job" = RH03b. Quote Ordered —
@@ -89,14 +85,12 @@ E-016. Runtime confirmation = experiment E3.)*
 - **Safest experiment:** none needed; ask Concerto support or read map help.
 - **Blocks automated build:** no.
 
-## U-012 — Action "Constraints" semantics [IMPORTANT]
+## U-012 — Action Constraints runtime semantics [IMPORTANT — E5]
 
-- **Question:** The configurator's Constraints section lists the 18 mobile
-  actions as checkboxes (all unticked for RH04). Constrains what, exactly —
-  ordering? mutual exclusion? prerequisites?
-- **Current evidence:** E-009.
-- **Confidence:** UNKNOWN.
-- **Safest experiment:** inspect a mobile action (e.g. GM04) in Edit mode —
-  its Constraints ticks may reveal the pattern; help text if any.
-- **Blocks automated build:** yes (mobile flows).
+- **Current state:** constraint CHAINS are fully mapped structurally on
+  both domains (GM/PM/RM require GM01/GM04; SP06 requires SP04+SP05;
+  completions require SP04 — E-015/EO-002). The prerequisite READING is
+  inferred; only the runtime enforcement semantics remain — experiment E5.
+- **History:** originally an open question about the Constraints section
+  (E-009); GM04/GM05 inspection completed 2026-08-18/19.
 

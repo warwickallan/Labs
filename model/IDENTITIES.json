@@ -2,7 +2,7 @@
   "_meta": {
     "description": "Concerto GUIDs behind displayed names, harvested from DOM control ids and nav calls (E-002, E-009, E-014).",
     "identitySemantics": "These GUIDs are ENVIRONMENT-SPECIFIC OBSERVED IDENTITIES of this demo tenant — not portable Vanilla primary keys. A future target environment must resolve canonicalKey -> target GUID at build/validation time; never reuse these GUIDs across environments.",
-    "canonicalKeyScheme": "Canonical keys are '<objectType>:<kebab-case-name>' derived from the Vanilla display name, e.g. 'status:with-helpdesk', 'operative-status:on-site', 'action:rh04-assign-to-contractor', 'security-role:helpdesk-administrator', 'helpdesk-type:reactive'. The display name is the durable Vanilla identity; the action code prefix (rh04) is included for actions because codes are embedded in names.",
+    "canonicalKeyScheme": "Canonical keys are '<objectType>:<kebab-case-name>' derived from the Vanilla display name, e.g. 'status:with-helpdesk', 'operative-status:on-site', 'action:rh04-assign-to-contractor', 'security-role:helpdesk-administrator', 'helpdesk-type:reactive'. The display name is the durable Vanilla identity; the action code prefix (rh04) is included for actions because codes are embedded in names. CAVEAT (2026-08-19): display names are NOT universally unique (Orders has two priorities both named 'Default'; four supplier actions coded SP07). Canonical keys must be collision-safe: family + observed code/semantic key + explicit disambiguator where needed.",
     "capturedAt": "2026-08-18",
     "environment": "https://warwick.concertodemo.co.uk"
   },
@@ -80,7 +80,28 @@
     "A Workspace": "6e277122-dfa5-421b-a1c3-b707e562690d"
   },
   "vocabularies": {
-    "orderStatuses": ["Accepted", "Appointment Made/Operative Assigned", "Awaiting acceptance", "Cancelled", "Closed", "Complete - awaiting certificate", "In progress", "In review", "On hold", "Pending quote", "Work complete"],
-    "siteLogbookStatuses": ["Aborted visit", "Appointment made", "Complete", "Complete - Remedial", "Complete with non compliance", "Helpdesk", "Ordered", "Unable to access site"]
+    "orderStatuses": [
+      "Accepted",
+      "Appointment Made/Operative Assigned",
+      "Awaiting acceptance",
+      "Cancelled",
+      "Closed",
+      "Complete - awaiting certificate",
+      "In progress",
+      "In review",
+      "On hold",
+      "Pending quote",
+      "Work complete"
+    ],
+    "siteLogbookStatuses": [
+      "Aborted visit",
+      "Appointment made",
+      "Complete",
+      "Complete - Remedial",
+      "Complete with non compliance",
+      "Helpdesk",
+      "Ordered",
+      "Unable to access site"
+    ]
   }
 }

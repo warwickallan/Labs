@@ -71,8 +71,11 @@ An action reaches the mobile operative only when BOTH gates open:
 **(1) the Action's** `is_handheld` + app-mode (and its lead/sub,
 job-type, constraints filters); **(2) the Status's** "Will jobs in this
 status appear on the mobile app" — TRUE only for With Maintenance Team
-and With Maintenance Team - R. That is why all mobile actions are
-allocated to exactly those two statuses.
+and With Maintenance Team - R. The dedicated GM/LM/PM/RM workflow actions are
+allocated to those working statuses; broader mobile-capable actions
+(e.g. G001) have wider availability but are only PRACTICALLY exposed
+on-device while the job is in WMT/WMT-R — the status gate creates the
+effective intersection.
 
 ## 3. Core Orders objects
 
@@ -106,7 +109,7 @@ allocated to exactly those two statuses.
 
 ```
 Helpdesk job (With Helpdesk)
-  → RH04 Assign to contractor            [CONFIG+VERIFIED to here]
+  → RH04 Assign to contractor            [VERIFIED to the line above; RH04 itself CONFIG — E1 never ran RH04]
       job → With Contractor - R; ORDER RAISED as <jobref>/1
       order status = Awaiting acceptance (default); tag 01 added
   → Supplier Portal shows order (parent job status/type visible)
@@ -149,8 +152,8 @@ acceptance) despite when-to-show="before accepted" (UO-002). SP01's
 availability IS correct (AWA); its only gap is portal visibility. ORC10 is
 available in AWA+AMO but not portal-visible. So the acceptance loop is
 dead on arrival: **VI-009/VO-002, CONFIGURATION DEFECT (structural),
-operationally confirmed** — 40/1 simply passed the gate in April via an
-admin-side route before/around this state.
+operationally confirmed** — 40/1 simply passed the gate in April; the accepting route is
+UNKNOWN (not evidenced).
 
 ## 6. Creation routes (three, all different)
 

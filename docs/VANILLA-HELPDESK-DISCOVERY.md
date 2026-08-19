@@ -1,5 +1,14 @@
 # Vanilla Helpdesk — Discovery Completion Report (structural baseline v1)
 
+> **⚠ HISTORICAL SNAPSHOT (frozen-baseline report).** This report captures
+> the position AT the v1 freeze. Later work supersedes parts of it:
+> evidence now runs E-001..E-024; E0/E1 executed (CONTROLLED VERIFIED —
+> see model/VERIFIED-BEHAVIOURS.json); T02-T09 trigger sources
+> structurally RESOLVED by Orders discovery (Supplier Actions, EO-002);
+> ALL 90 classifications read (E-023; Lifts has exactly 3 children);
+> quote→job bridge proven (RE05→RH03b, E-016). For current truth read
+> CURRENT_STATE.md and docs/CONCERTO-HELPDESK-ORDERS-OPERATING-MODEL.md.
+
 **Environment:** https://warwick.concertodemo.co.uk (Vanilla Concerto demo,
 build `2026.08.9968-main`) · **Mode:** DISCOVER (read-only; nothing ever
 persisted) · **Baseline frozen:** 2026-08-18, tag

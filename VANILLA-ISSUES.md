@@ -93,17 +93,19 @@ owner of Vanilla.
 - **Why it appears problematic:** New jobs may have no SLA unless a
   classification/call-type supplies one — and every Classification's
   Urgency column is also blank (E-012).
-- **Operational consequence:** Possibly SLA-less reactive jobs by default.
-  POSSIBLE DEFECT — NEEDS EXPERIMENT.
+- **Operational consequence:** CONFIRMED (E0/E1/B-010): reporter-wizard
+  jobs arrive with NO SLA targets; only the admin quick-add route (which
+  REQUIRES urgency) applies one. Severity upgraded from possible to
+  demonstrated for the wizard path.
 - **Evidence:** E-012.
 - **Correction verified?** No.
 
 ## VI-006 — Classification/SLA wiring absent [CONFIGURATION INCONSISTENCY]
 
 - **Configuration area:** Classifications, FM task types.
-- **Observed state:** All 16 classifications are Reactive-typed with blank
-  Urgency and zero values; FM task types (which map task type → Response
-  category) is empty.
+- **Observed state:** ALL 90 classification records (16 parents + 74
+  children, E-023) are Reactive-typed with blank urgency and zero values
+  at BOTH levels; resource grids empty (EO-006); FM task types empty.
 - **Why it appears problematic:** The classification layer exists but is
   unwired to SLAs — consistent with VI-005.
 - **Evidence:** E-012.
@@ -147,7 +149,10 @@ owner of Vanilla.
 - **Why it appears problematic:** Actions carry email flags (originator/
   supplier/operative) but the content templates are blank — despatched
   emails would be empty or fall back to unknown system defaults.
-- **Operational consequence:** Unknown until E2 observes a despatch.
+- **Operational consequence:** PARTIALLY OBSERVED (passive): RH01's email
+  attempt logged 'Email failed to send' on the job timeline (OD-006,
+  B-012). Whether empty templates or SMTP absence causes the failure is
+  still unproven (E2 observes).
 - **Evidence:** E-012, E-017.
 - **Confidence:** APPARENTLY UNWIRED CONFIGURATION.
 - **Correction verified?** No.
@@ -180,4 +185,15 @@ owner of Vanilla.
   availability tick corrected too.
 - **Suggested correction (NOT applied):** portal visibility on SP01+ORC10;
   portal visibility + AWA availability on SP02 - or ZZ TEST clones for E2.
+- **Correction verified?** No.
+
+## VI-010 — GM06 "Take off hold" tag automation appears inverted [CONFIGURATION INCONSISTENCY]
+
+- **Configuration area:** Helpdesk Actions (tags).
+- **Observed state:** GM06 has IDENTICAL tag automation to GM05: adds
+  "05. On hold", removes "04. In progress" (E-024 definitive re-read).
+  Its purpose implies the inverse.
+- **Operational consequence:** jobs taken off hold would keep/gain the
+  on-hold tag. Runtime effect untested (E5 territory).
+- **Evidence:** E-023, E-024.
 - **Correction verified?** No.

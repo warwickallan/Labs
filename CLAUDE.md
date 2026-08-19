@@ -8,16 +8,15 @@ fixing.
 
 ## What this repository is
 
-An evidence repository and model for discovering the **Vanilla** (out-of-the-
-box / current baseline) Helpdesk configuration of **Concerto**, observed
-read-only in the supplied TEST environment:
-
-- TEST environment: `https://warwick.concertodemo.co.uk/login.aspx`
-- Parent configuration area: **Helpdesk Admin**
-- Helpdesk Types: at minimum **Reactive** and **Planned** — discover what
-  actually exists rather than assuming the list.
-- First detailed target: **Reactive Helpdesk** (after the Helpdesk Admin
-  parent structure has been mapped).
+The Bellrock evidence repository and models for **Vanilla Concerto**
+configuration in the TEST environment
+(`https://warwick.concertodemo.co.uk`). Scope has grown beyond the
+original Helpdesk-only brief: it now covers **Helpdesk Admin, Orders
+Admin, the operational Helpdesk, the Supplier Portal, and the
+cross-domain mechanism between them**, plus a graded behaviour layer
+(experiments E0/E1 complete). PPM Scheduler is a known, deliberately
+unmapped future domain. The canonical explainer is
+`docs/CONCERTO-HELPDESK-ORDERS-OPERATING-MODEL.md`.
 
 No product code lives here. The deliverables are the machine-readable model
 (`model/VANILLA-HELPDESK.json`), the discovery report
@@ -43,8 +42,11 @@ durable contract only.** Standing invariants regardless of mode:
    changing data. A later, separately approved EXPERIMENT phase will test
    behaviour with disposable `ZZ TEST` objects. Do not begin it without
    explicit approval.
-6. The model grows **only from discovered evidence** — never invent fields
-   for completeness.
+6. The models grow **only from discovered evidence** — never invent
+   fields for completeness. Domains stay separate (Helpdesk / Orders /
+   cross-domain / behaviour); GUIDs are environment identities, and
+   display names are NOT guaranteed unique (duplicate 'Default' order
+   priorities) — canonical keys need family + code/semantic + disambiguator.
 
 ## Division of responsibility
 

@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bellrock:concerto:vanilla-orders:1",
+  "title": "Vanilla Orders model",
+  "type": "object",
+  "required": [
+    "metadata",
+    "orderStatuses",
+    "orderPriorities",
+    "orderTypes",
+    "budgetCategories",
+    "supplierActions"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "modelVersion",
+        "domain",
+        "mode"
+      ],
+      "properties": {
+        "modelVersion": {
+          "const": 1
+        },
+        "domain": {
+          "const": "Orders"
+        },
+        "mode": {
+          "const": "DISCOVER"
+        }
+      }
+    },
+    "orderStatuses": {
+      "type": "array",
+      "minItems": 11,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "sort"
+        ]
+      }
+    },
+    "orderPriorities": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "orderTypes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "budgetCategories": {
+      "type": "array",
+      "minItems": 11,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "code"
+        ]
+      }
+    },
+    "supplierActions": {
+      "type": "array",
+      "minItems": 13,
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "resultingOrderStatus",
+          "firesHelpdeskAction",
+          "portalVisible",
+          "canonicalKey",
+          "observedCode"
+        ]
+      }
+    }
+  }
+}
