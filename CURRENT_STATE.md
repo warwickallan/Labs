@@ -4,11 +4,18 @@
 > the evidence/registers named below → `git log`.** This file states the
 > CURRENT truth; history lives in SESSION_LOG and git.
 
-- **Updated:** 2026-08-19 (after Core Five completeness audit E-023; before E2).
-- **Phase/mode:** EXPERIMENT mode, **suspended between experiments**.
-  DISCOVER-mode read-only rules no longer apply globally; the persistence
-  rule is now: *never modify Vanilla configuration; disposable ZZ TEST
-  fixtures only where an authorised experiment explicitly requires them.*
+- **Updated:** 2026-08-19 (entering ORDERS ADMIN DISCOVER mode).
+- **Phase/mode:** **ORDERS ADMIN DISCOVER** — structural discovery of the
+  Orders configuration domain (read-only: Add/Edit forms opened and
+  CANCELLED, transient unsaved probes allowed, nothing persisted).
+  E2 is BLOCKED until Orders structural truth exists. Standing rule
+  unchanged: never modify Vanilla; ZZ fixtures only under authorised
+  experiments. Domain separation mandatory: Orders artefacts live in
+  model/VANILLA-ORDERS.json, schemas/vanilla-orders.schema.json,
+  evidence/orders-admin/, docs/VANILLA-ORDERS-DISCOVERY.md; Helpdesk↔Orders
+  edges in model/CROSS-DOMAIN-RELATIONSHIPS.json. Do NOT fold Orders into
+  VANILLA-HELPDESK.json. PPM Scheduler and supplier-facing surfaces:
+  record references only, no crawl/testing yet.
 - **Frozen structural baseline:** tag `VANILLA-HELPDESK-STRUCTURAL-v1` =
   `705ca2a11001b610bffaf30da6447475bea91675` (immutable; raw discovered
   structure, defects unrepaired).
@@ -41,9 +48,11 @@
 
 ## Next permitted step
 
-Nothing autonomous beyond maintenance of docs/models. On Warwick's word:
-E2 per `docs/EXPERIMENT-PROGRAMME.md` (needs ZZ TEST supplier with
-non-routable email).
+Orders Admin structural crawl (authorised, in progress): all tabs; priority
+depth on Status, Priority, Order Types, Budget Categories, and Supplier
+Actions (every record individually). Then Helpdesk↔Orders reconciliation,
+Orders model validation, and a proposed programme for Supplier-Helpdesk
+operational discovery + E2. E2 itself remains BLOCKED.
 
 ## Important unresolved items
 

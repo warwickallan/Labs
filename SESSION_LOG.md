@@ -7,6 +7,17 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 (rotate checkpoint) — Entering ORDERS ADMIN DISCOVER
+
+Core Five audit accepted and banked (E-023, CORE-FIVE-COMPLETENESS.md).
+Warwick identified Orders Admin as a missing prerequisite domain for E2
+(the Helpdesk/Orders boundary). New phase: exhaustive structural discovery
+of Orders Admin with mandatory domain separation (VANILLA-ORDERS model/
+schema/evidence/report + CROSS-DOMAIN-RELATIONSHIPS for the edges).
+Priority depth: Order Status, Priority, Order Types, Budget Categories,
+Supplier Actions (highest - every record individually). PPM Scheduler and
+supplier-facing surfaces: references only. E2 remains blocked.
+
 ## 2026-08-19 — Core Five completeness audit (E-023, read-only)
 
 Warwick prioritised Job Types/Statuses/Actions/Classifications/Response
