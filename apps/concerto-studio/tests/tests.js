@@ -127,6 +127,72 @@
     });
   });
 
+  /* ---- desired-state fork / diff / undo -------------------------------- */
+
+  test('fork → empty diff; move availability → exact deviation; undo/redo round-trip', function () {
+    return loadedPromise.then(function (res) {
+      var M = window.StudioModel, Df = window.StudioDiff;
+      M.discard();
+      M.fork(res.model);
+      assert(Df.compare(res.model, M.desired()).isEmpty, 'fresh fork diffs empty');
+
+      /* Business Case - R offers zero actions in Vanilla (VI-002) — move one there */
+      M.moveAvailability('RH02. Assign to Maintenance team', 'With Helpdesk', 'Business Case - R', 'Reactive');
+      var d = Df.compare(res.model, M.desired());
+      assert(d.availability.added.length === 1 && d.availability.removed.length === 1,
+        'move = 1 added + 1 removed, got +' + d.availability.added.length + ' −' + d.availability.removed.length);
+      assert(d.availability.added[0].status === 'Business Case - R', 'added to BC-R');
+      assert(d.availability.added[0].confidence === 'DESIGNED', 'designed edits graded DESIGNED');
+      assert(Df.deviationSchedule(d).length === 2, 'schedule has 2 rows');
+
+      assert(M.undo(), 'undo available');
+      assert(Df.compare(res.model, M.desired()).isEmpty, 'undo restores Vanilla-equal state');
+      assert(M.redo(), 'redo available');
+      assert(!Df.compare(res.model, M.desired()).isEmpty, 'redo re-applies the move');
+      M.discard();
+    });
+  });
+
+  test('add/remove status flows through diff; removal cascades relationships', function () {
+    return loadedPromise.then(function (res) {
+      var M = window.StudioModel, Df = window.StudioDiff;
+      M.fork(res.model);
+      M.addStatus('ZZ Design Test', ['Reactive']);
+      var d = Df.compare(res.model, M.desired());
+      assert(d.statuses.added.length === 1 && d.statuses.added[0].key === 'ZZ Design Test', 'status added');
+
+      M.addAvailability('G001. Add a note, photo or document', 'ZZ Design Test', 'Reactive');
+      M.removeStatus('ZZ Design Test');
+      d = Df.compare(res.model, M.desired());
+      assert(d.isEmpty, 'removing the added status (and its edges) returns to Vanilla-equal');
+
+      /* removing a VANILLA status must register as removals, incl. cascade */
+      M.removeStatus('Business Case - R');
+      d = Df.compare(res.model, M.desired());
+      assert(d.statuses.removed.length === 1, 'vanilla status removal recorded');
+      assert(d.results.removed.length >= 1, 'T07 sets-edge into BC-R cascades');
+      M.discard();
+    });
+  });
+
+  test('export → import round-trips the desired state against the same baseline', function () {
+    return loadedPromise.then(function (res) {
+      var M = window.StudioModel, Df = window.StudioDiff;
+      M.fork(res.model);
+      M.setResult('RH07. Amend SLA', 'With Helpdesk', 'sets', 'Reactive');
+      var exported = M.exportJson();
+      var parsed = JSON.parse(exported);
+      assert(parsed.kind === 'CUSTOMER-DESIRED-STATE' && parsed.basedOnVanilla.helpdesk === res.model.meta.sourceFingerprints.helpdesk, 'baseline pinned');
+      var before = Df.deviationSchedule(Df.compare(res.model, M.desired()));
+      M.discard();
+      var warning = M.importJson(exported, res.model);
+      assert(warning === null, 'same baseline imports without warning');
+      var after = Df.deviationSchedule(Df.compare(res.model, M.desired()));
+      assert(JSON.stringify(before) === JSON.stringify(after), 'deviations identical after round-trip');
+      M.discard();
+    });
+  });
+
   /* ---- view smoke tests: render real projections into a sandbox -------- */
 
   function sandbox() {

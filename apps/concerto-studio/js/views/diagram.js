@@ -51,7 +51,7 @@
     return chip;
   }
 
-  function card(model, action, rerender) {
+  function card(model, action, rerender, opts, statusName) {
     var el = D().el;
     var badges = window.StudioSchema.actionBadges(action);
     if (state.detail === 'simple') {
@@ -59,26 +59,88 @@
         return ['mobile', 'supplier', 'machine', 'email'].indexOf(b.kind) !== -1;
       });
     }
+    var editable = opts && opts.editable;
     var c = el('div', {
       class: 'dcard' + (state.selected === action.name ? ' selected' : ''),
+      draggable: editable ? 'true' : null,
+      title: editable ? 'Drag to another status to MOVE availability · Alt-drag to COPY' : null,
       onclick: function () {
         state.selected = action.name;
         window.StudioInspector.showAction(model, action.name);
         rerender();
       }
     }, [
-      el('div', { class: 'dname', text: action.name }),
+      el('div', { class: 'dname' }, [
+        document.createTextNode(action.name),
+        editable && statusName ? el('button', {
+          class: 'dcard-remove', title: 'Remove availability from ' + statusName, text: '✕',
+          onclick: function (ev) {
+            ev.stopPropagation();
+            window.StudioModel.removeAvailability(action.name, statusName);
+            opts.onChange();
+          }
+        }) : null
+      ]),
       resultChip(model, action),
       badges.length ? el('div', { class: 'badges' }, badges.map(function (b) {
         return el('span', { class: 'badge ' + b.kind, text: b.label });
       })) : null
     ]);
+    if (editable) {
+      c.addEventListener('dragstart', function (ev) {
+        ev.dataTransfer.setData('text/plain', JSON.stringify({ kind: 'action', action: action.name, fromStatus: statusName || null }));
+        ev.dataTransfer.effectAllowed = 'copyMove';
+      });
+    }
     return c;
   }
 
-  function column(model, status, rerender) {
+  function makeDropTarget(colEl, statusName, opts) {
+    if (!opts || !opts.editable) return;
+    colEl.addEventListener('dragover', function (ev) {
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = ev.altKey ? 'copy' : 'move';
+      colEl.classList.add('drop-hover');
+    });
+    colEl.addEventListener('dragleave', function () { colEl.classList.remove('drop-hover'); });
+    colEl.addEventListener('drop', function (ev) {
+      ev.preventDefault();
+      colEl.classList.remove('drop-hover');
+      var data;
+      try { data = JSON.parse(ev.dataTransfer.getData('text/plain')); } catch (e) { return; }
+      if (!data) return;
+      if (data.kind === 'action') {
+        if (statusName === null) {
+          /* dropped on the Not-allocated column = remove this availability */
+          if (data.fromStatus) window.StudioModel.removeAvailability(data.action, data.fromStatus);
+        } else if (!data.fromStatus || ev.altKey) {
+          window.StudioModel.addAvailability(data.action, statusName, typeForAdd(data.action));
+        } else if (data.fromStatus !== statusName) {
+          window.StudioModel.moveAvailability(data.action, data.fromStatus, statusName, null);
+        } else return;
+        opts.onChange();
+      } else if (data.kind === 'status' && statusName && data.status !== statusName) {
+        /* reorder: place the dragged status just before the drop target */
+        var target = window.StudioModel.desired().helpdesk.statuses.filter(function (s) { return s.name === statusName; })[0];
+        if (target) {
+          window.StudioModel.reorderStatus(data.status, (target.displayOrder || 0) - 1);
+          opts.onChange();
+        }
+      }
+    });
+  }
+
+  function typeForAdd(actionName) {
+    /* when copying availability, default to the action's own first type */
+    var m = window.StudioModel.desired();
+    var a = m.helpdesk.actions.filter(function (x) { return x.name === actionName; })[0];
+    return a && a.types.length ? a.types[0] : 'Reactive';
+  }
+
+  function column(model, status, rerender, opts) {
     var el = D().el;
     var isCollapsed = !!state.collapsed[status.name];
+    var editable = opts && opts.editable;
 
     var edges = model.helpdesk.availability.filter(function (e) {
       return e.status === status.name && typeVisible(e.type);
@@ -94,7 +156,8 @@
 
     var head = el('div', {
       class: 'dcol-head',
-      title: isCollapsed ? 'Expand' : 'Click name for details · chevron to collapse',
+      draggable: editable ? 'true' : null,
+      title: isCollapsed ? 'Expand' : (editable ? 'Drag to reorder · click name for details' : 'Click name for details · chevron to collapse'),
       onclick: function (ev) {
         if (isCollapsed || ev.target.classList.contains('chev')) {
           state.collapsed[status.name] = !isCollapsed;
@@ -107,18 +170,34 @@
       el('span', { class: 'chev', text: isCollapsed ? '▸' : '▾', style: 'cursor:pointer;color:var(--text-faint)' }),
       el('span', { text: status.name }),
       status.isDefaultFor.length ? el('span', { class: 'default-star', title: 'Default status for ' + status.isDefaultFor.join(', '), text: '★' }) : null,
+      editable ? el('button', {
+        class: 'dcard-remove', title: 'Remove this status (and its relationships) from the design', text: '✕',
+        onclick: function (ev) {
+          ev.stopPropagation();
+          if (window.confirm('Remove status "' + status.name + '" and every relationship touching it from the design? (Undo is available.)')) {
+            window.StudioModel.removeStatus(status.name);
+            opts.onChange();
+          }
+        }
+      }) : null,
       el('span', { class: 'count', text: String(actions.length) })
     ]);
+    if (editable) {
+      head.addEventListener('dragstart', function (ev) {
+        ev.dataTransfer.setData('text/plain', JSON.stringify({ kind: 'status', status: status.name }));
+      });
+    }
 
     var col = el('div', { class: 'dcol' + (isCollapsed ? ' collapsed' : '') }, [head]);
+    makeDropTarget(col, status.name, opts);
     if (!isCollapsed) {
       col.appendChild(el('div', { class: 'dcol-cards' },
-        actions.map(function (a) { return card(model, a, rerender); })));
+        actions.map(function (a) { return card(model, a, rerender, opts, status.name); })));
     }
     return col;
   }
 
-  function machineColumn(model, rerender) {
+  function machineColumn(model, rerender, opts) {
     var el = D().el;
     var name = 'Not allocated';
     var isCollapsed = !!state.collapsed[name];
@@ -138,9 +217,10 @@
       el('span', { class: 'count', text: String(actions.length) })
     ]);
     var col = el('div', { class: 'dcol machine' + (isCollapsed ? ' collapsed' : '') }, [head]);
+    makeDropTarget(col, null, opts);
     if (!isCollapsed) {
       col.appendChild(el('div', { class: 'dcol-cards' },
-        actions.map(function (a) { return card(model, a, rerender); })));
+        actions.map(function (a) { return card(model, a, rerender, opts, null); })));
     }
     return col;
   }
@@ -155,13 +235,13 @@
     }));
   }
 
-  function render(container, model) {
+  function render(container, model, opts) {
     var el = D().el;
     D().clear(container);
     var page = el('div', { class: 'page wide' });
     container.appendChild(page);
 
-    function rerender() { render(container, model); }
+    function rerender() { render(container, model, opts); }
 
     page.appendChild(el('div', { class: 'toolstrip' }, [
       el('label', { text: 'Type' }),
@@ -193,11 +273,26 @@
 
     function renderBoard() {
       D().clear(board);
-      board.appendChild(machineColumn(model, rerender));
+      board.appendChild(machineColumn(model, rerender, opts));
       model.helpdesk.statuses.forEach(function (s) {
         if (state.type !== 'All' && s.types.indexOf(state.type) === -1) return;
-        board.appendChild(column(model, s, rerender));
+        board.appendChild(column(model, s, rerender, opts));
       });
+      if (opts && opts.editable) {
+        board.appendChild(el('div', { class: 'dcol' }, [
+          el('button', {
+            class: 'btn add-status', text: '+ Status',
+            onclick: function () {
+              var name = window.prompt('Name for the new status:');
+              if (!name || !name.trim()) return;
+              var type = window.prompt('Helpdesk Type for the new status — Reactive or Planned:', 'Reactive');
+              if (type !== 'Reactive' && type !== 'Planned') return void window.alert('Type must be exactly Reactive or Planned.');
+              window.StudioModel.addStatus(name.trim(), [type]);
+              opts.onChange();
+            }
+          })
+        ]));
+      }
       applyZoom();
     }
     renderBoard();

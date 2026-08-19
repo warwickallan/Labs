@@ -58,10 +58,16 @@ session-related stays out of the public repository.
 
 ## Status
 
-Built so far: model loader + 18 fidelity invariants (browser test suite),
-application shell with left navigation, Overview dashboard, read-only
-Vanilla Workflow Diagram (status columns / action cards / inspector) and
-Action Map (three-lane, hover/pin-focused edges). Instance crawl, Compare,
-Findings engine, Design (drag-and-drop fork editing), Build pipeline and
-the Solution Design generator are designed but not yet built — see
+Built so far: model loader + 18 fidelity invariants (browser test suite,
+17 tests), application shell with left navigation, Overview dashboard,
+read-only Vanilla views (Workflow Diagram, Action Map, Matrix,
+Configuration, Evidence index), and DESIGN mode v1: fork Vanilla into an
+editable desired state (`model.js` — mutation API, JSON-snapshot
+undo/redo, localStorage autosave, CUSTOMER-DESIRED-STATE.json
+export/import with pinned baseline fingerprints), drag-and-drop
+availability editing on the same Diagram component (move / Alt-copy /
+remove / add status / reorder columns), and a live Deviation Schedule
+computed by the pure differ (`diff.js`). Instance crawl, Compare against
+a crawled instance, Findings engine, Build pipeline and the Solution
+Design generator are designed but not yet built — see
 docs/ARCHITECTURE.md.

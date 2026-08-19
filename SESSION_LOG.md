@@ -25,9 +25,17 @@ behaviours). Browser test suite PASS 14/14 against canonical data
 git-ignored. No Concerto contact; Vanilla untouched; no evidence/model
 files modified. Accepted architecture recorded in
 apps/concerto-studio/docs/ARCHITECTURE.md (desired-state fork, pure diff,
-staged build plan, harness-as-adapter, receipts + read-back). Next:
-model.js fork/undo, diff.js, Findings rule engine, DESIGN drag-and-drop,
-Python harness service.
+staged build plan, harness-as-adapter, receipts + read-back).
+
+Second pass same day: DESIGN mode v1 shipped — model.js (fork of the
+frozen Vanilla, mutation API graded DESIGNED, JSON-snapshot undo/redo,
+localStorage autosave, CUSTOMER-DESIRED-STATE.json export/import pinning
+the baseline fingerprints), diff.js (pure Added/Removed/Modified differ +
+deviation schedule; serves DESIGN now, Compare/Build later), and the
+Diagram component gained an editable mode (drag card = move availability,
+Alt-drag = copy, drop on Not-allocated = remove, ✕ affordances, + Status,
+column-header drag reorder). Tests 17/17 green. Next: Findings rule
+engine, result-editing in the inspector, Compare, Python harness service.
 
 ## 2026-08-19 (repo-only rotate patch) — Final durability inconsistencies fixed
 
