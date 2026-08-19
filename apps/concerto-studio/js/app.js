@@ -27,8 +27,6 @@
   };
 
   var STUBS = {
-    'vanilla-matrix': 'A sortable, filterable grid of all 50 actions (code, group, availability, resulting status, tags, mobile, triggers) — the precise-editing projection of the same model as the Diagram. Next on the build list.',
-    'vanilla-config': 'Read-only representation of the full Vanilla configuration families (statuses, response categories, classifications, tags, working time, operative statuses) from the canonical model.',
     'instance': 'Target-instance connection: URL, read-only browser-harness crawl, snapshot history. The harness is a separate local service (adapter) — planned; nothing here talks to Concerto yet.',
     'compare': 'Instance-vs-Vanilla difference engine: Added / Removed / Modified / Unchanged at object and field level. Requires the Instance crawl.',
     'findings': 'Evidence-backed anomaly detector seeded from VANILLA-ISSUES.md (severity, evidence, confidence, suggested correction, Fix Selected → build plan). The rule engine will run against any crawled instance.',
@@ -91,6 +89,8 @@
       case 'overview': window.StudioOverview.render(content, app.model, app.invariants); break;
       case 'vanilla-diagram': window.StudioDiagram.render(content, app.model); break;
       case 'vanilla-map': window.StudioActionMap.render(content, app.model); break;
+      case 'vanilla-matrix': window.StudioGrid.render(content, app.model); break;
+      case 'vanilla-config': window.StudioConfig.render(content, app.model); break;
       case 'evidence': renderEvidence(content); break;
       default: renderStub(content, pageId);
     }

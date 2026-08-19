@@ -18,10 +18,16 @@ cross-domain mechanism between them**, plus a graded behaviour layer
 unmapped future domain. The canonical explainer is
 `docs/CONCERTO-HELPDESK-ORDERS-OPERATING-MODEL.md`.
 
-No product code lives here. The deliverables are the machine-readable model
-(`model/VANILLA-HELPDESK.json`), the discovery report
-(`docs/VANILLA-HELPDESK-DISCOVERY.md`), the unknowns register (`UNKNOWNS.md`)
-and the evidence tree (`evidence/`).
+Labs is becoming the Concerto **knowledge + tooling** repository. The
+knowledge deliverables are the machine-readable models (`model/*.json`),
+the discovery reports (`docs/`), the registers (`UNKNOWNS.md`,
+`VANILLA-ISSUES.md`, `OPERATIONAL-DISCREPANCIES.md`) and the evidence tree
+(`evidence/`). Tooling lives under `apps/` — currently
+`apps/concerto-studio/` (the Concerto Configuration Studio, a zero-build
+browser app consuming the models READ-ONLY; see its README and
+`docs/ARCHITECTURE.md` inside the app folder). The evidence/model
+artefacts remain the canonical source of truth and are never modified
+merely to make an application convenient.
 
 ## Operating mode
 
@@ -100,6 +106,8 @@ evidence/reactive-helpdesk/           statuses/ operative-statuses/ actions/
                                       action-configurator/ mobile/ roles/ timers/ screenshots/
 evidence/planned-helpdesk/            structural-parity evidence only (unless instructed)
 docs/VANILLA-HELPDESK-DISCOVERY.md    the human-readable report (generated from the model + evidence)
+apps/concerto-studio/                 the Configuration Studio app (self-contained; own README,
+                                      tests, Start Studio.bat; consumes model/*.json read-only)
 ```
 
 ## Exact commands

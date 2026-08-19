@@ -16,8 +16,19 @@
 <h1>Concerto Configuration Studio — fidelity tests</h1>
 <p>Requires a served origin rooted at the Labs repository (Start Studio.bat).</p>
 <ul id="results"></ul>
+<div id="sandbox" style="position:absolute;left:-10000px;top:0;width:1200px"></div>
+<aside id="inspector" class="hidden" hidden>
+  <div class="insp-head"><h3 id="inspTitle"></h3><button class="insp-close" id="inspClose">✕</button></div>
+  <div class="insp-body" id="inspBody"></div>
+</aside>
 <script src="../js/studio-schema.js"></script>
 <script src="../js/vanilla-loader.js"></script>
+<script src="../js/views/inspector.js"></script>
+<script src="../js/views/overview.js"></script>
+<script src="../js/views/diagram.js"></script>
+<script src="../js/views/actionmap.js"></script>
+<script src="../js/views/grid.js"></script>
+<script src="../js/views/config.js"></script>
 <script src="tests.js"></script>
 </body>
 </html>

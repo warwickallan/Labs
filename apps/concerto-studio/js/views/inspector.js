@@ -19,8 +19,8 @@
       });
     }
     (children || []).forEach(function (c) {
-      if (c === null || c === undefined) return;
-      node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+      if (c === null || c === undefined || c === false) return;
+      node.appendChild(typeof c === 'object' ? c : document.createTextNode(String(c)));
     });
     return node;
   }

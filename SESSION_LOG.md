@@ -7,6 +7,28 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-19 — Concerto Configuration Studio v0.1 (apps/concerto-studio/)
+
+New tooling boundary: Labs is now knowledge (evidence/model) + tools
+(apps/). Built the Studio as a self-contained zero-build browser app per
+the Launch playbook (no Node on this machine): studio-schema (canonical
+keys, PARSED-FROM-NOTES provenance), vanilla-loader (fetches
+../../model/*.json READ-ONLY, normalises, deep-freezes, runs 18 pinned
+fidelity invariants), left-nav shell, Overview dashboard, and four real
+Vanilla views fed from the canonical models: Workflow Diagram (status
+columns/action cards, Not-allocated machine-fired column, filters,
+zoom/pan, inspector drawer), Action Map (three-lane, hover/pin-focused
+edges — default draws none), Matrix (sortable 50-action grid),
+Configuration (all families, both domains, cross-domain edges, graded
+behaviours). Browser test suite PASS 14/14 against canonical data
+(document.title reporting). Studio runtime dirs (data/snapshots/receipts)
+git-ignored. No Concerto contact; Vanilla untouched; no evidence/model
+files modified. Accepted architecture recorded in
+apps/concerto-studio/docs/ARCHITECTURE.md (desired-state fork, pure diff,
+staged build plan, harness-as-adapter, receipts + read-back). Next:
+model.js fork/undo, diff.js, Findings rule engine, DESIGN drag-and-drop,
+Python harness service.
+
 ## 2026-08-19 (repo-only rotate patch) — Final durability inconsistencies fixed
 
 No browser work. E2's RH04 expectation corrected to With Contractor - R

@@ -127,6 +127,74 @@
     });
   });
 
+  /* ---- view smoke tests: render real projections into a sandbox -------- */
+
+  function sandbox() {
+    var sb = document.getElementById('sandbox');
+    while (sb.firstChild) sb.removeChild(sb.firstChild);
+    return sb;
+  }
+
+  test('Diagram renders 13 status columns + Not-allocated (All types)', function () {
+    return loadedPromise.then(function (res) {
+      window.StudioDiagram._state.type = 'All';
+      window.StudioDiagram._state.search = '';
+      window.StudioDiagram._state.collapsed = {};
+      window.StudioDiagram.render(sandbox(), res.model);
+      var cols = document.querySelectorAll('#sandbox .dcol');
+      assert(cols.length === 14, '14 columns expected, got ' + cols.length);
+      var cards = document.querySelectorAll('#sandbox .dcard');
+      assert(cards.length > 90, 'expected 95+ availability cards + machine column, got ' + cards.length);
+    });
+  });
+
+  test('Diagram Reactive filter shows only Reactive statuses', function () {
+    return loadedPromise.then(function (res) {
+      window.StudioDiagram._state.type = 'Reactive';
+      window.StudioDiagram.render(sandbox(), res.model);
+      var cols = document.querySelectorAll('#sandbox .dcol:not(.machine)');
+      assert(cols.length === 9, '9 Reactive status columns, got ' + cols.length);
+      window.StudioDiagram._state.type = 'All';
+    });
+  });
+
+  test('Action Map renders 13 | 50 | 13 lanes and pin draws edges', function () {
+    return loadedPromise.then(function (res) {
+      window.StudioActionMap._state.type = 'All';
+      window.StudioActionMap._state.search = '';
+      window.StudioActionMap._state.pinned = null;
+      window.StudioActionMap.render(sandbox(), res.model);
+      var lanes = document.querySelectorAll('#sandbox .lane');
+      var counts = Array.prototype.map.call(lanes, function (l) { return l.querySelectorAll('.lrow').length; });
+      assert(counts.join(',') === '13,50,13', 'lane counts ' + counts.join(','));
+      assert(document.querySelectorAll('#sandbox #mapSvg path').length === 0, 'default view draws no edges');
+      var rows = document.querySelectorAll('#sandbox .lane:nth-child(3) .lrow');
+      var rh04 = Array.prototype.filter.call(rows, function (r) { return r.textContent.indexOf('RH04') === 0; })[0];
+      rh04.click();
+      assert(document.querySelectorAll('#sandbox #mapSvg path').length === 4, 'RH04 pin draws 4 edges (3 avail + 1 sets)');
+      window.StudioActionMap._state.pinned = null;
+    });
+  });
+
+  test('Matrix renders all 50 actions with sortable projection', function () {
+    return loadedPromise.then(function (res) {
+      window.StudioGrid._state.type = 'All';
+      window.StudioGrid._state.search = '';
+      window.StudioGrid.render(sandbox(), res.model);
+      var rows = document.querySelectorAll('#sandbox tbody tr');
+      assert(rows.length === 50, '50 rows, got ' + rows.length);
+    });
+  });
+
+  test('Overview + Configuration render from the loaded model', function () {
+    return loadedPromise.then(function (res) {
+      window.StudioOverview.render(sandbox(), res.model, res.invariants);
+      assert(document.querySelectorAll('#sandbox .tile').length >= 6, 'overview tiles');
+      window.StudioConfig.render(sandbox(), res.model);
+      assert(document.querySelectorAll('#sandbox .tile').length >= 10, 'config sections');
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');
