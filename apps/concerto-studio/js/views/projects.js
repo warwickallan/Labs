@@ -19,12 +19,22 @@
     var domains = window.prompt('Domains (comma-separated):', 'Reactive Helpdesk');
     if (domains === null) return;
     try {
-      window.StudioProject.create({
+      var rec = window.StudioProject.create({
         name: name.trim(),
         instanceUrl: (url || '').trim(),
         domains: domains.split(',').map(function (d) { return d.trim(); }).filter(Boolean)
       });
-      onDone();
+      /* Persist immediately. A project that exists only in this browser is
+       * one refresh away from being lost — and startup prunes anything the
+       * durable store does not know about. */
+      window.StudioProject.persist(rec.key).then(function (r) {
+        if (!r || r.saved !== true) {
+          window.alert('"' + rec.name + '" was created, but could NOT be saved to the durable store' +
+            (r && r.reason ? ' (' + r.reason + ')' : '') +
+            '.\n\nIt exists in this browser only. Start the store and reopen Studio, or export the project, before doing real work in it.');
+        }
+        onDone();
+      });
     } catch (e) { window.alert(e.message); }
   }
 

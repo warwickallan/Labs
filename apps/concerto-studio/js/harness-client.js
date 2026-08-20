@@ -49,7 +49,11 @@
     connect: function (url) { return call('POST', '/session/connect', { url: url }); },
     sessionStatus: function () { return call('GET', '/session/status'); },
     disconnect: function () { return call('POST', '/session/disconnect', {}); },
-    crawl: function (domains) { return call('POST', '/crawl', { domains: domains }); },
+    /* expectInstance states which instance the caller believes it is
+     * crawling; the harness refuses if its session is on another host */
+    crawl: function (domains, expectInstance) {
+      return call('POST', '/crawl', { domains: domains, expectInstance: expectInstance || null });
+    },
     crawlStatus: function (id) { return call('GET', '/crawl/' + id + '/status'); },
     snapshot: function (id) { return call('GET', '/snapshot/' + id); },
     receipts: function () { return call('GET', '/receipts'); },

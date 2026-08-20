@@ -356,6 +356,20 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, run_on_worker("disconnect"))
             elif self.path == "/crawl":
                 domains = payload.get("domains") or ["helpdesk", "orders"]
+                # The caller states which instance it BELIEVES it is
+                # crawling. If the live session is on a different host, the
+                # crawl is refused — capturing one customer's configuration
+                # into another customer's project is the worst thing this
+                # harness could do.
+                expect = payload.get("expectInstance")
+                if expect:
+                    want = adapter._host_of(expect)
+                    have = adapter._host_of(SESSION.target_url or "")
+                    if want != have:
+                        return self._send(409, {"error":
+                            f"refusing to crawl: the harness is connected to {have or 'nothing'!r} "
+                            f"but this project expects {want!r}. Connect to the project's own "
+                            "instance first."})
                 cid = uuid.uuid4().hex[:12]
                 with LOCK:
                     CRAWLS[cid] = {"state": "QUEUED", "progress": {}, "domains": domains}

@@ -180,6 +180,43 @@ def main() -> int:
               snap["identities"]["statuses"]["With Helpdesk"]
               == fixture_concerto.STATUSES["With Helpdesk"]["guid"])
 
+        # ---- 4b. one instance never bleeds into another ------------------
+        s2 = adapter.ConcertoSession(headless=True)
+        s2.connect(base_url)
+        first_page = s2.page
+        # a DIFFERENT host must get a fresh context (no cookie carry-over,
+        # no redirect from the previous instance hijacking the navigation)
+        try:
+            s2.connect("http://127.0.0.1:9/")   # closed port: fails AFTER the context swap
+        except Exception:
+            pass
+        check("connecting to a different host starts a fresh browser context",
+              s2.page is not first_page)
+        s2.disconnect()
+
+        loud = False
+        s3 = adapter.ConcertoSession(headless=True)
+        try:
+            s3.connect(base_url)
+            # pretend the session drifted to another system
+            s3.target_url = "https://someone-elses-instance.invalid"
+            s3.refresh_state()
+            loud = s3.state == adapter.DISCONNECTED and s3.wrong_host is not None
+        finally:
+            s3.disconnect()
+        check("a session showing another host reports DISCONNECTED, not connected", loud)
+
+        check("host identity ignores paths and login redirects",
+              adapter._host_of("https://x.example/login.aspx?ReturnUrl=%2f") ==
+              adapter._host_of("https://X.Example/helpdesk_admin.aspx"))
+        check("host identity distinguishes different systems",
+              adapter._host_of("https://fmhelpdesk.npl.co.uk") !=
+              adapter._host_of("https://warwick.concertodemo.co.uk"))
+        check("host identity distinguishes same host on different ports",
+              adapter._host_of("http://127.0.0.1:8600") != adapter._host_of("http://127.0.0.1:8602"))
+        check("default ports are not part of the identity",
+              adapter._host_of("https://x.example:443/a") == adapter._host_of("https://x.example/b"))
+
         # ---- 5. determinism ---------------------------------------------
         snap2 = crawl_once(base_url)
         a = json.dumps(_strip_volatile(copy.deepcopy(snap)), sort_keys=True)

@@ -85,17 +85,45 @@
       });
     }
 
-    var savedUrl = '';
-    try { savedUrl = localStorage.getItem(URL_KEY) || 'https://warwick.concertodemo.co.uk'; } catch (e) { /* */ }
+    /* THE TARGET IS THE PROJECT'S INSTANCE. The project already carries
+     * its URL; asking again — and remembering the last one typed, whoever
+     * it belonged to — is how one customer's configuration ends up in
+     * another customer's project. With a project open the URL is shown,
+     * not requested; only the no-project case offers a box. */
+    var proj = window.StudioProject ? window.StudioProject.current() : null;
+    var projectUrl = proj && proj.instanceUrl ? String(proj.instanceUrl).trim() : '';
+    var typedUrl = '';
+    try { typedUrl = localStorage.getItem(URL_KEY) || ''; } catch (e) { /* */ }
 
-    var urlInput = el('input', {
-      type: 'text', value: savedUrl,
-      placeholder: 'https://customer.concertodemo.co.uk',
-      style: 'font:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--border-strong);border-radius:6px;width:400px',
-      onchange: function (ev) {
-        try { localStorage.setItem(URL_KEY, ev.target.value.trim()); } catch (e) { /* */ }
-      }
-    });
+    var urlInput = null;
+    var targetNode;
+    if (projectUrl) {
+      targetNode = el('span', { class: 'target-fixed' }, [
+        el('b', { text: projectUrl }),
+        el('span', { class: 'muted', style: 'font-size:11.5px', text: ' — this project’s instance' })
+      ]);
+    } else {
+      urlInput = el('input', {
+        type: 'text', value: typedUrl,
+        placeholder: 'https://customer.concerto.co.uk',
+        style: 'font:inherit;font-size:13px;padding:7px 12px;border:1px solid var(--border-strong);border-radius:6px;width:400px',
+        onchange: function (ev) {
+          try { localStorage.setItem(URL_KEY, ev.target.value.trim()); } catch (e) { /* */ }
+        }
+      });
+      targetNode = urlInput;
+    }
+    function targetUrl() { return projectUrl || (urlInput ? urlInput.value.trim() : ''); }
+
+    /* host identity — a login redirect is the same instance, a different
+     * hostname is a different system */
+    function hostOf(u) {
+      try { return new URL(/^https?:/i.test(u) ? u : 'https://' + u).hostname.toLowerCase(); }
+      catch (e) { return ''; }
+    }
+    var sessionHost = state.session && state.session.targetUrl ? hostOf(state.session.targetUrl) : '';
+    var wantHost = hostOf(targetUrl());
+    var wrongInstance = !!(sessionHost && wantHost && sessionHost !== wantHost);
 
     var connected = state.session && state.session.state === 'CONNECTED_READ_ONLY';
     var loginRequired = state.session && state.session.state === 'LOGIN_REQUIRED';
@@ -133,12 +161,12 @@
     page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
       el('h3', { text: 'Target instance' }),
       el('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, [
-        urlInput,
+        targetNode,
         el('button', {
           class: 'btn', text: 'CONNECT (read-only)',
           disabled: (state.harness && state.harness.available && !crawling) ? null : 'disabled',
           onclick: function () {
-            var url = urlInput.value.trim();
+            var url = targetUrl();
             if (!url) return;
             state.message = 'Opening the harness browser…';
             rerender();
@@ -154,10 +182,13 @@
         }),
         el('button', {
           class: 'btn', text: crawling ? 'CRAWLING…' : 'CRAWL INSTANCE',
-          disabled: connected && !crawling ? null : 'disabled',
-          title: connected ? 'Read-only crawl of Helpdesk + Orders admin' : 'Requires CONNECTED — READ ONLY',
+          disabled: (connected && !crawling && !wrongInstance) ? null : 'disabled',
+          title: wrongInstance ? 'The harness is connected to a different instance'
+            : (connected ? 'Read-only crawl of Helpdesk + Orders admin' : 'Requires CONNECTED — READ ONLY'),
           onclick: function () {
-            window.StudioHarness.crawl(['helpdesk', 'orders']).then(function (r) {
+            /* the expected instance travels with the request; the harness
+               refuses the crawl if its session is elsewhere */
+            window.StudioHarness.crawl(['helpdesk', 'orders'], targetUrl()).then(function (r) {
               state.crawlId = r.crawlId;
               state.crawlStatus = { state: 'QUEUED', progress: {} };
               rerender();
@@ -167,6 +198,10 @@
         }),
         chipFor()
       ]),
+      wrongInstance ? el('p', { class: 'wrong-instance' }, [
+        el('b', { text: 'The harness browser is on ' + sessionHost + ', not ' + wantHost + '. ' }),
+        document.createTextNode('Press CONNECT to point it at this project’s instance. Nothing from another system can be captured into this project.')
+      ]) : null,
       state.message ? el('p', { class: 'muted', style: 'margin-bottom:0', text: state.message }) : null,
       (!state.harness || !state.harness.available) ? el('p', { class: 'muted', style: 'margin-bottom:0' }, [
         document.createTextNode((state.harness && state.harness.reason) || 'Probing harness…'),

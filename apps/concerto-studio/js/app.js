@@ -452,9 +452,15 @@
             })
             .catch(function () { /* a single unreadable project must not blank the list */ });
         })).then(function () {
+          /* Prune stale localStorage cards the store does not know about —
+           * but NEVER a project that has simply not been saved yet. Losing
+           * a project someone just created would be far worse than showing
+           * one extra card. */
           try {
             window.StudioProject.list().forEach(function (p) {
-              if (keys.indexOf(p.key) === -1) window.StudioProject.remove(p.key);
+              if (keys.indexOf(p.key) !== -1) return;
+              if (p.unsaved) return;
+              window.StudioProject.remove(p.key);
             });
           } catch (e) { /* */ }
         });

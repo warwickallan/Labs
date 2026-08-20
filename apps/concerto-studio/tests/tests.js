@@ -1662,6 +1662,98 @@
     });
   });
 
+  /* ---- one project, one instance ----------------------------------------
+   * The target of a crawl is the OPEN PROJECT'S instance. It is never asked
+   * for again, never remembered from another customer, and a session on a
+   * different system can never be crawled into this project. */
+
+  test('the crawl target is the project’s own instance — never a remembered URL', function () {
+    return withCleanProjects(function () {
+      var sb = document.getElementById('sandbox');
+      sb.innerHTML = '';
+      /* a stale global URL from some earlier session */
+      localStorage.setItem('concerto-studio-instance-url', 'https://someone-elses.example');
+      window.StudioProject.importProject(fileFor('npl', 'National Physical Labs',
+        { instanceUrl: 'https://fmhelpdesk.npl.co.uk' }));
+      window.StudioProject.open('npl');
+      window.StudioInstance.render(sb, window.StudioApp.model);
+      var text = sb.textContent;
+      assert(text.indexOf('fmhelpdesk.npl.co.uk') !== -1, 'the project’s instance is shown as the target');
+      assert(text.indexOf('someone-elses.example') === -1, 'the remembered URL is NOT used: ' + text.slice(0, 200));
+      assert(!sb.querySelector('input[type=text]'), 'and there is no second URL box to fill in again');
+      window.StudioProject.close();
+      sb.innerHTML = '';
+      localStorage.removeItem('concerto-studio-instance-url');
+    });
+  });
+
+  test('a crawl states which instance it expects, so it cannot land in the wrong project', function () {
+    var seen = null;
+    var realCall = window.StudioHarness.crawl;
+    window.StudioHarness.crawl = function (domains, expect) { seen = expect; return new Promise(function () { }); };
+    try {
+      return withCleanProjects(function () {
+        var sb = document.getElementById('sandbox');
+        sb.innerHTML = '';
+        window.StudioProject.importProject(fileFor('npl', 'NPL', { instanceUrl: 'https://fmhelpdesk.npl.co.uk' }));
+        window.StudioProject.open('npl');
+        window.StudioInstance._state.session = { state: 'CONNECTED_READ_ONLY', targetUrl: 'https://fmhelpdesk.npl.co.uk' };
+        window.StudioInstance._state.harness = { available: true };
+        window.StudioInstance.render(sb, window.StudioApp.model);
+        var btn = Array.prototype.slice.call(sb.querySelectorAll('button'))
+          .filter(function (b) { return /CRAWL INSTANCE/.test(b.textContent); })[0];
+        assert(btn && !btn.disabled, 'CRAWL is available when the session is on the right instance');
+        btn.click();
+        assert(seen === 'https://fmhelpdesk.npl.co.uk', 'the expected instance travels with the crawl: ' + seen);
+        window.StudioProject.close();
+        sb.innerHTML = '';
+      });
+    } finally {
+      window.StudioHarness.crawl = realCall;
+      window.StudioInstance._state.session = null;
+      window.StudioInstance._state.harness = null;
+    }
+  });
+
+  test('a session on a DIFFERENT instance blocks the crawl and says so', function () {
+    return withCleanProjects(function () {
+      var sb = document.getElementById('sandbox');
+      sb.innerHTML = '';
+      window.StudioProject.importProject(fileFor('npl', 'NPL', { instanceUrl: 'https://fmhelpdesk.npl.co.uk' }));
+      window.StudioProject.open('npl');
+      /* the harness is still signed in to the demo instance */
+      window.StudioInstance._state.session = { state: 'CONNECTED_READ_ONLY', targetUrl: 'https://warwick.concertodemo.co.uk' };
+      window.StudioInstance._state.harness = { available: true };
+      window.StudioInstance.render(sb, window.StudioApp.model);
+      var btn = Array.prototype.slice.call(sb.querySelectorAll('button'))
+        .filter(function (b) { return /CRAWL INSTANCE/.test(b.textContent); })[0];
+      assert(btn && btn.disabled, 'CRAWL is refused while the session is elsewhere');
+      assert(sb.querySelector('.wrong-instance'), 'and the mismatch is stated, loudly');
+      assert(/warwick\.concertodemo\.co\.uk/.test(sb.querySelector('.wrong-instance').textContent) &&
+        /fmhelpdesk\.npl\.co\.uk/.test(sb.querySelector('.wrong-instance').textContent),
+        'naming both systems so the mistake is obvious');
+      window.StudioProject.close();
+      window.StudioInstance._state.session = null;
+      window.StudioInstance._state.harness = null;
+      sb.innerHTML = '';
+    });
+  });
+
+  test('a newly created project is never pruned before it has been saved', function () {
+    return withCleanProjects(function () {
+      var rec = window.StudioProject.create({ key: 'brand-new', name: 'Brand New', instanceUrl: 'https://x.example' });
+      assert(rec.unsaved === true, 'a fresh project is marked unsaved');
+      /* the startup prune keeps only manifest/store keys — but must spare unsaved ones */
+      var storeKeys = ['kirklees-council'];
+      window.StudioProject.list().forEach(function (p) {
+        if (storeKeys.indexOf(p.key) !== -1) return;
+        if (p.unsaved) return;
+        window.StudioProject.remove(p.key);
+      });
+      assert(window.StudioProject.get('brand-new'), 'the unsaved project survives the prune');
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');

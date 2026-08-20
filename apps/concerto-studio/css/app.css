@@ -202,6 +202,15 @@ header#topbar {
 }
 .truth.missing .truth-state { background: var(--danger); }
 .truth.history .truth-state { background: var(--warn); }
+.target-fixed {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface-2); font-size: 13px;
+}
+.wrong-instance {
+  margin: 10px 0 0; padding: 9px 13px; border-radius: 6px;
+  background: #fdeaea; border: 1px solid var(--danger); color: #7a1c1c; font-size: 12.5px;
+}
 .ci-history {
   display: inline-flex; gap: 8px; align-items: center; margin-left: 14px;
   padding: 3px 10px; border-radius: 6px; background: #fff7e6;

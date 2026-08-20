@@ -38,6 +38,33 @@ class StructureError(RuntimeError):
     Crawlers FAIL LOUDLY on this rather than returning incomplete data."""
 
 
+def _host_of(url: str) -> str:
+    """Identity of an instance: its ORIGIN (host, plus port when it is not
+    the scheme default), lower-cased.
+
+    Not the full URL — that would call a login redirect a different system.
+    Not the bare hostname either — two systems can share a hostname on
+    different ports, and treating them as one is exactly the confusion this
+    function exists to prevent.
+    """
+    from urllib.parse import urlparse
+
+    if not url:
+        return ""
+    parsed = urlparse(url if "//" in url else "//" + url)
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return ""
+    try:
+        port = parsed.port
+    except ValueError:
+        port = None
+    default = {"http": 80, "https": 443}.get((parsed.scheme or "").lower())
+    if port and port != default:
+        return f"{host}:{port}"
+    return host
+
+
 class ConcertoSession:
     """One visible (headed) browser session against one Concerto instance."""
 
@@ -53,24 +80,92 @@ class ConcertoSession:
         self.target_url: str | None = None
         self.state: str = DISCONNECTED
         self.concerto_build: str | None = None
+        # set when the browser is showing a DIFFERENT host than the target
+        self.wrong_host: str | None = None
 
     # ---- lifecycle -----------------------------------------------------
 
     def connect(self, url: str) -> dict:
-        """Open (or reuse) the browser and navigate to the instance.
-        NEVER accepts or enters credentials."""
+        """Open the browser and navigate to the instance.
+        NEVER accepts or enters credentials.
+
+        A DIFFERENT instance always gets a FRESH browser context. Two
+        reasons, both non-negotiable:
+          1. Safety — one customer's session cookies must never be carried
+             into another customer's instance.
+          2. Correctness — the previous instance's pending login redirect
+             would otherwise hijack the navigation ("interrupted by another
+             navigation to …/login.aspx"), leaving the harness pointed at
+             the wrong system while claiming to be on this one.
+        """
         from playwright.sync_api import sync_playwright
 
+        url = url.rstrip("/")
         if self._pw is None:
             self._pw = sync_playwright().start()
             # Headed: the human signs in in this window.
             self._browser = self._pw.chromium.launch(headless=self._headless)
-            context = self._browser.new_context(viewport={"width": 1500, "height": 950})
-            self.page = context.new_page()
-        self.target_url = url.rstrip("/")
-        self.page.goto(self.target_url, wait_until="domcontentloaded", timeout=45000)
+
+        if self.page is None or _host_of(url) != _host_of(self.target_url or ""):
+            self._new_context()
+
+        self.target_url = url
+        self._goto_settled(self.target_url)
         self.refresh_state()
         return self.status()
+
+    def _new_context(self) -> None:
+        """Drop any existing context (and its cookies) and start clean."""
+        try:
+            if self.page is not None:
+                self.page.context.close()
+        except Exception:
+            pass
+        context = self._browser.new_context(viewport={"width": 1500, "height": 950})
+        self.page = context.new_page()
+        self.concerto_build = None
+
+    def _goto_settled(self, url: str, attempts: int = 3) -> None:
+        """Navigate, tolerating the app's own redirects.
+
+        A Concerto instance normally bounces an unauthenticated visit to
+        its login page; Playwright reports that as an interrupted
+        navigation. That is expected, not a failure — so the interruption
+        is absorbed and the landing URL is checked instead. What is NOT
+        tolerated is landing on a DIFFERENT HOST: that means we are looking
+        at another system, and the caller must be told rather than shown
+        someone else's configuration.
+        """
+        last_error: Exception | None = None
+        for attempt in range(attempts):
+            try:
+                self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
+                last_error = None
+                break
+            except Exception as exc:  # noqa: BLE001 — inspected below
+                last_error = exc
+                if "interrupted by another navigation" not in str(exc):
+                    raise
+                # let the in-flight redirect finish, then try again
+                try:
+                    self.page.wait_for_load_state("domcontentloaded", timeout=15000)
+                except Exception:
+                    pass
+                time.sleep(0.5 * (attempt + 1))
+
+        landed = ""
+        try:
+            landed = self.page.url or ""
+        except Exception:
+            pass
+
+        if last_error is not None and not landed:
+            raise last_error
+        if landed and _host_of(landed) != _host_of(url):
+            raise StructureError(
+                f"navigation landed on {_host_of(landed)!r} but {_host_of(url)!r} was requested — "
+                "refusing to continue against a different system"
+            )
 
     def adopt_session_cookie(self, url: str, name: str, value: str) -> dict:
         """Adopt an EXISTING authenticated session created by a human in
@@ -85,9 +180,12 @@ class ConcertoSession:
             self._browser = self._pw.chromium.launch(headless=self._headless)
             context = self._browser.new_context(viewport={"width": 1500, "height": 950})
             self.page = context.new_page()
-        self.target_url = url.rstrip("/")
+        url = url.rstrip("/")
+        if self.page is None or _host_of(url) != _host_of(self.target_url or ""):
+            self._new_context()
+        self.target_url = url
         self.page.context.add_cookies([{"name": name, "value": value, "url": self.target_url + "/"}])
-        self.page.goto(self.target_url, wait_until="domcontentloaded", timeout=45000)
+        self._goto_settled(self.target_url)
         self.refresh_state()
         return self.status()
 
@@ -109,6 +207,12 @@ class ConcertoSession:
             return self.state
         try:
             url = self.page.url or ""
+            # Wrong system? Say so instead of describing it as connected.
+            if url and self.target_url and _host_of(url) != _host_of(self.target_url):
+                self.state = DISCONNECTED
+                self.wrong_host = _host_of(url)
+                return self.state
+            self.wrong_host = None
             if "login" in url.lower() or self.page.locator("input[type=password]").count() > 0:
                 self.state = LOGIN_REQUIRED
             else:
@@ -127,6 +231,8 @@ class ConcertoSession:
         return {
             "state": self.state,
             "targetUrl": self.target_url,
+            "targetHost": _host_of(self.target_url or ""),
+            "wrongHost": self.wrong_host,
             "concertoBuild": self.concerto_build,
             "writeCapability": WRITE_CAPABILITY,
         }

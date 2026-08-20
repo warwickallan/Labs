@@ -100,7 +100,10 @@
       desiredHelpdesk: null,
       findingsState: {},
       notes: '',
-      changeLog: []
+      changeLog: [],
+      /* cleared once the durable store confirms a save; while true the
+       * startup prune must leave this project alone */
+      unsaved: true
     };
     store.projects[key] = rec;
     saveStore(store);
@@ -230,7 +233,10 @@
     try { payload = JSON.parse(exportProject(key)); }
     catch (e) { return Promise.resolve({ saved: false, reason: 'export failed: ' + e.message }); }
     var work = function () {
-      return S.save(key, payload).catch(function (e) {
+      return S.save(key, payload).then(function (res) {
+        try { save(key, { unsaved: false }); } catch (e) { /* */ }
+        return res;
+      }).catch(function (e) {
         return { saved: false, reason: 'store refused the save: ' + e.message };
       });
     };
