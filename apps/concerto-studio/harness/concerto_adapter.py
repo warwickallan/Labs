@@ -264,11 +264,31 @@ class ConcertoSession:
         — the crawler would sail on and report the confusing symptom
         ("Tab not found: 'Job statuses'") three steps later. Naming the real
         cause here is the difference between a fixable message and a mystery.
+
+        Admin pages live under /content/ on the instances observed (that is
+        where Concerto's own menu links point); some deployments answer at
+        the root as well. Both are tried, /content/ first, and only if EVERY
+        candidate fails does the failure stand — so a path difference between
+        instances never reads as an application fault.
         """
         assert self.state == CONNECTED_READ_ONLY, "not connected read-only"
-        self._goto_settled(f"{self.target_url}/{page_name}")
-        self.page.wait_for_timeout(800)
-        self._assert_page_usable(page_name)
+        bare = page_name.split("/")[-1]
+        candidates = [f"content/{bare}", bare]
+        last = None
+        for path in candidates:
+            self._goto_settled(f"{self.target_url}/{path}")
+            self.page.wait_for_timeout(800)
+            try:
+                self._assert_page_usable(page_name)
+                return
+            except PageError as exc:
+                last = exc
+                # A refusal or an expired session is about the ACCOUNT, not
+                # the path — trying another URL cannot help and would only
+                # bury the real reason.
+                if self.state == LOGIN_REQUIRED or "not permitted" in str(exc):
+                    raise
+        raise last
 
     def _assert_page_usable(self, page_name: str) -> None:
         url = ""

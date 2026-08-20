@@ -309,6 +309,9 @@ def _page(data: dict, title: str) -> str:
 # path. HTTP 200 on the right host — indistinguishable from success unless
 # the adapter actually looks.
 BROKEN_PAGES: set = set()
+# Served under /content/ only — the bare path errors, as it does on a real
+# instance.
+ADMIN_PAGES = {"helpdesk_admin.aspx", "order_admin.aspx"}
 
 OOPS = ("<html><body><h1>An unexpected error has occurred</h1>"
         "<p>An unexpected error has occurred in the website.</p>"
@@ -321,19 +324,23 @@ DENIED = ("<html><body><h1>Access denied</h1>"
 class _Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802 (http.server API)
         path = self.path.split("?")[0].strip("/")
-        if path in BROKEN_PAGES:
+        # Concerto serves its admin pages under /content/ — that is where its
+        # own menu links point. Asking for the bare path gets the error page,
+        # which is exactly what NPL does, so the fixture reproduces it.
+        bare = path[len("content/"):] if path.startswith("content/") else path
+        if bare in BROKEN_PAGES or (path == bare and bare in ADMIN_PAGES):
             self.send_response(302)
-            self.send_header("Location", f"/content/Oops.aspx?aspxerrorpath=/{path}")
+            self.send_header("Location", f"/content/Oops.aspx?aspxerrorpath=/{bare}")
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
         if path == "content/Oops.aspx":
             body = OOPS
-        elif path == "denied.aspx":
+        elif bare == "denied.aspx":
             body = DENIED
-        elif path == "helpdesk_admin.aspx":
+        elif path == "content/helpdesk_admin.aspx":
             body = _page(_helpdesk_data(), "Helpdesk admin")
-        elif path == "order_admin.aspx":
+        elif path == "content/order_admin.aspx":
             body = _page(_orders_data(), "Order admin")
         else:
             body = "<html><body><h1>Fixture Concerto</h1><p>Signed in.</p></body></html>"
