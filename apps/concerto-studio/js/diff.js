@@ -21,7 +21,12 @@
 
   function indexBy(list, keyFn) {
     var m = {};
-    list.forEach(function (x) { m[keyFn(x)] = x; });
+    /* Model families are arrays canonically, but a record written by an
+     * external tool (or an older ingest) may arrive keyed by canonical key.
+     * Both carry the same truth; refusing one shape turned a stored project
+     * into a boot failure blamed on the canonical models. Tolerate both. */
+    if (list && !Array.isArray(list)) list = Object.keys(list).map(function (k) { return list[k]; });
+    (list || []).forEach(function (x) { m[keyFn(x)] = x; });
     return m;
   }
 
