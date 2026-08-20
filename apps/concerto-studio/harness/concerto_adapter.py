@@ -333,16 +333,110 @@ class ConcertoSession:
         except Exception:
             return False
 
+    TAB_SELECTOR = ".nav-link, .nav-tabs a, .nav-tabs button, ul.nav a, [role=tab]"
+
+    def _tab_frames(self):
+        """Every document that could hold the tab strip — the page itself and
+        any iframe. A tab strip inside a frame is invisible to a top-document
+        query, which looks exactly like a missing tab and is not."""
+        frames = [self.page.main_frame]
+        try:
+            frames += [f for f in self.page.frames if f is not self.page.main_frame]
+        except Exception:
+            pass
+        return frames
+
+    def _tabs_in(self, frame) -> list[str]:
+        try:
+            return frame.evaluate(
+                """(sel) => Array.from(document.querySelectorAll(sel))
+                        .map(e => (e.innerText || e.textContent || '').trim())
+                        .filter(t => t && t.length < 60)""",
+                self.TAB_SELECTOR,
+            ) or []
+        except Exception:
+            return []
+
+    def visible_tabs(self) -> list[str]:
+        """The tab labels actually on the page, wherever they live. What the
+        page offers is evidence — and it is the only thing that makes a miss
+        diagnosable rather than a mystery."""
+        seen, out = set(), []
+        for frame in self._tab_frames():
+            for t in self._tabs_in(frame):
+                if t not in seen:
+                    seen.add(t)
+                    out.append(t)
+        return out
+
+    @staticmethod
+    def _tab_key(text: str) -> str:
+        """Fold the differences that are never meaningful: case, spacing,
+        punctuation and a trailing plural."""
+        k = re.sub(r"[^a-z0-9]+", " ", (text or "").lower()).strip()
+        return re.sub(r"s\b", "", k)
+
     def click_tab(self, label: str) -> None:
-        """Click a tab-strip button by its visible text; AJAX — URL unchanged."""
-        tab = self.page.locator(".nav-link", has_text=re.compile(rf"^\s*{re.escape(label)}\s*$", re.I))
-        if tab.count() == 0:
-            # fall back to any button/anchor with the exact text inside the tab bar
-            tab = self.page.get_by_role("button", name=label, exact=True)
-        if tab.count() == 0:
-            raise StructureError(f"Tab not found: {label!r}")
-        tab.first.click()
-        self.page.wait_for_timeout(900)
+        """Click a tab-strip button by its visible text; AJAX — URL unchanged.
+
+        Matching is deliberately tolerant of wording that carries no meaning
+        (case, spacing, plural) but NEVER of a different word — a tab that
+        merely looks similar would silently crawl the wrong thing. When
+        nothing matches, the error names every tab the page did offer, so the
+        instance tells us its own vocabulary instead of leaving a mystery.
+        """
+        want = self._tab_key(label)
+        # The strip is rendered by script, so give it a moment to exist before
+        # concluding it does not.
+        deadline = 6
+        while deadline > 0:
+            for frame in self._tab_frames():
+                for t in self._tabs_in(frame):
+                    if t.strip().lower() == label.strip().lower() or self._tab_key(t) == want:
+                        loc = frame.locator(
+                            self.TAB_SELECTOR,
+                            has_text=re.compile(rf"^\s*{re.escape(t)}\s*$", re.I),
+                        )
+                        if loc.count():
+                            loc.first.click()
+                            self.page.wait_for_timeout(900)
+                            return
+            self.page.wait_for_timeout(500)
+            deadline -= 1
+
+        present = self.visible_tabs()
+        dump = self._dump_page(label)
+        where = f" The page markup was saved to {dump} for diagnosis." if dump else ""
+        if present:
+            offered = ", ".join(repr(t) for t in present)
+            raise StructureError(
+                f"Tab not found: {label!r}. This page offers: {offered}. "
+                f"The page opened, so this is a wording difference on this instance.{where}"
+            )
+        raise StructureError(
+            f"Tab not found: {label!r}, and NO tab strip was found on this page at all "
+            f"(url {self.page.url}). The page opened but its tabs are not where the "
+            "crawler looks — the markup on this instance differs from the one the "
+            f"crawler was written against.{where}"
+        )
+
+    def _dump_page(self, label: str):
+        """Save the markup of a page the crawler could not read. Customer
+        markup is customer data: it goes to the git-ignored snapshots tree
+        and never into the repository."""
+        try:
+            from pathlib import Path
+            out = Path(__file__).resolve().parent.parent / "snapshots" / "debug"
+            out.mkdir(parents=True, exist_ok=True)
+            safe = re.sub(r"[^A-Za-z0-9]+", "-", label).strip("-").lower()
+            path = out / f"tab-miss-{safe}.html"
+            path.write_text(
+                f"<!-- url: {self.page.url} -->\n" + (self.page.content() or ""),
+                encoding="utf-8",
+            )
+            return str(path)
+        except Exception:
+            return None
 
     def harvest_grid_guids(self) -> dict[str, str]:
         """Map visible grid row display-name -> GUID via pbl_form_<guid>_0
