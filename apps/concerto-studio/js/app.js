@@ -195,6 +195,7 @@
         });
       }
     },
+    { id: 'uat', label: 'UAT', needsModel: true, render: function (c) { window.StudioUATView.render(c, app.model); } },
     { id: 'evidence', label: 'Evidence', render: function (c) { window.StudioProjectEvidence.render(c, app.model); } }
   ];
   function viewById(id) { return VIEWS.filter(function (v) { return v.id === id; })[0]; }

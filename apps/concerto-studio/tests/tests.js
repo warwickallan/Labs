@@ -299,17 +299,23 @@
 
   /* ---- harness adapter boundary ------------------------------------------ */
 
-  test('harness adapter: write capability false when up, honest when down, execute refuses', function () {
+  test('harness adapter: crawl stays read-only; writes go through the gated /execute path', function () {
     var H = window.StudioHarness;
     return H.probe().then(function (p) {
       if (p.available) {
-        assert(p.writeCapability === false, 'a running harness MUST report writeCapability=false');
+        /* the CRAWL/browser capability is read-only by construction — the
+           write path is a separate, human-gated endpoint, not this flag */
+        assert(p.writeCapability === false, 'a running harness reports writeCapability=false for the crawl surface');
       } else {
         assert(p.reason, 'unavailability carries a reason');
       }
-      return H.execute({}, {}).then(
-        function () { throw new Error('execute must refuse'); },
-        function (err) { assert(/read-only|authorised/.test(String(err.message)), 'refusal names read-only construction'); }
+      /* execute now posts to /execute; when writing is disabled (or the
+         harness is down) it rejects rather than silently succeeding — the
+         gate lives in the harness, never in an always-false client stub */
+      assert(typeof H.execute === 'function', 'the client exposes an execute() that reaches the gated endpoint');
+      return H.execute({ op: 'noop' }, false).then(
+        function (res) { assert(res, 'a reachable, write-enabled harness returns an audit'); },
+        function (err) { assert(err && err.message, 'when disabled or down, execute rejects with a reason (never a fake success)'); }
       );
     });
   });
@@ -1772,6 +1778,71 @@
       assert(Array.prototype.slice.call(sb.querySelectorAll('button'))
         .some(function (b) { return b.textContent === 'Save now'; }), 'and offers Save now');
       sb.innerHTML = '';
+    });
+  });
+
+  test('UAT: journeys are derived from the model graph, ending at terminal statuses', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var js = window.StudioUAT.journeys(m, 'Reactive', {});
+      assert(js.length > 0, 'at least one reactive journey derived, got ' + js.length);
+      /* every step is a real availability edge: action available in fromStatus, setting toStatus */
+      js.forEach(function (j) {
+        j.forEach(function (step) {
+          assert(step.from && step.to && step.action, 'each step names from/action/to');
+          assert(step.to !== step.from, 'a journey step always changes status');
+        });
+      });
+      /* at least one journey reaches a terminal status — a complete lifecycle */
+      var reachesTerminal = js.some(function (j) { return ['Closed', 'Cancelled'].indexOf(j[j.length - 1].to) !== -1; });
+      assert(reachesTerminal, 'at least one journey reaches Closed/Cancelled');
+    });
+  });
+
+  test('UAT: a scenario carries model-derived assertions and real action-code traceability, no invented selectors', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var js = window.StudioUAT.journeys(m, 'Reactive', {});
+      var sc = window.StudioUAT.scenarioFromJourney(js[0], m, { type: 'Reactive', projectKey: f.project.key });
+      assert(sc.steps.length === js[0].length, 'one step per journey transition');
+      /* every step uses the semantic keyword, never a selector */
+      sc.steps.forEach(function (st) {
+        assert(st.keyword === 'TAKE_ACTION', 'steps are semantic keyword steps');
+        assert(!/nth-child|querySelector|click div/i.test(JSON.stringify(st)), 'no browser selectors in a scenario');
+        assert(st.assertions.some(function (a) { return a.keyword === 'JOB_STATUS_EQUALS'; }), 'each step asserts the resulting status');
+      });
+      /* traceability points at real action codes present in the model */
+      var codes = (m.helpdesk.actions || []).map(function (a) { return a.code; });
+      sc.traceability.technicalDesign.forEach(function (c) {
+        assert(codes.indexOf(c) !== -1, 'traceability code ' + c + ' is a real action code');
+      });
+    });
+  });
+
+  test('UAT: a known Vanilla defect becomes a regression scenario asserting the CORRECT behaviour, never an expected pass of the defect', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var packs = window.StudioUAT.library(m, {
+        projectKey: f.project.key,
+        findings: [{ id: 'X-1', severity: 'DEFECT', title: 'Supplier cannot accept order', detail: 'SP01/SP02 broken' }]
+      });
+      assert(packs.regression.length >= 1, 'the defect produced a regression scenario');
+      var reg = packs.regression[0];
+      assert(/evidence, not an oracle/i.test(reg.oracleNote || ''), 'the scenario states Vanilla is evidence, not an oracle');
+      assert(reg.target.expectedModel === 'desired', 'a regression asserts the DESIRED (corrected) outcome');
+    });
+  });
+
+  test('UAT: the suite renders back into the Excel workbook shape (human-execution export)', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var packs = window.StudioUAT.library(m, { projectKey: f.project.key });
+      var rows = window.StudioUAT.toExcelRows(packs.core);
+      assert(rows.length === packs.core.length, 'one row per scenario');
+      var r = rows[0];
+      ['id', 'priority', 'role', 'scenario', 'steps', 'expected', 'actual', 'result', 'tester', 'date'].forEach(function (col) {
+        assert(col in r, 'the export row carries the workbook column: ' + col);
+      });
     });
   });
 

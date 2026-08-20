@@ -139,6 +139,21 @@ def worker() -> None:
                 job["done"](SESSION.status())
             elif kind == "crawl":
                 run_crawl(job["crawlId"], job["domains"])
+            elif kind == "write":
+                # writes touch the Playwright page, which is thread-affine —
+                # they MUST run here on the browser-owning worker, never on
+                # the HTTP thread (greenlet error otherwise).
+                # Hot-reload the writer so an operation fix never costs a
+                # restart (and therefore never costs the human a re-login).
+                import importlib
+                importlib.reload(writer)
+                audit = writer.execute(SESSION, job["op"], apply=job["apply"])
+                _record_write_receipt(audit)
+                job["done"](audit)
+        except writer.WriteRefused as exc:
+            job.get("fail", lambda e: None)(("REFUSED", str(exc)))
+        except writer.WriteFailed as exc:
+            job.get("fail", lambda e: None)(("FAILED", str(exc)))
         except Exception as exc:  # surface, never swallow
             job.get("fail", lambda e: None)(exc)
 
@@ -285,13 +300,20 @@ def run_on_worker(kind: str, **payload) -> dict:
         done_evt.set()
 
     def fail(exc):
-        box["error"] = str(exc)
+        # a (tag, message) tuple carries a typed failure (REFUSED/FAILED)
+        # through to the HTTP layer so it can pick the right status code
+        if isinstance(exc, tuple):
+            box["errorTag"], box["error"] = exc
+        else:
+            box["error"] = str(exc)
         done_evt.set()
 
     JOBS.put(dict(payload, kind=kind, done=done, fail=fail))
     done_evt.wait(timeout=90)
     if "error" in box:
-        raise RuntimeError(box["error"])
+        err = RuntimeError(box["error"])
+        err.tag = box.get("errorTag")
+        raise err
     if "result" not in box:
         raise RuntimeError("worker timeout")
     return box["result"]
@@ -433,13 +455,14 @@ class Handler(BaseHTTPRequestHandler):
                 op = payload.get("op") if isinstance(payload, dict) else None
                 apply_flag = bool(payload.get("apply")) if isinstance(payload, dict) else False
                 try:
-                    audit = writer.execute(SESSION, payload, apply=apply_flag)
-                    _record_write_receipt(audit)
+                    # run on the browser-owning worker thread (Playwright is
+                    # thread-affine); the writer's gate/verify still apply
+                    audit = run_on_worker("write", op=payload, apply=apply_flag)
                     self._send(200, audit)
-                except writer.WriteRefused as exc:
-                    self._send(403, {"error": str(exc), "op": op})
-                except writer.WriteFailed as exc:
-                    self._send(422, {"error": str(exc), "op": op, "status": "FAILED"})
+                except RuntimeError as exc:
+                    tag = getattr(exc, "tag", None)
+                    code = 403 if tag == "REFUSED" else 422 if tag == "FAILED" else 500
+                    self._send(code, {"error": str(exc), "op": op, "status": tag or "ERROR"})
             else:
                 self._send(404, {"error": "unknown endpoint"})
         except Exception as exc:

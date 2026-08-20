@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -55,15 +56,51 @@ class WriteFailed(RuntimeError):
     may not have changed — the audit record says exactly what was seen."""
 
 
+_warned: set[str] = set()
+
+
+def _warn_once(msg: str) -> None:
+    """Warn on stderr the first time a given problem is seen. write_enabled()
+    runs on every request, so an unconditional warning would flood the log."""
+    if msg not in _warned:
+        _warned.add(msg)
+        print(f"harness: {msg}", file=sys.stderr, flush=True)
+
+
 def write_enabled() -> bool:
     """True only if the human has opted in via harness.config.json. Read
     fresh every call so the permission can be granted or revoked without a
-    restart, and so Claude editing the model can never flip it."""
+    restart, and so Claude editing the model can never flip it.
+
+    Any problem still yields False — the gate fails closed — but a config
+    that exists and cannot be read is announced, so a corrupt file is not
+    mistaken for a deliberate opt-out."""
+    if not _CONFIG.exists():
+        return False
     try:
         cfg = json.loads(_CONFIG.read_text(encoding="utf-8"))
-        return cfg.get("writeEnabled") is True
-    except Exception:
+    except UnicodeDecodeError as e:
+        _warn_once(
+            f"{_CONFIG.name} exists but is not UTF-8 ({e.encoding}: {e.reason}). "
+            "Writing stays disabled. A PowerShell '>' redirect writes UTF-16; "
+            "rewrite the file as UTF-8 without a BOM."
+        )
         return False
+    except json.JSONDecodeError as e:
+        _warn_once(
+            f"{_CONFIG.name} exists but is not valid JSON (line {e.lineno} "
+            f"col {e.colno}: {e.msg}). Writing stays disabled."
+        )
+        return False
+    except OSError as e:
+        _warn_once(f"{_CONFIG.name} exists but could not be read ({e}). "
+                   "Writing stays disabled.")
+        return False
+    if not isinstance(cfg, dict):
+        _warn_once(f"{_CONFIG.name} must contain a JSON object, got "
+                   f"{type(cfg).__name__}. Writing stays disabled.")
+        return False
+    return cfg.get("writeEnabled") is True
 
 
 def _require_enabled():
@@ -182,7 +219,7 @@ def set_action_availability(session, op: dict, apply: bool = False) -> dict:
 
     session.goto_admin("helpdesk_admin.aspx")
     session.click_tab(("Actions",))
-    session.nav_form_view(guid, name.split(". ")[-1] if ". " in name else name)
+    session.nav_form_view(guid, name)
     session.page.wait_for_timeout(800)
 
     before = _read_link_statuses(session.page)
@@ -216,7 +253,7 @@ def set_action_availability(session, op: dict, apply: bool = False) -> dict:
 
     # verify by re-opening
     session.click_tab(("Actions",))
-    session.nav_form_view(guid, name.split(". ")[-1] if ". " in name else name)
+    session.nav_form_view(guid, name)
     session.page.wait_for_timeout(600)
     after = _read_link_statuses(session.page)
     ok = all(after.get(s) is True for s in add) and all(after.get(s) is False for s in remove)
