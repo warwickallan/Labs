@@ -22,6 +22,9 @@ apps/concerto-studio/receipts/
 # change receipts for real customers) must never enter this PUBLIC repo.
 apps/concerto-studio/projects/
 
+# The write-enable switch is a per-machine human decision, never repo state.
+apps/concerto-studio/harness/harness.config.json
+
 # Local scratch and OS noise
 scratch/
 tmp/

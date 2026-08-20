@@ -36,6 +36,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import concerto_adapter as adapter
+import concerto_writer as writer
 from crawlers import helpdesk as helpdesk_crawler
 from crawlers import orders as orders_crawler
 
@@ -89,6 +90,22 @@ def write_receipt(rec: dict) -> None:
             rec["durationMs"] = None
     with RECEIPT_FILE.open("a", encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def _record_write_receipt(audit: dict) -> None:
+    """A configuration WRITE earns a receipt like any other operation:
+    deterministic runtime, real zeros for AI, category OPERATIONAL, and the
+    full audit (before/after/revert) attached so the change is reversible
+    from the receipt alone."""
+    write_receipt({
+        "kind": "write:" + str(audit.get("op")),
+        "startedAt": now_iso(), "finishedAt": now_iso(),
+        "target": SESSION.target_url,
+        "outcome": audit.get("status"),
+        "applied": bool(audit.get("apply")),
+        "audit": audit,
+        "durationMs": audit.get("durationMs"),
+    })
 
 
 def read_receipts() -> list[dict]:
@@ -299,6 +316,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path == "/health":
                 self._send(200, {"ok": True, "writeCapability": adapter.WRITE_CAPABILITY,
+                                  "writeEnabled": writer.write_enabled(),
+                                  "writerVersion": writer.WRITER_VERSION,
                                   "harnessVersion": HARNESS_VERSION,
                                   "adapterVersion": adapter.ADAPTER_VERSION,
                                   "session": SESSION.status()})
@@ -397,8 +416,30 @@ class Handler(BaseHTTPRequestHandler):
                 JOBS.put({"kind": "crawl", "crawlId": cid, "domains": domains})
                 self._send(200, {"crawlId": cid})
             elif self.path == "/execute":
-                # Deliberately explicit: no write capability exists.
-                self._send(403, {"error": "WRITE_CAPABILITY is false: this harness is read-only by construction. Execution requires a future, separately authorised adapter."})
+                # Disciplined write path (concerto_writer). Gated by the human
+                # via harness.config.json writeEnabled; every op is audited
+                # with before/after/revert; the browser stays read-only for
+                # crawling. apply defaults to False (dry run).
+                if not writer.write_enabled():
+                    self._send(403, {"error": (
+                        "Writing is not enabled. Set \"writeEnabled\": true in "
+                        "apps/concerto-studio/harness/harness.config.json to allow "
+                        "configuration changes (Claude never edits that file)."),
+                        "writeEnabled": False})
+                    return
+                if SESSION.state != adapter.CONNECTED_READ_ONLY:
+                    self._send(409, {"error": f"cannot write: session state is {SESSION.state}"})
+                    return
+                op = payload.get("op") if isinstance(payload, dict) else None
+                apply_flag = bool(payload.get("apply")) if isinstance(payload, dict) else False
+                try:
+                    audit = writer.execute(SESSION, payload, apply=apply_flag)
+                    _record_write_receipt(audit)
+                    self._send(200, audit)
+                except writer.WriteRefused as exc:
+                    self._send(403, {"error": str(exc), "op": op})
+                except writer.WriteFailed as exc:
+                    self._send(422, {"error": str(exc), "op": op, "status": "FAILED"})
             else:
                 self._send(404, {"error": "unknown endpoint"})
         except Exception as exc:

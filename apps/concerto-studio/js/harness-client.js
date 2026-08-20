@@ -57,8 +57,13 @@
     crawlStatus: function (id) { return call('GET', '/crawl/' + id + '/status'); },
     snapshot: function (id) { return call('GET', '/snapshot/' + id); },
     receipts: function () { return call('GET', '/receipts'); },
-    execute: function () {
-      return Promise.reject(new Error('WRITE_CAPABILITY is false: the harness is read-only by construction; execution requires a future, separately authorised adapter.'));
+    /* Disciplined write path. Gated in the harness by harness.config.json
+       (writeEnabled), audited with before/after/revert, receipted. apply
+       defaults to false — a dry run that records the before-state and the
+       planned change without touching the instance. The harness answers 403
+       when writing is not enabled, with the exact opt-in instruction. */
+    execute: function (op, apply) {
+      return call('POST', '/execute', Object.assign({}, op, { apply: !!apply }));
     }
   };
 

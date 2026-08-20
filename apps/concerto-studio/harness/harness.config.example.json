@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy this file to harness.config.json and set writeEnabled to true to allow Claude to make configuration changes to the connected Concerto instance. Claude never edits harness.config.json. Set false or delete the file to make the harness read-only again. Writing also requires a signed-in CONNECTED session, and every change is audited (before/after/revert) and receipted.",
+  "writeEnabled": false
+}
