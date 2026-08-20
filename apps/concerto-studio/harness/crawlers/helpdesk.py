@@ -160,13 +160,20 @@ def interpret(raw: dict, not_crawled: list) -> dict:
         if not types:
             warnings.append(f"status {name!r}: no type tick interpreted — attributing to neither")
         is_default = any(re.search(r"default", lbl, re.I) for lbl in checked)
+        # "Suppress status from use" hides a status from use — a real captured
+        # property the views must honour (never draw a suppressed status).
+        checks = form.get("fields", {}).get("checks", {})
+        suppressed = any(
+            v and re.search(r"suppress.*from use|suppress status", str(lbl), re.I)
+            for lbl, v in checks.items()
+        )
         sort = None
         for lbl, val in form.get("fields", {}).get("inputs", {}).items():
             if re.search(r"sort|order", lbl, re.I) and str(val).strip().isdigit():
                 sort = int(str(val).strip())
                 break
         for t in types:
-            statuses_by_type[t].append({"name": name, "isDefault": is_default, "ordering": sort if sort is not None else 0})
+            statuses_by_type[t].append({"name": name, "isDefault": is_default, "ordering": sort if sort is not None else 0, "suppressed": suppressed})
             if is_default:
                 defaults[t] = name
 

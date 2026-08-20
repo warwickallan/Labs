@@ -36,8 +36,13 @@
 
   function resultChip(model, action) {
     var el = D().el;
+    /* suppressed statuses are hidden from use — never draw an arrow to one on
+       the board (an action routing to a suppressed status is a config problem
+       reported in Findings, not diagram clutter). */
+    var suppressed = {};
+    model.helpdesk.statuses.forEach(function (s) { if (s.suppressed) suppressed[s.name] = true; });
     var results = model.helpdesk.results.filter(function (r) {
-      return r.action === action.name && typeVisible(r.type);
+      return r.action === action.name && typeVisible(r.type) && !suppressed[r.toStatus];
     });
     if (!results.length) return el('div', { class: 'dresult', text: 'no status change' });
     var seen = {}, sets = [], selects = [];

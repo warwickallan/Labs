@@ -106,7 +106,14 @@
       st.types = st.types || ['Reactive', 'Planned'];
       st.isDefaultFor = st.isDefaultFor || [];
       st.ordering = st.ordering || {};
-      st.suppressed = !!st.suppressed;
+      /* suppression is a real captured property: a status with "Suppress
+         status from use" ticked is hidden from use in the instance. Derive
+         it from the captured flags so it survives model rebuilds and applies
+         to every project automatically — never a hand-set flag that can be
+         lost. */
+      st.suppressed = !!st.suppressed || (st.flags || []).some(function (f) {
+        return /suppress/i.test(String(f)) && /use/i.test(String(f));
+      });
     }); });
     safe(function () { (hd.actions || []).forEach(function (a) {
       if (Object.isFrozen(a)) return;
