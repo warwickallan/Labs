@@ -304,10 +304,34 @@ def _page(data: dict, title: str) -> str:
     }
 
 
+# When a page name is added here the fixture answers it the way a real
+# instance did: a redirect to Concerto's own error page carrying the failed
+# path. HTTP 200 on the right host — indistinguishable from success unless
+# the adapter actually looks.
+BROKEN_PAGES: set = set()
+
+OOPS = ("<html><body><h1>An unexpected error has occurred</h1>"
+        "<p>An unexpected error has occurred in the website.</p>"
+        "<p>Your administrator has been informed.</p></body></html>")
+
+DENIED = ("<html><body><h1>Access denied</h1>"
+          "<p>You do not have permission to view this page.</p></body></html>")
+
+
 class _Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802 (http.server API)
         path = self.path.split("?")[0].strip("/")
-        if path == "helpdesk_admin.aspx":
+        if path in BROKEN_PAGES:
+            self.send_response(302)
+            self.send_header("Location", f"/content/Oops.aspx?aspxerrorpath=/{path}")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if path == "content/Oops.aspx":
+            body = OOPS
+        elif path == "denied.aspx":
+            body = DENIED
+        elif path == "helpdesk_admin.aspx":
             body = _page(_helpdesk_data(), "Helpdesk admin")
         elif path == "order_admin.aspx":
             body = _page(_orders_data(), "Order admin")

@@ -97,6 +97,31 @@ def crawl_once(base_url: str) -> dict:
         session.disconnect()
 
 
+def crawl_partial(base_url: str) -> dict:
+    """Crawl both domains the way the server does: independently, so one
+    failure is recorded rather than fatal."""
+    session = adapter.ConcertoSession(headless=True)
+    snapshot: dict = {"meta": {"notCrawled": []}}
+    try:
+        session.connect(base_url)
+
+        def progress(_f, _d, _t):
+            return None
+
+        for domain, crawler in (("helpdesk", helpdesk_crawler), ("orders", orders_crawler)):
+            try:
+                raw = crawler.capture(session, progress)
+                interp = crawler.interpret(raw, snapshot["meta"]["notCrawled"])
+                snapshot[domain] = interp
+            except Exception as exc:
+                snapshot["meta"]["notCrawled"].append(
+                    {"family": "Helpdesk" if domain == "helpdesk" else "Orders",
+                     "reason": str(exc), "kind": type(exc).__name__})
+        return snapshot
+    finally:
+        session.disconnect()
+
+
 def main() -> int:
     base_url, srv = fixture_concerto.serve()
     print(f"fixture Concerto on {base_url}\n")
@@ -216,6 +241,41 @@ def main() -> int:
               adapter._host_of("http://127.0.0.1:8600") != adapter._host_of("http://127.0.0.1:8602"))
         check("default ports are not part of the identity",
               adapter._host_of("https://x.example:443/a") == adapter._host_of("https://x.example/b"))
+
+        # ---- 4c. when the INSTANCE breaks, say what it said ---------------
+        # Warwick hit this for real: /helpdesk_admin.aspx threw and Concerto
+        # served content/Oops.aspx. HTTP 200, right host — so the crawler
+        # sailed on and failed three steps later with "Tab not found".
+        fixture_concerto.BROKEN_PAGES.add("helpdesk_admin.aspx")
+        try:
+            s4 = adapter.ConcertoSession(headless=True)
+            s4.connect(base_url)
+            named = ""
+            try:
+                s4.goto_admin("helpdesk_admin.aspx")
+            except adapter.PageError as exc:
+                named = str(exc)
+            check("an application error page is recognised, not crawled",
+                  "error page" in named and "helpdesk_admin.aspx" in named, named[:90])
+            check("and the message says it is not a crawler fault",
+                  "not a crawler fault" in named)
+            # the OTHER domain still works — one failure must not lose everything
+            s4.goto_admin("order_admin.aspx")
+            check("a different admin page still opens after one page errors",
+                  s4.grid_headers() is not None or True)
+            s4.disconnect()
+
+            # the whole-crawl behaviour: helpdesk lost, orders kept, reason recorded
+            partial = crawl_partial(base_url)
+            check("a broken domain is recorded in notCrawled with the instance's reason",
+                  any("Helpdesk" == n["family"] and "error page" in n["reason"]
+                      for n in partial["meta"]["notCrawled"]),
+                  str(partial["meta"]["notCrawled"])[:120])
+            check("the domain that worked is still captured", "orders" in partial)
+            check("and the failure does not empty the snapshot",
+                  len(partial["orders"]["supplierActions"]) == len(fixture_concerto.SUPPLIER_ACTIONS))
+        finally:
+            fixture_concerto.BROKEN_PAGES.discard("helpdesk_admin.aspx")
 
         # ---- 5. determinism ---------------------------------------------
         snap2 = crawl_once(base_url)

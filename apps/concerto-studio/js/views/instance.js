@@ -210,6 +210,23 @@
       ]) : null
     ]));
 
+    /* what the instance said when it refused — plain, with the next step */
+    if (state.crawlStatus && (state.crawlStatus.notCrawled || []).length) {
+      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
+        el('h3', { text: 'Some of this instance could not be read' }),
+        el('p', { class: 'muted', style: 'margin-top:0', text:
+          'The crawl kept everything it could. What follows is what Concerto itself said — not a Studio failure, and nothing has been guessed to fill the gap.' }),
+        el('ul', { style: 'margin:0;font-size:12.5px' }, state.crawlStatus.notCrawled.map(function (n) {
+          return el('li', { style: 'margin:6px 0' }, [
+            el('b', { text: n.family + ': ' }),
+            document.createTextNode(n.reason || 'no reason given')
+          ]);
+        })),
+        el('p', { class: 'muted', style: 'font-size:12px;margin-bottom:0', text:
+          'These families stay UNKNOWN in the model rather than empty — the views and documents will say so.' })
+      ]));
+    }
+
     /* crawl progress */
     if (state.crawlStatus && state.crawlStatus.progress && Object.keys(state.crawlStatus.progress).length) {
       var prog = state.crawlStatus.progress;

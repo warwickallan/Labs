@@ -164,6 +164,10 @@ def run_crawl(crawl_id: str, domains: list[str]) -> None:
         }
 
         if "helpdesk" in domains:
+          # One domain failing must not throw away the other. Each is
+          # attempted on its own; whatever fails is recorded in notCrawled
+          # with the instance's OWN reason, and the crawl continues.
+          try:
             with LOCK:
                 crawl["state"] = "CRAWLING helpdesk"
             raw = helpdesk_crawler.capture(SESSION, progress)
@@ -182,8 +186,13 @@ def run_crawl(crawl_id: str, domains: list[str]) -> None:
             }
             counts["helpdeskStatuses"] = len(snapshot["identities"].get("statuses", {}))
             counts["helpdeskActions"] = len(snapshot["identities"].get("actions", {}))
+          except Exception as exc:
+            not_crawled.append({"family": "Helpdesk", "reason": str(exc),
+                                "kind": type(exc).__name__})
+            errors.append(f"helpdesk: {exc}")
 
         if "orders" in domains:
+          try:
             with LOCK:
                 crawl["state"] = "CRAWLING orders"
             raw_o = orders_crawler.capture(SESSION, progress)
@@ -199,6 +208,10 @@ def run_crawl(crawl_id: str, domains: list[str]) -> None:
             counts["orderStatuses"] = len(interp_o["orderStatuses"])
             counts["orderPriorities"] = len(interp_o["orderPriorities"])
             counts["supplierActions"] = len(interp_o["supplierActions"])
+          except Exception as exc:
+            not_crawled.append({"family": "Orders", "reason": str(exc),
+                                "kind": type(exc).__name__})
+            errors.append(f"orders: {exc}")
 
         snapshot["meta"]["counts"] = counts
         snapshot["meta"]["warnings"] = warnings
@@ -208,7 +221,15 @@ def run_crawl(crawl_id: str, domains: list[str]) -> None:
         path = SNAPSHOT_DIR / f"snapshot-{snap_id}.json"
         path.write_text(json.dumps(snapshot, indent=1, ensure_ascii=False), encoding="utf-8")
 
-        outcome = "COMPLETE" if not errors else "PARTIAL"
+        captured = [d for d in ("helpdesk", "orders") if d in snapshot]
+        if not errors:
+            outcome = "COMPLETE"
+        elif captured:
+            outcome = "PARTIAL"
+        else:
+            # nothing was captured — say FAILED rather than dressing an
+            # empty snapshot as a partial success
+            outcome = "FAILED"
         with LOCK:
             crawl["state"] = outcome
             crawl["snapshotId"] = snap_id

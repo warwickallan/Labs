@@ -38,6 +38,12 @@ class StructureError(RuntimeError):
     Crawlers FAIL LOUDLY on this rather than returning incomplete data."""
 
 
+class PageError(RuntimeError):
+    """Concerto answered with an error, a refusal or a login page instead of
+    the page requested. The instance said no — distinct from the structure
+    being unfamiliar, and reported to the user in those terms."""
+
+
 def _host_of(url: str) -> str:
     """Identity of an instance: its ORIGIN (host, plus port when it is not
     the scheme default), lower-cased.
@@ -248,10 +254,64 @@ class ConcertoSession:
     # ---- page helpers used by crawlers ----------------------------------
 
     def goto_admin(self, page_name: str) -> None:
-        """Navigate to an admin page (helpdesk_admin.aspx / order_admin.aspx)."""
+        """Navigate to an admin page (helpdesk_admin.aspx / order_admin.aspx),
+        and NOTICE when the application answers with an error or a refusal
+        instead of the page.
+
+        Concerto serves its own error page (content/Oops.aspx, carrying the
+        failed path in aspxerrorpath) and its own access-denied pages. Both
+        return HTTP 200 on the right host, so nothing upstream would object
+        — the crawler would sail on and report the confusing symptom
+        ("Tab not found: 'Job statuses'") three steps later. Naming the real
+        cause here is the difference between a fixable message and a mystery.
+        """
         assert self.state == CONNECTED_READ_ONLY, "not connected read-only"
-        self.page.goto(f"{self.target_url}/{page_name}", wait_until="domcontentloaded", timeout=45000)
+        self._goto_settled(f"{self.target_url}/{page_name}")
         self.page.wait_for_timeout(800)
+        self._assert_page_usable(page_name)
+
+    def _assert_page_usable(self, page_name: str) -> None:
+        url = ""
+        text = ""
+        try:
+            url = (self.page.url or "").lower()
+            text = (self.page.evaluate("() => document.body ? document.body.innerText : ''") or "")
+        except Exception:
+            pass
+        low = text.lower()
+
+        if "oops.aspx" in url or "aspxerrorpath" in url or "unexpected error has occurred" in low:
+            failed = page_name
+            m = re.search(r"aspxerrorpath=([^&]+)", url)
+            if m:
+                from urllib.parse import unquote
+                failed = unquote(m.group(1))
+            raise PageError(
+                f"{page_name}: Concerto returned its error page for {failed!r} "
+                "(\"An unexpected error has occurred\"). The page itself failed in the "
+                "application — this is not a crawler fault and retrying will not help. "
+                "Check whether this instance exposes that admin page and whether the "
+                "signed-in account may open it."
+            )
+
+        if re.search(r"access denied|not authoris|not authoriz|do not have permission|insufficient (rights|permission)", low):
+            raise PageError(
+                f"{page_name}: the signed-in account is not permitted to open this page. "
+                "Sign in as a user with Concerto administration rights, then crawl again."
+            )
+
+        if "login" in url or self._has_password_field():
+            self.state = LOGIN_REQUIRED
+            raise PageError(
+                f"{page_name}: the session was bounced to the login page — the sign-in has "
+                "expired. Sign in again at the harness browser window, then crawl again."
+            )
+
+    def _has_password_field(self) -> bool:
+        try:
+            return self.page.locator("input[type=password]").count() > 0
+        except Exception:
+            return False
 
     def click_tab(self, label: str) -> None:
         """Click a tab-strip button by its visible text; AJAX — URL unchanged."""
