@@ -68,11 +68,16 @@
     }
 
     /* Consultant findings — facts observed in the instance by AI inspection,
-       each carrying its acquisition method and confidence separately */
+       each carrying its acquisition method and confidence separately.
+       Folded to a one-line count; open for the detail. */
     if (proj.aiFindings && proj.aiFindings.length) {
-      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
-        el('h3', { text: 'Consultant findings' }),
-        el('div', {}, proj.aiFindings.map(function (f) {
+      var risky = proj.aiFindings.filter(function (f) { return /RISK|ISSUE|DEFECT/.test(f.severity || ''); }).length;
+      var det = el('details', { class: 'tile cfg-sec', style: 'margin-bottom:16px', open: risky ? 'open' : null });
+      det.appendChild(el('summary', { style: 'cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px' }, [
+        el('b', { text: 'Consultant findings' }),
+        el('span', { class: 'muted', style: 'font-size:12px;font-weight:400', text: proj.aiFindings.length + ' finding' + (proj.aiFindings.length === 1 ? '' : 's') + (risky ? ' · ' + risky + ' need attention' : '') })
+      ]));
+      det.appendChild(el('div', { style: 'padding-top:8px' }, proj.aiFindings.map(function (f) {
           return el('div', { style: 'margin:10px 0;padding:10px;background:var(--surface-2);border-radius:6px' }, [
             el('div', {}, [
               el('b', { text: f.id + ' — ' + f.title }),
@@ -85,15 +90,19 @@
             el('p', { class: 'muted', style: 'font-size:11.5px;margin:0', text:
               (f.confidence || '') + ' · acquired by ' + (f.acquiredBy || '?') + ' · ' + (f.recordedAt || '') })
           ]);
-        }))
-      ]));
+        })));
+      page.appendChild(det);
     }
 
-    /* Customer decisions raised by this engagement */
+    /* Customer decisions raised by this engagement — folded */
     if (proj.decisions && proj.decisions.length) {
-      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
-        el('h3', { text: 'Decisions needed from the customer' }),
-        el('div', {}, proj.decisions.map(function (d) {
+      var dOpen = proj.decisions.some(function (d) { return !d.settledBy || /open|pending/i.test(d.status || ''); });
+      var detD = el('details', { class: 'tile cfg-sec', style: 'margin-bottom:16px', open: dOpen ? 'open' : null });
+      detD.appendChild(el('summary', { style: 'cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px' }, [
+        el('b', { text: 'Decisions needed from the customer' }),
+        el('span', { class: 'muted', style: 'font-size:12px;font-weight:400', text: proj.decisions.length + ' decision' + (proj.decisions.length === 1 ? '' : 's') })
+      ]));
+      detD.appendChild(el('div', { style: 'padding-top:8px' }, proj.decisions.map(function (d) {
           return el('div', { style: 'margin:10px 0;padding:10px;background:var(--surface-2);border-radius:6px' }, [
             el('b', { text: d.id + ' — ' + d.question }),
             d.recommendation ? el('p', { style: 'margin:6px 0;font-size:12.5px' }, [
@@ -101,8 +110,8 @@
             ]) : null,
             d.settledBy ? el('p', { class: 'muted', style: 'font-size:12px;margin:0', text: 'Settled by: ' + d.settledBy }) : null
           ]);
-        }))
-      ]));
+        })));
+      page.appendChild(detD);
     }
 
     /* Edits Warwick made in the views, awaiting Claude to carry through */

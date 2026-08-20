@@ -44,18 +44,31 @@
     window.StudioDom.clear(container);
     var page = el('div', { class: 'page' });
     container.appendChild(page);
-    page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
-      el('h3', { text: 'What this page is' }),
-      el('p', { style: 'margin:0;font-size:13px', text:
-        'The complete configuration record for this system, in plain terms: the job types it runs, the statuses work moves through, how many actions exist and where their detail lives, the tags that mark supplier/order state, the response categories behind each priority, and the Orders side. Statuses and actions are explored visually in Diagram / Action Map / Matrix; this page is the reference of record.' })
+    var hd = model.helpdesk, o = model.orders || {};
+    /* one calm line of what this is, then everything else folds away — a
+       reference of record you open a section at a time, not a wall. */
+    page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:12px' }, [
+      el('p', { style: 'margin:0;font-size:12.5px;color:var(--muted)', text:
+        'The configuration of record for this system. Each section below is a summary — click to open the detail. The workflow itself is best seen in Diagram (life of a job).' })
     ]));
 
-    function section(title, node, note) {
-      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
-        el('h3', { text: title }),
-        note ? el('p', { class: 'muted', style: 'margin:0 0 10px', text: note }) : null,
+    /* section() renders a collapsible tile: a one-line summary always
+       visible, the detail revealed on click. Only sections the reader asks
+       for take up space. */
+    function section(title, node, note, summaryText) {
+      var open = false;
+      var d = el('details', { class: 'tile cfg-sec', style: 'margin-bottom:10px' });
+      var s = el('summary', { style: 'cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px' }, [
+        el('b', { text: title }),
+        el('span', { class: 'muted', style: 'font-size:12px;font-weight:400;flex:1;text-align:right', text: summaryText || '' })
+      ]);
+      d.appendChild(s);
+      var body = el('div', { style: 'padding-top:10px' }, [
+        note ? el('p', { class: 'muted', style: 'margin:0 0 10px;font-size:12px', text: note }) : null,
         node
-      ]));
+      ]);
+      d.appendChild(body);
+      page.appendChild(d);
     }
     function table(headers, rows) {
       /* An empty family is a GAP IN THE CAPTURE, not a statement that the
@@ -73,8 +86,6 @@
         }))
       ]);
     }
-
-    var hd = model.helpdesk, o = model.orders;
 
     section('Helpdesk Job Types', table(
       ['Type', 'Default status', 'Statuses', 'Actions in model'],

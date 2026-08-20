@@ -482,3 +482,9 @@ button[disabled] { opacity: 0.45; cursor: default; }
 #navProjects .np-snap { display: block; padding: 3px 10px 3px 36px; color: #9db8ac; font-size: 11.5px; cursor: pointer; }
 #navProjects .np-snap.on { color: #ffd98a; }
 #navProjects .np-snap small { color: #7d9488; }
+
+/* Collapsible reference sections: a summary you open on demand, not a wall. */
+details.cfg-sec > summary::-webkit-details-marker { display: none; }
+details.cfg-sec > summary::before { content: "▸"; color: var(--muted); margin-right: 8px; transition: transform .12s; display: inline-block; }
+details.cfg-sec[open] > summary::before { transform: rotate(90deg); }
+details.cfg-sec[open] { padding-bottom: 14px; }
