@@ -53,6 +53,18 @@
     });
   }
 
+  /* Operation receipts, durable in the private store. The store enforces
+   * the truthfulness contract: a numeric token figure must carry its basis
+   * (where the reading came from); otherwise it is 'unavailable'. */
+  function addReceipt(entry) {
+    return req('/receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    });
+  }
+  function receipts() { return req('/receipts').then(function (r) { return r.receipts || []; }); }
+
   /* Read a companion file (snapshot, changelog) belonging to a project.
    *
    * Keyed on whether the store is REACHABLE, not on the `source` flag:
@@ -90,6 +102,7 @@
   var api = {
     base: BASE, probe: probe, available: available, health: health,
     list: list, get: get, save: save, readFile: readFile,
+    addReceipt: addReceipt, receipts: receipts,
     source: source, setSource: setSource, durabilityLine: durabilityLine,
     _state: state
   };

@@ -129,6 +129,29 @@ def main() -> int:
           h2["durability"] == "LOCAL-HISTORY" and "NO REMOTE" in (h2["git"].get("warning") or ""),
           h2["durability"])
 
+    # ---- receipts: truthful or refused ------------------------------------
+    r = store.append_receipt({"operation": "ASSISTED SESSION — test", "aiInvoked": True,
+                              "totalTokens": 1234, "tokenBasis": "session budget meter delta"})
+    check("a receipt with a real reading and its basis is accepted", r["totalTokens"] == 1234)
+    r2 = store.append_receipt({"operation": "ASSISTED SESSION — unmetered", "aiInvoked": True})
+    check("a receipt without a reading defaults to 'unavailable', never zero",
+          r2["totalTokens"] == "unavailable" and r2["aiCost"] == "unavailable")
+    try:
+        store.append_receipt({"operation": "bad", "totalTokens": 500})
+        check("a numeric figure WITHOUT its basis is refused (no unexplained numbers)", False)
+    except ValueError:
+        check("a numeric figure WITHOUT its basis is refused (no unexplained numbers)", True)
+    try:
+        store.append_receipt({"operation": "bad", "totalTokens": 12.5, "tokenBasis": "x"})
+        check("a non-integer token figure is refused (readings are integers)", False)
+    except ValueError:
+        check("a non-integer token figure is refused (readings are integers)", True)
+    check("receipts are append-only JSONL, newest last",
+          [x["operation"] for x in store.list_receipts()][-2:] ==
+          ["ASSISTED SESSION — test", "ASSISTED SESSION — unmetered"])
+    check("there is no way to delete a receipt",
+          not [n for n in dir(store) if "receipt" in n.lower() and any(w in n.lower() for w in ("delete", "remove", "prune"))])
+
     # ---- over HTTP, as the Studio uses it --------------------------------
     srv = ThreadingHTTPServer(("127.0.0.1", 0), store.Handler)
     Thread(target=srv.serve_forever, daemon=True).start()

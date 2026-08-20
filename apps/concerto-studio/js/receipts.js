@@ -129,19 +129,34 @@
     };
   }
 
-  /* Everything, merged newest-first. Harness fetch is best-effort. */
+  function normaliseStore(r) {
+    return Object.assign({
+      when: r.when || r.recordedAt || '',
+      source: 'store',
+      durationMs: r.durationMs != null ? r.durationMs : 'unavailable',
+      outcome: r.outcome || 'COMPLETE',
+      runtimeImplementation: r.aiInvoked ? 'AI-ASSISTED' : 'DETERMINISTIC'
+    }, r, { raw: r });
+  }
+
+  /* Everything, merged newest-first. Both fetches are best-effort. */
   function all(projects) {
     var local = loadLocal();
     var derived = [];
     (projects || []).forEach(function (p) { derived = derived.concat(derivedFor(p)); });
-    return fetch('http://127.0.0.1:8602/receipts', { cache: 'no-store' })
+    var harness = fetch('http://127.0.0.1:8602/receipts', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : { receipts: [] }; })
-      .catch(function () { return { receipts: [] }; })
-      .then(function (h) {
-        var merged = local.concat(derived, (h.receipts || []).map(normaliseHarness));
-        merged.sort(function (a, b) { return String(b.when).localeCompare(String(a.when)); });
-        return merged;
-      });
+      .catch(function () { return { receipts: [] }; });
+    var stored = (window.StudioStore && window.StudioStore.receipts)
+      ? window.StudioStore.receipts().catch(function () { return []; })
+      : Promise.resolve([]);
+    return Promise.all([harness, stored]).then(function (both) {
+      var merged = local.concat(derived,
+        (both[0].receipts || []).map(normaliseHarness),
+        (both[1] || []).map(normaliseStore));
+      merged.sort(function (a, b) { return String(b.when).localeCompare(String(a.when)); });
+      return merged;
+    });
   }
 
   /* Honest totals: known token spend summed; unmetered operations COUNTED,

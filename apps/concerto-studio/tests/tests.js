@@ -1598,6 +1598,20 @@
     assert(s.aiOps === 2, 'AI operations counted');
   });
 
+  test('receipts recorded in the durable store are merged into the ledger', function () {
+    return storeProbe.then(function () {
+      if (!window.StudioStore.available()) return; /* store not running — merge is best-effort */
+      return window.StudioReceipts.all([]).then(function (list) {
+        var stored = list.filter(function (r) { return r.source === 'store'; });
+        assert(stored.length >= 1, 'store receipts appear in the merged ledger');
+        stored.forEach(function (r) {
+          assert(typeof r.totalTokens === 'number' ? !!r.tokenBasis : r.totalTokens === 'unavailable',
+            'every stored figure carries its basis, or is unavailable: ' + r.operation);
+        });
+      });
+    });
+  });
+
   test('Settings renders the Receipts section with the honesty note', function () {
     return loadedPromise.then(function (res) {
       var sb = document.getElementById('sandbox');

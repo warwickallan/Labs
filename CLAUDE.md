@@ -150,6 +150,16 @@ Historic (Helpdesk discovery is complete). Standing rule: STOP at the
 boundary CURRENT_STATE defines; report evidence-graded findings; never
 begin experiments or configuration changes without explicit approval.
 
+## Receipts (cost accounting — standing rule)
+
+Every operation that touches an instance or spends AI tokens gets a receipt
+(Studio → Settings → Receipts; durable store `POST :8603/receipt`).
+Deterministic work (harness crawler, ingests, saves) records measured
+durations and REAL ZEROS for AI. When Claude works in the side panel, it
+records a receipt per work block with the ACTUAL session-budget meter delta
+as `totalTokens` and the basis stated in `tokenBasis` — a number is never
+estimated; if no reading exists, the value is the string `unavailable`.
+
 ## The "rotate" protocol
 
 When Warwick says **"rotate"**: (1) bank all work — file evidence, update

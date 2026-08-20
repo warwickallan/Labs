@@ -48,7 +48,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = pathlib.Path(__file__).resolve().parent
 CONFIG_FILE = HERE / "store-config.json"
 PORT = 8603
-STORE_VERSION = "0.1"
+STORE_VERSION = "0.2"
 
 # The store must never live inside the public repository.
 REPO_ROOT = HERE.parent.parent.parent
@@ -228,6 +228,52 @@ def read_file(key: str, rel: str) -> str:
     return target.read_text(encoding="utf-8")
 
 
+RECEIPTS_FILE_NAME = "receipts.jsonl"
+
+
+def receipts_path() -> pathlib.Path:
+    return ROOT / RECEIPTS_FILE_NAME
+
+
+def append_receipt(entry: dict) -> dict:
+    """Append one operation receipt. TRUTHFUL OR NOTHING:
+    totalTokens must be a real reading (with its basis stated) or the
+    string 'unavailable'. Estimates are refused by shape."""
+    if not isinstance(entry.get("operation"), str) or not entry["operation"].strip():
+        raise ValueError("a receipt needs an operation")
+    tokens = entry.get("totalTokens", "unavailable")
+    if isinstance(tokens, bool) or not isinstance(tokens, (int, str)):
+        raise ValueError("totalTokens must be an integer reading or 'unavailable'")
+    if isinstance(tokens, int):
+        if tokens < 0:
+            raise ValueError("a token reading cannot be negative")
+        if not isinstance(entry.get("tokenBasis"), str) or not entry["tokenBasis"].strip():
+            raise ValueError("a numeric token figure must state its basis (where the reading came from)")
+    elif tokens != "unavailable":
+        raise ValueError("totalTokens must be an integer reading or the string 'unavailable'")
+    rec = dict(entry, recordedAt=now_iso(), storeVersion=STORE_VERSION)
+    rec.setdefault("totalTokens", "unavailable")
+    rec.setdefault("aiCost", "unavailable" if rec["totalTokens"] != 0 else "£0.00")
+    with receipts_path().open("a", encoding="utf-8") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + chr(10))
+    commit(f"Studio: receipt — {rec['operation'][:60]}")
+    return rec
+
+
+def list_receipts() -> list[dict]:
+    if not receipts_path().exists():
+        return []
+    out = []
+    for line in receipts_path().read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line:
+            try:
+                out.append(json.loads(line))
+            except Exception:
+                out.append({"unparseable": line})
+    return out
+
+
 def health() -> dict:
     versions = list((ROOT / "versions").glob("*.json")) if (ROOT / "versions").exists() else []
     g = git_state()
@@ -289,6 +335,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(200, {"key": key, "path": parts[1],
                                             "content": read_file(key, parts[1])})
                 return self._send(200, read_project(key))
+            if path == "/receipts":
+                return self._send(200, {"receipts": list_receipts()})
             if path == "/versions":
                 vs = sorted((ROOT / "versions").glob("*.json"))
                 return self._send(200, {"versions": [v.name for v in vs]})
@@ -307,6 +355,8 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith("/project/"):
                 key = path[len("/project/"):]
                 return self._send(200, write_project(key, payload))
+            if path == "/receipt":
+                return self._send(200, append_receipt(payload))
             if path == "/commit":
                 return self._send(200, commit(payload.get("message") or f"Studio: manual commit {now_iso()}"))
             return self._send(404, {"error": "unknown endpoint"})
