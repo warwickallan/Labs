@@ -67,6 +67,57 @@
       ]));
     }
 
+    /* Consultant findings — facts observed in the instance by AI inspection,
+       each carrying its acquisition method and confidence separately */
+    if (proj.aiFindings && proj.aiFindings.length) {
+      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
+        el('h3', { text: 'Consultant findings' }),
+        el('div', {}, proj.aiFindings.map(function (f) {
+          return el('div', { style: 'margin:10px 0;padding:10px;background:var(--surface-2);border-radius:6px' }, [
+            el('div', {}, [
+              el('b', { text: f.id + ' — ' + f.title }),
+              el('span', { class: 'conf-chip', style: 'margin-left:8px', text: f.severity || 'OBSERVATION' })
+            ]),
+            el('p', { style: 'margin:6px 0;font-size:12.5px', text: f.detail || '' }),
+            f.resolution ? el('p', { style: 'margin:6px 0;font-size:12.5px' }, [
+              el('b', { text: 'Round 2: ' }), document.createTextNode(f.resolution)
+            ]) : null,
+            el('p', { class: 'muted', style: 'font-size:11.5px;margin:0', text:
+              (f.confidence || '') + ' · acquired by ' + (f.acquiredBy || '?') + ' · ' + (f.recordedAt || '') })
+          ]);
+        }))
+      ]));
+    }
+
+    /* Customer decisions raised by this engagement */
+    if (proj.decisions && proj.decisions.length) {
+      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
+        el('h3', { text: 'Decisions needed from the customer' }),
+        el('div', {}, proj.decisions.map(function (d) {
+          return el('div', { style: 'margin:10px 0;padding:10px;background:var(--surface-2);border-radius:6px' }, [
+            el('b', { text: d.id + ' — ' + d.question }),
+            d.recommendation ? el('p', { style: 'margin:6px 0;font-size:12.5px' }, [
+              el('b', { text: 'Recommendation: ' }), document.createTextNode(d.recommendation)
+            ]) : null,
+            d.settledBy ? el('p', { class: 'muted', style: 'font-size:12px;margin:0', text: 'Settled by: ' + d.settledBy }) : null
+          ]);
+        }))
+      ]));
+    }
+
+    /* Work summaries — what was done to this project, written for Warwick */
+    if (proj.workSummaries && proj.workSummaries.length) {
+      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
+        el('h3', { text: 'Work summaries' }),
+        el('div', {}, proj.workSummaries.slice().reverse().map(function (w) {
+          return el('details', { style: 'margin:8px 0', open: w === proj.workSummaries[proj.workSummaries.length - 1] ? 'open' : null }, [
+            el('summary', {}, [el('b', { text: w.title }), el('span', { class: 'muted', text: '  · ' + (w.at || '') })]),
+            el('div', { style: 'font-size:12.5px;white-space:pre-wrap;padding:8px 4px 0', text: w.text })
+          ]);
+        }))
+      ]));
+    }
+
     /* Vanilla evolution */
     if (proj.vanillaEvolution && proj.vanillaEvolution.length) {
       page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [

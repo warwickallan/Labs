@@ -116,17 +116,46 @@
 
   function cacheKey(project, entry) { return project.key + '::' + entry.id; }
 
-  /* Load one snapshot entry. Three ways a capture can be expressed:
+  /* Load one snapshot entry. Five ways a capture can be expressed:
    *   path        — one file
    *   parts       — several files (e.g. Helpdesk + Orders), merged
    *   derivedFrom — an earlier capture plus verified changes, applied as an
    *                 overlay so the earlier one is never edited
+   *   model       — an already-canonical model inline (AI inspection merges)
+   *   snapshotId  — a harness capture, fetched from the harness service
    * Anything unreadable stays absent. It is never filled in from Vanilla. */
   function loadEntry(project, entry, baseline) {
     var key = cacheKey(project, entry);
     if (cache[key]) return Promise.resolve(cache[key]);
+    var raw = project.snapshots.filter(function (s) { return s.id === entry.id; })[0] || {};
     var work;
-    if (entry.derivedFrom) {
+    if (raw.model) {
+      /* the entry carries its canonical model directly — view it as-is */
+      work = function () {
+        var hit = {
+          record: { snapshotId: entry.id, role: entry.role, label: entry.label,
+                    meta: { crawledAt: entry.capturedAt, source: entry.source }, model: raw.model },
+          report: null,
+          fingerprint: S.fingerprint(raw.model)
+        };
+        cache[key] = hit;
+        return Promise.resolve(hit);
+      };
+    } else if (raw.snapshotId && window.StudioHarness) {
+      /* a harness capture — re-ingested from the harness service; absent
+       * (never faked) when the harness is not running */
+      work = function () {
+        return window.StudioHarness.snapshot(raw.snapshotId).then(function (snap) {
+          if (!snap) return null;
+          var rec = window.StudioIngest.toInstanceRecord(raw.snapshotId, snap, baseline);
+          rec.role = entry.role || null; rec.label = entry.label;
+          var hit = { record: rec, report: rec.meta && rec.meta.ingestReport || null,
+                      fingerprint: S.fingerprint({ snapshotId: raw.snapshotId }) };
+          cache[key] = hit;
+          return hit;
+        }).catch(function () { return null; });
+      };
+    } else if (entry.derivedFrom) {
       var src = entryById(project, entry.derivedFrom);
       if (!src) return Promise.resolve(null);
       work = function () {
