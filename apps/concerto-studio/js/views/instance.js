@@ -31,6 +31,27 @@
     return el('span', { class: cls, text: text });
   }
 
+  /* One broken admin page is a broken page. EVERY admin page answering the
+   * same way is a different fact — almost always rights or an absent module
+   * — and saying so saves chasing each page in turn. Stated as a likelihood
+   * with the check that settles it, never as a finding. */
+  function crawlConclusion(status) {
+    var el = window.StudioDom.el;
+    var nc = status.notCrawled || [];
+    var attempted = (status.domains || []).length || nc.length;
+    if (nc.length < 2 || nc.length < attempted) return null;
+    if (!nc.every(function (n) { return n.kind === 'PageError'; })) return null;
+    if (!nc.every(function (n) { return /error page/i.test(n.reason || ''); })) return null;
+    return el('p', { class: 'bad-text', style: 'font-size:12.5px;margin:8px 0 0' }, [
+      el('b', { text: 'Every admin page answered the same way. ' }),
+      document.createTextNode(
+        'That points away from one faulty page and towards the signed-in account lacking Concerto ' +
+        'administration rights on this instance, or admin being served from different paths here. ' +
+        'To settle it, open the failing paths yourself in the harness browser window while signed in — ' +
+        'if they error for you too, the crawler was never going to get past them.')
+    ]);
+  }
+
   /* Every crawl earns a stamped place on the open project's timeline, so it
    * can be re-opened in any view and compared with the capture before it.
    * The harness stamps a full ISO datetime. */
@@ -216,12 +237,19 @@
         el('h3', { text: 'Some of this instance could not be read' }),
         el('p', { class: 'muted', style: 'margin-top:0', text:
           'The crawl kept everything it could. What follows is what Concerto itself said — not a Studio failure, and nothing has been guessed to fill the gap.' }),
-        el('ul', { style: 'margin:0;font-size:12.5px' }, state.crawlStatus.notCrawled.map(function (n) {
+        el('ol', { style: 'margin:0;font-size:12.5px' }, state.crawlStatus.notCrawled.map(function (n) {
           return el('li', { style: 'margin:6px 0' }, [
             el('b', { text: n.family + ': ' }),
             document.createTextNode(n.reason || 'no reason given')
           ]);
         })),
+        /* Listed in the order they were attempted — Helpdesk is always
+           tried first. The harness browser is left on the LAST page it
+           tried, so what is on screen there is the bottom of this list,
+           not the first thing that went wrong. */
+        el('p', { class: 'muted', style: 'font-size:12px;margin:8px 0 0', text:
+          'Numbered in the order they were attempted. The harness browser window is left showing the last page it tried.' }),
+        crawlConclusion(state.crawlStatus),
         el('p', { class: 'muted', style: 'font-size:12px;margin-bottom:0', text:
           'These families stay UNKNOWN in the model rather than empty — the views and documents will say so.' })
       ]));
