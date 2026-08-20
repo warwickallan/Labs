@@ -76,6 +76,7 @@
   }
 
   function render(container, base, opts) {
+    if (window.StudioSchema && window.StudioSchema.completeModel) container = window.StudioSchema.completeModel(container);
     var el = window.StudioDom.el;
     opts = opts || {};
     var project = opts.project || null;

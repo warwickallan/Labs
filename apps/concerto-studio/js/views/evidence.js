@@ -105,6 +105,32 @@
       ]));
     }
 
+    /* Edits Warwick made in the views, awaiting Claude to carry through */
+    var pendingEdits = (proj.userEdits || []).filter(function (e) { return e.status === 'PENDING'; });
+    var appliedEdits = (proj.userEdits || []).filter(function (e) { return e.status !== 'PENDING'; });
+    if (pendingEdits.length || appliedEdits.length) {
+      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
+        el('h3', { text: 'Your edits' }),
+        pendingEdits.length ? el('p', { class: 'warn-text', style: 'margin-top:0', text:
+          pendingEdits.length + ' pending — tell Claude "I’ve made changes" and it will read these, carry them through the model and documents, and mark them applied.' })
+          : el('p', { class: 'muted', style: 'margin-top:0', text: 'No pending edits.' }),
+        el('table', { class: 'list' }, [
+          el('thead', {}, [el('tr', {}, ['Where', 'Row', 'Before', 'After', 'Status'].map(function (h) { return el('th', { text: h }); }))]),
+          el('tbody', {}, (proj.userEdits || []).slice().reverse().map(function (e) {
+            return el('tr', {}, [
+              el('td', { text: e.view + (e.section ? ' · ' + e.section : '') }),
+              el('td', { text: e.row || '' }),
+              el('td', { text: e.before }),
+              el('td', {}, [el('b', { text: e.after })]),
+              el('td', {}, [el('span', { class: 'conf-chip' + (e.status === 'APPLIED' ? ' observed' : ''), text: e.status })])
+            ]);
+          }))
+        ]),
+        el('p', { class: 'muted', style: 'font-size:12px;margin-bottom:0', text:
+          'Double-click any value in a project view to edit it. Edits are instructions to Claude, not direct writes — Studio’s truth changes when the edit is carried through.' })
+      ]));
+    }
+
     /* Work summaries — what was done to this project, written for Warwick */
     if (proj.workSummaries && proj.workSummaries.length) {
       page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [

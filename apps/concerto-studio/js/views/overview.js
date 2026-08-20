@@ -21,6 +21,7 @@
   ];
 
   function render(container, model, invariants) {
+    if (window.StudioSchema && window.StudioSchema.completeModel) model = window.StudioSchema.completeModel(model);
     var el = window.StudioDom.el;
     window.StudioDom.clear(container);
     var page = el('div', { class: 'page' });

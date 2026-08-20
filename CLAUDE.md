@@ -160,6 +160,46 @@ records a receipt per work block with the ACTUAL session-budget meter delta
 as `totalTokens` and the basis stated in `tokenBasis` — a number is never
 estimated; if no reading exists, the value is the string `unavailable`.
 
+## Instance work discipline (Studio engagements — standing, per Warwick 2026-08-20)
+
+1. **AI-led.** Claude runs each customer engagement as the implementation
+   consultant from the chat, side-panel browser first; deterministic plumbing
+   serves Claude and is repaired/extended from what Claude actually did.
+2. **Identify the build first.** Read `/build.txt` — platform version AND
+   Applied Customisation Package — before anything else; record both.
+3. **Write discipline.** Where a change to an instance is directed or within
+   granted authority: RECORD the before-state (enough to revert), make the
+   change, RECORD the after-state, update the project model + changeLog in
+   the same session. Never change what has not been recorded. (Note: the
+   platform safety layer may block Claude pressing SAVE/DELETE on live
+   systems — then the change is STAGED with its record and a human applies
+   it; the record formats are identical either way.)
+4. **Workflow-logic checks are Claude's job**, run on every capture:
+   - every user-facing action allocated to at least one status (unallocated
+     = unreachable = broken unless engine-fired);
+   - hold/release (and any do/undo pair) BOTH available, in the same
+     statuses, for the same job types;
+   - every status reachable and exitable per type; no dead ends except
+     terminal statuses;
+   - tags/auto-actions paired (applier AND remover) or explicitly terminal;
+   - defaults present where the platform expects one (priority, response
+     category, status per type).
+5. **Acquisition method ≠ confidence.** Record how each fact was acquired
+   (deterministic crawl / AI-INSPECTION / import / build read-back)
+   separately from its confidence state. A fact Claude read directly is
+   still VERIFIED — OBSERVED.
+6. **User edits round-trip.** Warwick can double-click-edit any value in a
+   Studio project view; edits land in `project.userEdits` as PENDING with
+   before/after/where. When he says "I've made changes", read
+   `StudioUserEdits.pending()` (or the Evidence panel), carry each edit
+   through the model/instance/documents, and mark it APPLIED.
+7. **Sync.** If Warwick changes the instance himself, he says so; re-verify
+   the touched area and carry it through the model with a changeLog entry
+   attributing the change to him. Docs must never silently go stale.
+8. **Receipts.** Per work block: real session-meter token delta + duration
+   (basis stated), category OPERATIONAL or BUILD; deterministic ops carry
+   real zeros. Never estimated.
+
 ## The "rotate" protocol
 
 When Warwick says **"rotate"**: (1) bank all work — file evidence, update

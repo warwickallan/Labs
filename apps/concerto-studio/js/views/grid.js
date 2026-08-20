@@ -49,16 +49,16 @@
           code: a.code,
           name: a.name.replace(/^[A-Z0-9]+[a-z]?\.\s*/, ''),
           group: a.buttonGroup || '—',
-          applicability: a.applicability,
+          applicability: a.applicability || a.ppmScope || '—',
           availCount: availNames.length,
           availNames: availNames,
           resulting: sets.join(' · ') || '—',
           userSelects: selects.length ? selects.join(' · ') : '',
           mobile: a.mobileAvailable,
-          supplier: a.flags.indexOf('supplier_assignment') !== -1,
-          email: a.flags.some(function (f) { return f.indexOf('email') !== -1; }),
-          tags: (a.addsTags.length ? '+' + a.addsTags.length : '') +
-                (a.removesTags.length ? ' −' + a.removesTags.length : '') || '',
+          supplier: (a.flags || []).indexOf('supplier_assignment') !== -1 || (a.flags || []).indexOf('supplier') !== -1,
+          email: (a.flags || []).some(function (f) { return typeof f === 'string' && f.indexOf('email') !== -1; }),
+          tags: ((a.addsTags || []).length ? '+' + a.addsTags.length : '') +
+                ((a.removesTags || []).length ? ' −' + a.removesTags.length : '') || '',
           machine: a.machineFired
         };
       })
@@ -72,6 +72,7 @@
   }
 
   function render(container, model, opts) {
+    if (window.StudioSchema && window.StudioSchema.completeModel) model = window.StudioSchema.completeModel(model);
     var el = window.StudioDom.el;
     var editable = opts && opts.editable;
     window.StudioDom.clear(container);

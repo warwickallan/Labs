@@ -49,6 +49,8 @@
 
   function actionEffects(a) {
     var bits = [];
+    a = Object.assign({ flags: [], addsTags: [], removesTags: [] }, a);
+    a.flags = (a.flags || []).filter(function (f) { return typeof f === 'string'; });
     if (a.addsTags.length) bits.push('adds tag ' + a.addsTags.map(function (t) { return '"' + t + '"'; }).join(', '));
     if (a.removesTags.length) bits.push('removes tag ' + a.removesTags.map(function (t) { return '"' + t + '"'; }).join(', '));
     if (a.flags.indexOf('supplier_assignment') !== -1) bits.push('assigns a supplier / raises an order');
@@ -148,6 +150,7 @@
   }
 
   function generate(model, opts) {
+    if (window.StudioSchema && window.StudioSchema.completeModel) model = window.StudioSchema.completeModel(model);
     opts = opts || {};
     var isCustomer = opts.edition === 'customer';
     var isInstance = opts.edition === 'instance';

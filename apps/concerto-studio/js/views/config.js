@@ -39,6 +39,7 @@
   }
 
   function render(container, model) {
+    if (window.StudioSchema && window.StudioSchema.completeModel) model = window.StudioSchema.completeModel(model);
     var el = window.StudioDom.el;
     window.StudioDom.clear(container);
     var page = el('div', { class: 'page' });
@@ -88,7 +89,40 @@
       text: hd.operativeStatuses.map(function (x) { return x.name; }).join(' · ')
     }), 'The operative-status object has no Type field (U-003 resolved, E-013). No action carries an operative-status relationship in Vanilla.');
 
-    section('Shared configuration facts', el('ul', {}, hd.sharedConfiguration.map(function (s) {
+    /* Job tags — what the coloured chips on a job mean, in plain words */
+    if ((hd.tags || []).length) {
+      section('Job tags (' + hd.tags.length + ')', el('table', { class: 'list' }, [
+        el('thead', {}, [el('tr', {}, [el('th', { text: 'Tag' }), el('th', { text: 'Tracks' }), el('th', { text: 'Meaning' })])]),
+        el('tbody', {}, hd.tags.map(function (t) {
+          var fam = t.family === 'QuoteRequest' ? 'Quote request' : t.family || '';
+          var meaning = t.family === 'Order' ? 'State of the purchase order behind the job'
+            : t.family === 'QuoteRequest' ? 'Progress of a quote being sought for the job'
+            : 'Where the job itself has got to';
+          return el('tr', {}, [el('td', {}, [el('b', { text: t.name })]), el('td', { text: fam }), el('td', { text: meaning })]);
+        }))
+      ]), 'Tags are applied and removed by the workflow engine as the supplier/order side progresses — they are read-only markers, not user actions.');
+    }
+
+    /* Response categories — the SLA promise behind each priority */
+    if ((hd.responseCategories || []).length) {
+      var fmtRC = function (c) {
+        var r = c.initialResponseHours ? c.initialResponseHours + ' h' : (c.initialResponseDays ? c.initialResponseDays + ' d' : '—');
+        var pr = c.permanentRepairHours ? c.permanentRepairHours + ' h' : (c.permanentRepairDays ? c.permanentRepairDays + ' d' : '—');
+        return el('tr', {}, [
+          el('td', {}, [el('b', { text: c.name })]), el('td', { text: r }), el('td', { text: pr }),
+          el('td', { text: c.supplier || '' }), el('td', { text: c.orderPriority || '' }),
+          el('td', {}, c.anomaly ? [el('span', { class: 'warn-text', text: '⚠ ' + c.anomaly })] : [])
+        ]);
+      };
+      section('Response categories (' + hd.responseCategories.length + ') — the SLA promise per priority',
+        el('table', { class: 'list' }, [
+          el('thead', {}, [el('tr', {}, ['Category', 'Initial response', 'Permanent repair', 'Delivered by', 'Order priority', ''].map(function (h) { return el('th', { text: h }); }))]),
+          el('tbody', {}, hd.responseCategories.map(fmtRC))
+        ]),
+        'Each category pairs a helpdesk priority with the order priority the supplier is measured against. Initial response = first attendance; permanent repair = full fix.');
+    }
+
+    section('Shared configuration facts', el('ul', {}, (hd.sharedConfiguration || []).map(function (s) {
       return el('li', {}, [
         document.createTextNode(s.statement + ' '),
         el('span', { class: 'conf-chip' + (/OBSERVED/.test(s.confidence) ? ' observed' : ' structural'), text: s.confidence }),

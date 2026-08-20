@@ -86,6 +86,7 @@
   }
 
   function generate(model, opts) {
+    if (window.StudioSchema && window.StudioSchema.completeModel) model = window.StudioSchema.completeModel(model);
     opts = opts || {};
     var proj = opts.project || null;
     var vanilla = opts.vanilla || model;
@@ -198,8 +199,32 @@
 
     /* 6 · SLA */
     h += '<h2>6 · SLA &amp; response categories</h2>';
-    var rc = model.orders.responseCategories;
-    if (rc && rc.categories) {
+    /* The instance's own categories, broken out per service stream. The
+       standard-product sentence is a LAST resort and says so honestly. */
+    var hrc = (model.helpdesk && model.helpdesk.responseCategories) || [];
+    if (hrc.length) {
+      var streams = {};
+      hrc.forEach(function (c) {
+        var m = /\(([^)]+)\)/.exec(c.name);
+        var stream = m ? m[1] : (c.supplier || 'General');
+        (streams[stream] = streams[stream] || []).push(c);
+      });
+      var fmt = function (c) {
+        var r = c.initialResponseHours ? c.initialResponseHours + ' hours' : (c.initialResponseDays ? c.initialResponseDays + ' days' : '—');
+        var pr = c.permanentRepairHours ? c.permanentRepairHours + ' hours' : (c.permanentRepairDays ? c.permanentRepairDays + ' days' : '—');
+        return '<tr><td><b>' + esc(c.name) + '</b></td><td>' + r + '</td><td>' + pr + '</td><td>' + esc(c.supplier || '') + '</td><td>' + esc(c.orderPriority || '') + '</td></tr>';
+      };
+      Object.keys(streams).forEach(function (st) {
+        h += '<h3>' + esc(st) + '</h3>';
+        h += '<table><thead><tr><th>Response category</th><th>Initial response</th><th>Permanent repair</th><th>Delivered by</th><th>Order priority</th></tr></thead><tbody>';
+        streams[st].forEach(function (c) { h += fmt(c); });
+        h += '</tbody></table>';
+      });
+      var anom = hrc.filter(function (c) { return c.anomaly; });
+      anom.forEach(function (c) {
+        h += '<p class="decision">' + esc(c.name) + ': ' + esc(c.anomaly) + ' — raised for correction.</p>';
+      });
+    } else if (false) {
       h += '<table><thead><tr><th>Category</th><th>Respond within</th><th>Complete within</th><th>Default</th></tr></thead><tbody>';
       rc.categories.forEach(function (c) {
         h += '<tr><td><b>' + esc(c.name) + '</b></td><td>' + esc(c.response) + '</td><td>' + esc(c.complete) + '</td><td>' + (c.isDefault ? 'Yes' : '') + '</td></tr>';
@@ -209,7 +234,7 @@
         h += '<p class="decision">No default category is currently set, so jobs raised through the reporter wizard arrive without an SLA until one is chosen — see <b>Customer decisions</b> below.</p>';
       }
     } else {
-      h += '<p>Response categories follow the standard product configuration (P1–P4, Planned, By agreement).</p>';
+      h += '<p>Response categories were not captured for this instance — this section will state them once they are read. Nothing here is assumed from the standard product.</p>';
     }
 
     /* 7 · mobile — the two-gate model, honestly */
@@ -221,6 +246,20 @@
       (inherited ? ' (standard product behaviour)' : '') +
       '. There, operatives accept, start, hold and complete their work, and each mobile action updates the job in real time. ' +
       'Jobs in other statuses are visible on the web but do not appear on the app.</p>';
+    /* every mobile action, grouped as the app groups them */
+    var mobActs = (model.helpdesk.actions || []).filter(function (a) {
+      return a.mobileAvailable || /Mobile/.test(a.buttonGroup || '');
+    });
+    if (mobActs.length) {
+      h += '<h3>Mobile actions</h3>';
+      h += '<table><thead><tr><th>Action</th><th>Group</th><th>Job types</th><th>Outcome</th></tr></thead><tbody>';
+      mobActs.forEach(function (a) {
+        h += '<tr><td><b>' + esc(a.name) + '</b></td><td>' + esc(a.buttonGroup || '—') + '</td><td>' +
+          esc(a.ppmScope || a.applicability || 'All jobs') + '</td><td>' +
+          esc(a.resultingStatus || (a.pauseStatus ? (a.pauseStatus === 'Paused' ? 'Pauses the job' : 'Restarts the job') : 'No status change')) + '</td></tr>';
+      });
+      h += '</tbody></table>';
+    }
 
     /* 8 · customer decisions — a working table, not a footnote */
     h += '<h2>8 · Customer decisions &amp; assumptions</h2>';
@@ -304,7 +343,8 @@
     h += '</tbody></table>';
 
     /* appendices */
-    h += '<h2 class="appendix">Appendix A · Full status / action matrix</h2>';
+    h += '<h2 class="appendix">Appendix A · Workflow matrix (which action is available where)</h2>';
+    h += '<p class="dense-list">Purpose: one row per action — where users can take it and what it does. Appendix B lists the configuration records themselves.</p>';
     h += '<table class="dense"><thead><tr><th>Action</th><th>Available in</th><th>Outcome</th><th>Mobile-capable</th></tr></thead><tbody>';
     model.helpdesk.actions.forEach(function (a) {
       var results = model.helpdesk.results.filter(function (r) { return r.action === a.name; });
@@ -315,9 +355,29 @@
     h += '</tbody></table>';
     h += '<p class="dense-list">“Mobile-capable” is the action’s own capability; jobs only appear on the app at the statuses listed in section 7.</p>';
 
-    h += '<h2 class="appendix">Appendix B · Detailed configuration</h2>';
-    h += '<p>The complete technical configuration — every field, flag, tag and trigger — is generated as the companion ' +
-      '<b>Technical Design</b> document, maintained from the same source as this Solution Design.</p>';
+    h += '<h2 class="appendix">Appendix B · Configuration schedule (what has been delivered)</h2>';
+    h += '<p class="dense-list">Purpose: the delivered configuration records, for sign-off. This document is self-contained.</p>';
+    h += '<h3>Job statuses</h3><table class="dense"><thead><tr><th>Status</th><th>Applies to</th></tr></thead><tbody>';
+    (model.helpdesk.statuses || []).forEach(function (st) {
+      h += '<tr><td><b>' + esc(st.name) + '</b></td><td>' + esc((st.types || []).join(', ')) + '</td></tr>';
+    });
+    h += '</tbody></table>';
+    h += '<h3>Actions</h3><table class="dense"><thead><tr><th>Action</th><th>Group</th><th>Job types</th><th>Sets status</th><th>Notifications</th></tr></thead><tbody>';
+    (model.helpdesk.actions || []).forEach(function (a) {
+      var mails = (a.flags || []).filter(function (f) { return /email/i.test(f); })
+        .map(function (f) { return f === 'emailOriginator' ? 'originator' : f === 'emailSupplier' ? 'supplier' : 'email'; });
+      h += '<tr><td><b>' + esc(a.name) + '</b></td><td>' + esc(a.buttonGroup || 'Not allocated') + '</td><td>' +
+        esc(a.ppmScope || 'All jobs') + '</td><td>' + esc(a.resultingStatus || '—') + '</td><td>' + esc(mails.join(', ')) + '</td></tr>';
+    });
+    h += '</tbody></table>';
+    if ((model.helpdesk.tags || []).length) {
+      h += '<h3>Job tags</h3><p class="dense-list">Tags mark a job’s supplier/order state at a glance and are applied automatically by the workflow.</p>';
+      h += '<table class="dense"><thead><tr><th>Tag</th><th>Family</th></tr></thead><tbody>';
+      model.helpdesk.tags.forEach(function (t) {
+        h += '<tr><td><b>' + esc(t.name) + '</b></td><td>' + esc(t.family || '') + '</td></tr>';
+      });
+      h += '</tbody></table>';
+    }
 
     h += '<h2 class="appendix">Appendix C · Evidence &amp; provenance (implementation team)</h2>';
     if (rep) {

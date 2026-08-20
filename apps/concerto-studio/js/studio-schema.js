@@ -74,10 +74,66 @@
    * Small meaningful badges, not visual noise. Each returns {label, kind}
    * where kind maps to a CSS class. Derived ONLY from evidenced fields.
    */
+  /* Complete a model in place so every view can render it. Models arrive
+   * from the canonical loader, deterministic crawls, AI inspection and
+   * imports; only the first guarantees every field. A missing list must
+   * read as EMPTY, never crash a view — absence of data is a fact the
+   * views know how to state. */
+  function completeModel(m) {
+    if (!m) return m;
+    /* the canonical Vanilla model is deep-frozen AND complete — hands off */
+    if (Object.isFrozen(m)) return m;
+    var safe = function (fn) { try { fn(); } catch (e) { /* frozen sub-tree = canonical = already complete */ } };
+    safe(function () { m.helpdesk = m.helpdesk || {}; });
+    if (!m.helpdesk) return m;
+    var hd = m.helpdesk;
+    hd.types = hd.types || [];
+    hd.statuses = hd.statuses || [];
+    hd.actions = hd.actions || [];
+    hd.availability = hd.availability || [];
+    hd.results = hd.results || [];
+    hd.operativeStatuses = hd.operativeStatuses || [];
+    hd.tags = hd.tags || [];
+    hd.responseCategories = hd.responseCategories || [];
+    safe(function () { hd.statuses.forEach(function (st) {
+      st.types = st.types || ['Reactive', 'Planned'];
+      st.isDefaultFor = st.isDefaultFor || [];
+      st.ordering = st.ordering || {};
+    }); });
+    safe(function () { hd.actions.forEach(function (a) {
+      a.flags = (a.flags || []).filter(function (f) { return typeof f === 'string'; });
+      a.addsTags = a.addsTags || [];
+      a.removesTags = a.removesTags || [];
+      a.types = a.types || ['Reactive', 'Planned'];
+      a.firedBySupplierActions = a.firedBySupplierActions || [];
+      a.availableIn = a.availableIn || [];
+      a.emails = a.emails || [];
+      a.constraints = a.constraints || [];
+      a.ordersEffects = a.ordersEffects || [];
+    }); });
+    safe(function () { hd.types.forEach(function (t) {
+      t.statuses = t.statuses || [];
+      t.actions = t.actions || [];
+    }); });
+    safe(function () {
+      m.orders = m.orders || {};
+      var o = m.orders;
+      o.orderStatuses = o.orderStatuses || [];
+      o.orderPriorities = o.orderPriorities || [];
+      o.supplierActions = o.supplierActions || [];
+      o.unknowns = o.unknowns || [];
+    });
+    safe(function () { m.crossDomain = m.crossDomain || {}; });
+    safe(function () { m.meta = m.meta || {}; });
+    return m;
+  }
+
   function actionBadges(action) {
     var badges = [];
     if (action.mobileAvailable) badges.push({ label: 'Mobile', kind: 'mobile' });
-    var flags = action.flags || [];
+    /* Records arrive from crawls, AI inspection and imports — never assume
+       a field. A view that crashes on a sparse action hides the whole model. */
+    var flags = (action.flags || []).filter(function (f) { return typeof f === 'string'; });
     if (flags.indexOf('supplier_assignment') !== -1) badges.push({ label: 'Supplier', kind: 'supplier' });
     if (flags.some(function (f) { return f.indexOf('email') === 0 || f.indexOf('email_') !== -1; })) {
       badges.push({ label: 'Email', kind: 'email' });
@@ -130,6 +186,7 @@
   var api = {
     CONFIDENCE: CONFIDENCE,
     kebab: kebab,
+    completeModel: completeModel,
     canonicalKey: canonicalKey,
     parseActionNotes: parseActionNotes,
     actionBadges: actionBadges,

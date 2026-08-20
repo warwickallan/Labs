@@ -26,6 +26,7 @@
   function typeVisible(t) { return state.type === 'All' || state.type === t; }
 
   function render(container, model) {
+    if (window.StudioSchema && window.StudioSchema.completeModel) model = window.StudioSchema.completeModel(model);
     var el = D().el;
     D().clear(container);
     var page = el('div', { class: 'page wide' });
