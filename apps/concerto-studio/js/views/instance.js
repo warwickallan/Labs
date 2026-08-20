@@ -15,10 +15,29 @@
     session: null,        /* last session status */
     crawlId: null,
     crawlStatus: null,
+    crawlStartedAt: null,
+    ticker: null,
     polling: false,
     showReceipts: false,
     message: null
   };
+
+  /* A long silence and a hung crawl look identical unless the screen keeps
+   * counting. It ticks every second whether or not the harness has anything
+   * new to report. */
+  function elapsedSuffix() {
+    if (!state.crawlStartedAt) return '';
+    var s = Math.round((Date.now() - state.crawlStartedAt) / 1000);
+    return ' (' + (s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's') + ')';
+  }
+
+  function startTicker(rerender) {
+    if (state.ticker) return;
+    state.ticker = setInterval(function () {
+      if (state.crawlStatus && /QUEUED|CRAWLING/i.test(state.crawlStatus.state)) rerender();
+      else { clearInterval(state.ticker); state.ticker = null; }
+    }, 1000);
+  }
 
   function chipFor() {
     var el = window.StudioDom.el;
@@ -26,7 +45,12 @@
     if (!state.harness || !state.harness.available) { text = '● harness offline'; cls += ' bad'; }
     else if (!state.session || state.session.state === 'DISCONNECTED') text = '● disconnected';
     else if (state.session.state === 'LOGIN_REQUIRED') text = '● LOGIN REQUIRED — sign in at the harness browser window';
-    else if (state.crawlStatus && /CRAWLING/i.test(state.crawlStatus.state)) text = '● CRAWLING — read only';
+    else if (state.crawlStatus && /QUEUED|CRAWLING/i.test(state.crawlStatus.state)) {
+      /* the chip is the one thing always on screen — it must never say
+         CONNECTED while a crawl is running */
+      text = '◐ CRAWLING INSTANCE — read only' + elapsedSuffix();
+      cls += ' working';
+    }
     else text = '● CONNECTED — READ ONLY';
     return el('span', { class: cls, text: text });
   }
@@ -148,6 +172,14 @@
 
     var connected = state.session && state.session.state === 'CONNECTED_READ_ONLY';
     var loginRequired = state.session && state.session.state === 'LOGIN_REQUIRED';
+    /* A crawl belongs to the instance it was started against. Opening a
+       different project must never inherit its progress or its outcome —
+       and if the harness session has moved to another system, whatever we
+       were watching is no longer ours to show. */
+    if ((state.crawlFor && state.crawlFor !== targetUrl()) || (state.crawlStatus && wrongInstance)) {
+      if (state.ticker) { clearInterval(state.ticker); state.ticker = null; }
+      state.crawlStatus = null; state.crawlStartedAt = null; state.crawlId = null; state.crawlFor = null;
+    }
     var crawling = state.crawlStatus && /QUEUED|CRAWLING/i.test(state.crawlStatus.state);
 
     function pollSession() {
@@ -209,12 +241,23 @@
           onclick: function () {
             /* the expected instance travels with the request; the harness
                refuses the crawl if its session is elsewhere */
+            /* say so BEFORE the request leaves, so the button press is
+               always visibly acknowledged even if the harness is slow */
+            state.crawlStartedAt = Date.now();
+            state.crawlFor = targetUrl();
+            state.crawlStatus = { state: 'QUEUED', progress: {} };
+            state.message = 'Crawl requested — opening the admin pages…';
+            rerender();
+            startTicker(rerender);
             window.StudioHarness.crawl(['helpdesk', 'orders'], targetUrl()).then(function (r) {
               state.crawlId = r.crawlId;
-              state.crawlStatus = { state: 'QUEUED', progress: {} };
               rerender();
               pollCrawl(r.crawlId);
-            }).catch(function (e) { state.message = 'Crawl failed to start: ' + e.message; rerender(); });
+            }).catch(function (e) {
+              state.crawlStatus = { state: 'FAILED', progress: {}, error: e.message };
+              state.message = 'Crawl failed to start: ' + e.message;
+              rerender();
+            });
           }
         }),
         chipFor()
@@ -255,11 +298,17 @@
       ]));
     }
 
-    /* crawl progress */
-    if (state.crawlStatus && state.crawlStatus.progress && Object.keys(state.crawlStatus.progress).length) {
-      var prog = state.crawlStatus.progress;
+    /* crawl progress — shown from the moment the button is pressed, even
+       before any family has reported, so a press is never met with silence */
+    if (state.crawlStatus) {
+      var prog = state.crawlStatus.progress || {};
+      var running = /QUEUED|CRAWLING/i.test(state.crawlStatus.state || '');
       page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
-        el('h3', { text: 'Crawl ' + (state.crawlStatus.state || '') }),
+        el('h3', { text: 'Crawl ' + (state.crawlStatus.state || '') + (running ? elapsedSuffix() : '') }),
+        running && !Object.keys(prog).length
+          ? el('p', { class: 'muted', style: 'margin-top:0', text:
+              'Opening the Helpdesk and Orders admin pages. Families appear here as each one reports.' })
+          : null,
         el('table', { class: 'list', style: 'max-width:460px' }, [
           el('tbody', {}, Object.keys(prog).map(function (fam) {
             var p = prog[fam];

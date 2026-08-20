@@ -23,10 +23,13 @@ CRAWLER_VERSION = "0.1"
 
 # Tab labels as evidenced (E-002). If Concerto renames them, click_tab
 # raises StructureError — loud, not quiet.
-TAB_STATUSES = "Job statuses"
-TAB_ACTIONS = "Actions"
-TAB_OPERATIVE = "Operative statuses"
-TAB_JOB_TYPES = "Helpdesk job types"
+# Instances name the same tab differently (NPL says 'Statuses' where the
+# reference instance says 'Job statuses'). Candidates are tried in order and
+# the FIRST that exists wins; unrelated words are never accepted.
+TAB_STATUSES = ("Job statuses", "Statuses", "Job status")
+TAB_ACTIONS = ("Actions",)
+TAB_OPERATIVE = ("Operative statuses", "Operative status")
+TAB_JOB_TYPES = ("Helpdesk job types", "Job types")
 
 SECTIONED_CHECKBOXES_JS = """() => {
     const out = [];

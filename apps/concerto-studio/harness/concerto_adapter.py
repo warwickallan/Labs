@@ -376,7 +376,7 @@ class ConcertoSession:
         k = re.sub(r"[^a-z0-9]+", " ", (text or "").lower()).strip()
         return re.sub(r"s\b", "", k)
 
-    def click_tab(self, label: str) -> None:
+    def click_tab(self, label) -> None:
         """Click a tab-strip button by its visible text; AJAX — URL unchanged.
 
         Matching is deliberately tolerant of wording that carries no meaning
@@ -385,14 +385,15 @@ class ConcertoSession:
         nothing matches, the error names every tab the page did offer, so the
         instance tells us its own vocabulary instead of leaving a mystery.
         """
-        want = self._tab_key(label)
+        names = [label] if isinstance(label, str) else list(label)
+        wanted = [self._tab_key(n) for n in names]
         # The strip is rendered by script, so give it a moment to exist before
         # concluding it does not.
         deadline = 6
         while deadline > 0:
             for frame in self._tab_frames():
                 for t in self._tabs_in(frame):
-                    if t.strip().lower() == label.strip().lower() or self._tab_key(t) == want:
+                    if self._tab_key(t) in wanted:
                         loc = frame.locator(
                             self.TAB_SELECTOR,
                             has_text=re.compile(rf"^\s*{re.escape(t)}\s*$", re.I),
@@ -405,16 +406,17 @@ class ConcertoSession:
             deadline -= 1
 
         present = self.visible_tabs()
-        dump = self._dump_page(label)
+        shown = names[0] if len(names) == 1 else " / ".join(names)
+        dump = self._dump_page(names[0])
         where = f" The page markup was saved to {dump} for diagnosis." if dump else ""
         if present:
-            offered = ", ".join(repr(t) for t in present)
+            offered = ", ".join(repr(t.replace("\xa0", " ")) for t in present)
             raise StructureError(
-                f"Tab not found: {label!r}. This page offers: {offered}. "
-                f"The page opened, so this is a wording difference on this instance.{where}"
+                f"Tab not found: {shown!r}. This page offers: {offered}. "
+                f"The page opened, so this instance names it something else.{where}"
             )
         raise StructureError(
-            f"Tab not found: {label!r}, and NO tab strip was found on this page at all "
+            f"Tab not found: {shown!r}, and NO tab strip was found on this page at all "
             f"(url {self.page.url}). The page opened but its tabs are not where the "
             "crawler looks — the markup on this instance differs from the one the "
             f"crawler was written against.{where}"

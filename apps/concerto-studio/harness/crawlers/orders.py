@@ -11,11 +11,12 @@ from .helpdesk import SECTIONED_CHECKBOXES_JS
 
 CRAWLER_VERSION = "0.1"
 
-TAB_STATUS = "Order status"
-TAB_PRIORITY = "Priority"
-TAB_TYPES = "Order types"
-TAB_BUDGET = "Budget categories"
-TAB_SUPPLIER = "Supplier actions"
+# See helpdesk.py: the same tab is worded differently between instances.
+TAB_STATUS = ("Order status", "Status", "Order statuses")
+TAB_PRIORITY = ("Priority", "Priorities", "Order priority")
+TAB_TYPES = ("Order types", "Order type")
+TAB_BUDGET = ("Budget categories", "Budget category")
+TAB_SUPPLIER = ("Supplier actions", "Supplier action")
 
 
 def capture(session, progress) -> dict:
