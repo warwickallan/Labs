@@ -117,10 +117,48 @@
 
     if (panelState.tab === 'compare') { window.StudioCompare.render(body, vanilla, { base: base, project: project }); return; }
     if (panelState.tab === 'findings') { window.StudioFindings.render(body, base); return; }
-    if (panelState.tab === 'build') { window.StudioBuild.render(body, base); return; }
+    if (panelState.tab === 'build') {
+      /* BUILD = a WORK ORDER for Claude: the grouped deviations become
+         numbered steps Claude executes against the instance (or stages,
+         when the platform blocks saving), each step tracked to done. */
+      var grouped = (window.StudioDiff.groupDeviations || window.StudioDiff.deviationSchedule)(diff);
+      var proj = window.StudioProject && window.StudioProject.current();
+      body.appendChild(el('div', { class: 'tile', style: 'margin-bottom:12px' }, [
+        el('h3', { text: 'Work order' }),
+        el('p', { class: 'muted', style: 'margin-top:0', text: grouped.length
+          ? grouped.length + ' change' + (grouped.length > 1 ? 's' : '') + ' between CURRENT and this design. Create the work order and tell Claude to execute it.'
+          : 'No changes \u2014 the design matches the current instance.' }),
+        grouped.length && proj ? el('button', { class: 'btn', text: 'CREATE WORK ORDER', onclick: function () {
+          proj.workOrders = proj.workOrders || [];
+          var wo = { id: 'WO-' + ('00' + (proj.workOrders.length + 1)).slice(-3), at: new Date().toISOString(),
+            status: 'OPEN', steps: grouped.map(function (g, i) { return { n: i + 1, kind: g.kind, object: g.object, detail: g.detail, status: 'PENDING' }; }) };
+          proj.workOrders.push(wo);
+          window.StudioProject.save(proj.key, { workOrders: proj.workOrders });
+          if (window.StudioProject.persist) window.StudioProject.persist(proj.key);
+          rerender();
+        } }) : null,
+        proj && (proj.workOrders || []).length ? el('div', {}, proj.workOrders.slice().reverse().map(function (wo) {
+          return el('details', { style: 'margin:8px 0', open: wo.status === 'OPEN' ? 'open' : null }, [
+            el('summary', {}, [el('b', { text: wo.id + ' \u00b7 ' + wo.status }), el('span', { class: 'muted', text: ' \u00b7 ' + wo.at.slice(0, 16).replace('T', ' ') + ' \u00b7 ' + wo.steps.length + ' steps' })]),
+            el('table', { class: 'list' }, [el('tbody', {}, wo.steps.map(function (st) {
+              return el('tr', {}, [
+                el('td', { text: String(st.n) }),
+                el('td', {}, [el('span', { class: 'conf-chip', text: st.kind })]),
+                el('td', { text: st.detail, style: 'font-size:12px' }),
+                el('td', {}, [el('span', { class: 'conf-chip' + (st.status === 'DONE' ? ' observed' : ''), text: st.status })])
+              ]);
+            }))])
+          ]);
+        })) : null
+      ]));
+      var buildBox = el('div', {});
+      body.appendChild(buildBox);
+      window.StudioBuild.render(buildBox, base);
+      return;
+    }
 
     /* ---- Edit tab ---- */
-    var schedule = window.StudioDiff.deviationSchedule(diff);
+    var schedule = (window.StudioDiff.groupDeviations || window.StudioDiff.deviationSchedule)(diff);
     body.appendChild(el('div', { class: 'toolstrip' }, [
       el('span', { class: 'seg' }, [
         el('button', { class: panelState.view === 'diagram' ? 'on' : '', text: 'Diagram', onclick: function () { panelState.view = 'diagram'; rerender(); } }),

@@ -30,9 +30,17 @@
     return m;
   }
 
+  function emptyish(v) {
+    return v === undefined || v === null || (Array.isArray(v) && v.length === 0) ||
+      (typeof v === 'object' && !Array.isArray(v) && v !== null && Object.keys(v).length === 0);
+  }
+
   function fieldDiff(a, b, fields) {
     var changes = [];
     fields.forEach(function (f) {
+      /* an absent field and an empty one carry the same truth — a record
+         normalised by completeModel must not read as modified */
+      if (emptyish(a[f]) && emptyish(b[f])) return;
       if (!S.deepEqual(a[f], b[f])) changes.push({ field: f, base: a[f], desired: b[f] });
     });
     return changes;
@@ -190,8 +198,20 @@
    * document generator. */
   function deviationSchedule(diff) {
     var rows = [];
-    diff.statuses.added.forEach(function (x) { rows.push({ kind: 'ADDED', object: 'Status', detail: x.key }); });
-    diff.statuses.removed.forEach(function (x) { rows.push({ kind: 'REMOVED', object: 'Status', detail: x.key }); });
+    /* A RENAME arrives as added+removed plus an availability/result storm
+       for every edge touching the status. It is ONE change. Detect it via
+       the renamedFrom marker the design editor writes, emit one row, and
+       silence the storm for both names. */
+    var renamed = {};
+    diff.statuses.added.forEach(function (x) {
+      var from = x.object && x.object.renamedFrom;
+      if (from && diff.statuses.removed.some(function (r) { return r.key === from; })) {
+        renamed[x.key] = from; renamed[from] = x.key;
+        rows.push({ kind: 'RENAMED', object: 'Status', detail: from + ' -> ' + x.key + ' (all references follow)' });
+      }
+    });
+    diff.statuses.added.forEach(function (x) { if (!renamed[x.key]) rows.push({ kind: 'ADDED', object: 'Status', detail: x.key }); });
+    diff.statuses.removed.forEach(function (x) { if (!renamed[x.key]) rows.push({ kind: 'REMOVED', object: 'Status', detail: x.key }); });
     diff.statuses.modified.forEach(function (x) {
       x.changes.forEach(function (c) {
         rows.push({ kind: 'MODIFIED', object: 'Status', detail: x.key + ' · ' + c.field + ': ' + JSON.stringify(c.base) + ' → ' + JSON.stringify(c.desired) });
@@ -211,7 +231,68 @@
     return rows;
   }
 
-  var api = { compare: compare, deviationSchedule: deviationSchedule };
+  /* One LOGICAL change per row. Removing an action that was available in
+   * three statuses is ONE change (its edges travel with it); making an
+   * action available in three statuses is one change with three details. */
+  function groupDeviations(diff) {
+    var rows = [];
+    var addedActs = {}, removedActs = {};
+    diff.actions.added.forEach(function (x) { addedActs[x.key] = true; });
+    diff.actions.removed.forEach(function (x) { removedActs[x.key] = true; });
+    var renamed = {};
+    diff.statuses.added.forEach(function (x) {
+      var from = x.object && x.object.renamedFrom;
+      if (from && diff.statuses.removed.some(function (r) { return r.key === from; })) {
+        renamed[x.key] = from; renamed[from] = x.key;
+        rows.push({ kind: 'RENAMED', object: 'Status', detail: from + ' -> ' + x.key + ' (all references follow)' });
+      }
+    });
+    diff.statuses.added.forEach(function (x) { if (!renamed[x.key]) rows.push({ kind: 'ADDED', object: 'Status', detail: x.key }); });
+    diff.statuses.removed.forEach(function (x) { if (!renamed[x.key]) rows.push({ kind: 'REMOVED', object: 'Status', detail: x.key }); });
+    diff.statuses.modified.forEach(function (x) {
+      var rn = x.changes.filter(function (c) { return c.field === 'name'; })[0];
+      if (rn) rows.push({ kind: 'RENAMED', object: 'Status', detail: JSON.stringify(rn.base) + ' -> ' + JSON.stringify(rn.desired) });
+      x.changes.filter(function (c) { return c.field !== 'name'; }).forEach(function (c) {
+        rows.push({ kind: 'MODIFIED', object: 'Status', detail: x.key + ' \u00b7 ' + c.field + ': ' + JSON.stringify(c.base) + ' -> ' + JSON.stringify(c.desired) });
+      });
+    });
+    diff.actions.added.forEach(function (x) {
+      var av = diff.availability.added.filter(function (e) { return e.action === x.key; }).map(function (e) { return e.status; });
+      rows.push({ kind: 'ADDED', object: 'Action', detail: x.key + (av.length ? ' (available in ' + av.join(', ') + ')' : '') });
+    });
+    diff.actions.removed.forEach(function (x) {
+      var av = diff.availability.removed.filter(function (e) { return e.action === x.key; }).map(function (e) { return e.status; });
+      rows.push({ kind: 'REMOVED', object: 'Action', detail: x.key + (av.length ? ' (was available in ' + av.join(', ') + ')' : '') });
+    });
+    diff.actions.modified.forEach(function (x) {
+      x.changes.forEach(function (c) {
+        rows.push({ kind: 'MODIFIED', object: 'Action', detail: x.key + ' \u00b7 ' + c.field + ': ' + JSON.stringify(c.base) + ' -> ' + JSON.stringify(c.desired) });
+      });
+    });
+    var groupAv = function (list, verb, skip) {
+      var byAction = {};
+      list.forEach(function (e) { if (skip[e.action] || renamed[e.status]) return; (byAction[e.action] = byAction[e.action] || []).push(e.status); });
+      Object.keys(byAction).sort().forEach(function (a) {
+        rows.push({ kind: verb === 'available' ? 'ADDED' : 'REMOVED', object: 'Availability',
+          detail: a + ' ' + (verb === 'available' ? 'made available in ' : 'no longer available in ') +
+            byAction[a].length + ' status' + (byAction[a].length > 1 ? 'es' : '') + ' (' + byAction[a].join(', ') + ')' });
+      });
+    };
+    groupAv(diff.availability.added, 'available', addedActs);
+    groupAv(diff.availability.removed, 'unavailable', removedActs);
+    var groupRes = function (list, verb) {
+      var by = {};
+      list.forEach(function (r) { if (addedActs[r.action] || removedActs[r.action] || renamed[r.toStatus]) return; var k = r.action + ' -> ' + r.toStatus; (by[k] = by[k] || []).push(r.type); });
+      Object.keys(by).sort().forEach(function (k) {
+        rows.push({ kind: verb, object: 'Result', detail: k + ' (' + by[k].join(', ') + ')' });
+      });
+    };
+    groupRes(diff.results.added, 'ADDED');
+    groupRes(diff.results.removed, 'REMOVED');
+    return rows;
+  }
+
+  var api = { compare: compare, deviationSchedule: deviationSchedule, groupDeviations: groupDeviations };
   if (typeof window !== 'undefined') window.StudioDiff = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

@@ -1361,12 +1361,22 @@
     });
   });
 
-  test('the Solution Design embeds generated workflow diagrams', function () {
+  test('the Solution Design embeds FACTUAL workflow diagrams derived from the model', function () {
     return kirklees.then(function (f) {
       var m = window.StudioSnapshots.currentModel(f.project);
       var doc = window.StudioSolDesignCustomer.generate(m, { project: f.project, vanilla: f.vanilla, deviations: [] });
-      assert((doc.match(/<svg/g) || []).length >= 3, 'at least three journey diagrams embedded, got ' + (doc.match(/<svg/g) || []).length);
-      assert(doc.indexOf('PROCESS FLOW') !== -1, 'in the Bellrock process-flow style');
+      /* one flow per captured type, generated from availability+results —
+         never the narrative gallery, which told a story the model did not */
+      assert((doc.match(/<svg/g) || []).length >= 1, 'at least one factual flow embedded, got ' + (doc.match(/<svg/g) || []).length);
+      var fac = window.StudioFlow.factual(m, 'Reactive');
+      assert(!fac.missing && fac.edges > 0, 'the Reactive factual flow has model-derived edges');
+      /* every edge label in the factual flow is a real action code of the model */
+      var codes = (m.helpdesk.actions || []).map(function (a) { return a.code; }).filter(Boolean);
+      var labels = (fac.svg.match(/fill="#1e6b4f">([A-Z]{1,3}\d{2,3}[a-z]?)</g) || [])
+        .map(function (x) { return x.replace(/.*>([^<]+)</, '$1'); });
+      labels.forEach(function (l) {
+        assert(codes.indexOf(l) !== -1, 'flow edge label ' + l + ' is a real action code, not narrative');
+      });
     });
   });
 

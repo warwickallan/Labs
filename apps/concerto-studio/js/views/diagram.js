@@ -381,7 +381,10 @@
     function renderBoard() {
       D().clear(board);
       board.appendChild(machineColumn(model, rerender, opts));
-      model.helpdesk.statuses.forEach(function (s) {
+      /* Suppressed statuses are configuration noise: hidden from use in the
+         instance, so never drawn. They remain in the model and Configuration
+         names them as deletable candidates. */
+      model.helpdesk.statuses.filter(function (s) { return !s.suppressed; }).forEach(function (s) {
         if (state.type !== 'All' && s.types.indexOf(state.type) === -1) return;
         board.appendChild(column(model, s, rerender, opts));
       });

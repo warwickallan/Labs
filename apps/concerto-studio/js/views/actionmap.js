@@ -35,7 +35,9 @@
     function rerender() { render(container, model); }
 
     /* ---- data projections ---- */
-    var avail = model.helpdesk.availability.filter(function (e) { return typeVisible(e.type); });
+    var supp = {};
+    model.helpdesk.statuses.forEach(function (s) { if (s.suppressed) supp[s.name] = true; });
+    var avail = model.helpdesk.availability.filter(function (e) { return typeVisible(e.type) && !supp[e.status]; });
     var results = model.helpdesk.results.filter(function (r) { return typeVisible(r.type); });
 
     var actions = model.helpdesk.actions.filter(function (a) {
@@ -47,6 +49,7 @@
     actions.forEach(function (a) { actionVisible[a.name] = true; });
 
     var fromStatuses = model.helpdesk.statuses.filter(function (s) {
+      if (s.suppressed) return false; /* hidden from use = never drawn */
       return state.type === 'All' || s.types.indexOf(state.type) !== -1;
     });
     var toStatuses = fromStatuses;

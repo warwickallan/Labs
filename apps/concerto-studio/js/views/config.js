@@ -44,6 +44,11 @@
     window.StudioDom.clear(container);
     var page = el('div', { class: 'page' });
     container.appendChild(page);
+    page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
+      el('h3', { text: 'What this page is' }),
+      el('p', { style: 'margin:0;font-size:13px', text:
+        'The complete configuration record for this system, in plain terms: the job types it runs, the statuses work moves through, how many actions exist and where their detail lives, the tags that mark supplier/order state, the response categories behind each priority, and the Orders side. Statuses and actions are explored visually in Diagram / Action Map / Matrix; this page is the reference of record.' })
+    ]));
 
     function section(title, node, note) {
       page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
@@ -81,13 +86,50 @@
     section('Job Statuses (' + hd.statuses.length + ')', table(
       ['Status', 'Types', 'Default for', 'Ordering'],
       hd.statuses.map(function (s) {
-        return [s.name, s.types.join(', '), s.isDefaultFor.join(', ') || '', Object.keys(s.ordering).map(function (t) { return t + ':' + s.ordering[t]; }).join(' ')];
+        return [s.name + (s.suppressed ? '  \u2014 SUPPRESSED (hidden from use; deletable candidate)' : ''), s.types.join(', '), s.isDefaultFor.join(', ') || '', Object.keys(s.ordering).map(function (t) { return t + ':' + s.ordering[t]; }).join(' ')];
       })
     ), 'Closed and Cancelled are single records shared by both Types (E-003).');
 
     section('Operative Statuses (' + hd.operativeStatuses.length + ', type-agnostic)', el('p', {
       text: hd.operativeStatuses.map(function (x) { return x.name; }).join(' · ')
     }), 'The operative-status object has no Type field (U-003 resolved, E-013). No action carries an operative-status relationship in Vanilla.');
+
+    /* Actions — the overview; the full detail lives in the Matrix */
+    if ((hd.actions || []).length) {
+      var byGroup = {};
+      hd.actions.forEach(function (a) { var g = a.buttonGroup || 'Not allocated'; (byGroup[g] = byGroup[g] || []).push(a); });
+      section('Actions (' + hd.actions.length + ') by button group', el('table', { class: 'list' }, [
+        el('thead', {}, [el('tr', {}, [el('th', { text: 'Group' }), el('th', { text: 'Count' }), el('th', { text: 'Actions' })])]),
+        el('tbody', {}, Object.keys(byGroup).sort().map(function (g) {
+          return el('tr', {}, [
+            el('td', {}, [el('b', { text: g })]),
+            el('td', { text: String(byGroup[g].length) }),
+            el('td', { style: 'font-size:12px', text: byGroup[g].map(function (a) { return a.code || a.name.split('.')[0]; }).join(' \u00b7 ') })
+          ]);
+        }))
+      ]), 'Every action, grouped as the helpdesk page groups its buttons. Field-level detail (flags, outcomes, availability) is the Matrix view; the workflow shape is the Diagram.');
+    }
+
+    /* Orders side — statuses, priorities, supplier actions */
+    var ord = model.orders || {};
+    if ((ord.orderStatuses || []).length || (ord.orderPriorities || []).length || (ord.supplierActions || []).length) {
+      section('Orders & supplier portal',
+        el('div', {}, [
+          (ord.orderStatuses || []).length ? el('p', { style: 'font-size:12.5px' }, [
+            el('b', { text: 'Order statuses (' + ord.orderStatuses.length + '): ' }),
+            document.createTextNode(ord.orderStatuses.map(function (x) { return x.name || x; }).join(' \u00b7 '))
+          ]) : null,
+          (ord.orderPriorities || []).length ? el('p', { style: 'font-size:12.5px' }, [
+            el('b', { text: 'Order priorities (' + ord.orderPriorities.length + '): ' }),
+            document.createTextNode(ord.orderPriorities.map(function (x) { return (x.name || x) + (x.isDefault ? ' (default)' : ''); }).join(' \u00b7 '))
+          ]) : null,
+          (ord.supplierActions || []).length ? el('p', { style: 'font-size:12.5px' }, [
+            el('b', { text: 'Supplier portal actions (' + ord.supplierActions.length + '): ' }),
+            document.createTextNode(ord.supplierActions.map(function (x) { return x.name || x.canonicalKey || x; }).join(' \u00b7 '))
+          ]) : null
+        ]),
+        'The purchase-order lifecycle behind each job, and the actions a supplier can take on the portal / contractor app. Each supplier action drives the job-side workflow through the order status it sets.');
+    }
 
     /* Job tags — what the coloured chips on a job mean, in plain words */
     if ((hd.tags || []).length) {

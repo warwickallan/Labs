@@ -31,7 +31,10 @@
         return true;
       })
       .map(function (a) {
+        var suppG = {};
+        model.helpdesk.statuses.forEach(function (st) { if (st.suppressed) suppG[st.name] = true; });
         var avail = model.helpdesk.availability.filter(function (e) {
+          if (suppG[e.status]) return false;
           return e.action === a.name && (state.type === 'All' || e.type === state.type);
         });
         var availNames = [];

@@ -99,6 +99,8 @@
       st.types = st.types || ['Reactive', 'Planned'];
       st.isDefaultFor = st.isDefaultFor || [];
       st.ordering = st.ordering || {};
+      st.suppressed = !!st.suppressed;
+      st.suppressed = !!st.suppressed;
     }); });
     safe(function () { hd.actions.forEach(function (a) {
       a.flags = (a.flags || []).filter(function (f) { return typeof f === 'string'; });

@@ -152,11 +152,15 @@
       if (plannedView.state !== 'UNKNOWN') h += statusTable(plannedView.model, 'Planned', plannedView.statuses);
       else h += '<p>Stages: ' + esc(plannedView.statuses.join(' · ')) + '</p>';
     }
-    if (window.StudioFlow) {
-      ['reactive', 'planned', 'contractor', 'quote', 'business-case'].forEach(function (fid) {
-        var src = (fid === 'planned' && plannedView.state === 'INHERITED-STANDARD') ? plannedView.model : model;
-        var out = window.StudioFlow.render(fid, src, { compact: true });
-        if (!out.missing) h += '<div class="flow-embed">' + out.svg + '</div>';
+    if (window.StudioFlow && window.StudioFlow.factual) {
+      /* Flows are GENERATED from the model's own availability + results --
+         the same edges the Action Map shows. Nothing narrated, nothing
+         guessed; a missing side simply is not drawn. */
+      [['Reactive', 'Reactive workflow'], ['Planned', 'Planned (PPM) workflow']].forEach(function (pair) {
+        var out = window.StudioFlow.factual(model, pair[0]);
+        if (!out.missing && out.edges) {
+          h += '<h4>' + pair[1] + '</h4><div class="flow-embed">' + out.svg + '</div>';
+        }
       });
     }
 

@@ -221,6 +221,48 @@
     return window.StudioSnapshots.ensureLoaded(p, app.model).then(function () { route(); });
   }
 
+  /* Left-hand tree: every project, and under it every snapshot stamp.
+   * Click a project = open it at its CURRENT truth. Click a stamp = the
+   * whole right-hand side renders exactly as the instance stood then. */
+  function renderNavTree() {
+    var box = document.getElementById('navProjects');
+    if (!box || !window.StudioProject) return;
+    var cur = currentProject();
+    var SS = window.StudioSnapshots;
+    var html = '';
+    window.StudioProject.list().forEach(function (p) {
+      var on = cur && cur.key === p.key;
+      html += '<span class="np-proj' + (on ? ' on' : '') + '" data-k="' + p.key + '">' + p.name + '</span>';
+      var snaps = (SS && p.snapshots) ? SS.list(p) : [];
+      snaps.forEach(function (sn) {
+        var viewingId = on && SS.viewing(p) && SS.viewing(p).id;
+        var stamp = (sn.capturedAt || '').slice(0, 16).replace('T', ' ') || sn.id;
+        html += '<span class="np-snap' + (viewingId === sn.id ? ' on' : '') + '" data-k="' + p.key + '" data-s="' + sn.id + '">' +
+          stamp + ' <small>' + (sn.source === 'BROWSER CRAWL' ? 'crawl' : /AI/.test(sn.source || '') ? 'inspect' : (sn.role || '')) + '</small></span>';
+      });
+    });
+    box.innerHTML = html;
+    box.querySelectorAll('.np-proj').forEach(function (el2) {
+      el2.onclick = function () {
+        var k = el2.getAttribute('data-k');
+        if (window.StudioSnapshots) window.StudioSnapshots.clearView(k);
+        setContext(k);
+        if (currentRoute().kind !== 'view') location.hash = '#diagram';
+      };
+    });
+    box.querySelectorAll('.np-snap').forEach(function (el2) {
+      el2.onclick = function () {
+        var k = el2.getAttribute('data-k'), id = el2.getAttribute('data-s');
+        if (!currentProject() || currentProject().key !== k) setContext(k);
+        var p2 = currentProject();
+        loadSnapshots().then(function () {
+          window.StudioSnapshots.setView(k, id);
+          if (currentRoute().kind !== 'view') location.hash = '#diagram'; else route();
+        });
+      };
+    });
+  }
+
   function renderContextSelect() {
     var wrap = document.getElementById('ctxWrap');
     var sel = document.getElementById('ctxSelect');
@@ -332,6 +374,7 @@
   }
 
   function route() {
+    try { renderNavTree(); } catch (e) { /* nav tree must never break routing */ }
     var r = currentRoute();
     document.getElementById('pageTitle').textContent =
       r.kind === 'page' ? PAGES[r.id] : (currentProject() ? currentProject().name + ' · ' + viewById(r.id).label : 'Vanilla · ' + viewById(r.id).label);

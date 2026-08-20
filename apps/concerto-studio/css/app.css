@@ -473,3 +473,12 @@ button[disabled] { opacity: 0.45; cursor: default; }
 /* A crawl in progress must be unmistakable, not a quiet word in grey. */
 .src-chip.working { color: var(--accent); font-weight: 600; }
 .src-chip.working::after { content: ""; }
+
+/* Sidebar project/snapshot tree: the timeline is one click away, always. */
+#navProjects { margin: 2px 0 6px; }
+#navProjects .np-proj { display: block; padding: 5px 14px 5px 22px; color: #cfe0d8; font-size: 13px; cursor: pointer; }
+#navProjects .np-proj:hover, #navProjects .np-snap:hover { background: rgba(255,255,255,0.08); }
+#navProjects .np-proj.on { color: #fff; font-weight: 600; }
+#navProjects .np-snap { display: block; padding: 3px 10px 3px 36px; color: #9db8ac; font-size: 11.5px; cursor: pointer; }
+#navProjects .np-snap.on { color: #ffd98a; }
+#navProjects .np-snap small { color: #7d9488; }

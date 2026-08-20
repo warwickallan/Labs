@@ -378,6 +378,70 @@
   }
 
   var api = { FLOWS: FLOWS, render: render, resolveSteps: resolveSteps, printable: printable };
+  /* FACTUAL flow: generated from the model\u2019s own availability + results
+   * edges \u2014 exactly what the Action Map shows, drawn as a flow. Nothing is
+   * narrated and nothing is guessed: a status appears because it exists and
+   * is not suppressed; an arrow appears because that action, available in
+   * that status, sets that resulting status. Actions with no status change
+   * are listed under the status they belong to. */
+  function factual(model, type) {
+    var hd = (model && model.helpdesk) || {};
+    var statuses = (hd.statuses || []).filter(function (s) {
+      return !s.suppressed && (s.types || []).indexOf(type) !== -1;
+    }).map(function (s) { return s.name; });
+    if (!statuses.length) return { missing: true, svg: '' };
+    var avail = {};
+    (hd.availability || []).forEach(function (e) {
+      if (e.type && e.type !== type && e.type !== 'Both') return;
+      if (statuses.indexOf(e.status) === -1) return;
+      (avail[e.status] = avail[e.status] || []).push(e.action);
+    });
+    var resultOf = {};
+    (hd.actions || []).forEach(function (a) { if (a.resultingStatus) resultOf[a.name] = a.resultingStatus; });
+    (hd.results || []).forEach(function (r) {
+      if (r.type && r.type !== type) return;
+      if (r.kind === 'sets') resultOf[r.action] = r.toStatus;
+    });
+    var edges = []; var seen = {};
+    statuses.forEach(function (st) {
+      (avail[st] || []).forEach(function (an) {
+        var to = resultOf[an];
+        if (!to || statuses.indexOf(to) === -1) return;
+        if (to === st) return;
+        var k = st + '>' + to + '>' + an;
+        if (seen[k]) return; seen[k] = true;
+        var code = (an.match(/^([A-Z]{1,3}\d{2,3}[a-z]?)/) || [an.slice(0, 6)])[0];
+        edges.push({ from: st, to: to, label: code });
+      });
+    });
+    /* layout: one column of status boxes, arrows on the right */
+    var W = 760, RH = 64, PAD = 16, BW = 250;
+    var H = PAD * 2 + statuses.length * RH;
+    var y = function (st) { return PAD + statuses.indexOf(st) * RH + RH / 2; };
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" font-family="Segoe UI,Arial,sans-serif">';
+    svg += '<defs><marker id="fw-ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#1e6b4f"/></marker></defs>';
+    statuses.forEach(function (st) {
+      var yy = y(st) - 20;
+      svg += '<rect x="' + PAD + '" y="' + yy + '" width="' + BW + '" height="40" rx="6" fill="#eef4f1" stroke="#1e6b4f"/>';
+      svg += '<text x="' + (PAD + BW / 2) + '" y="' + (yy + 24) + '" text-anchor="middle" font-size="13" font-weight="600" fill="#0e3e33">' + st.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>';
+      var locals = (avail[st] || []).filter(function (an) { var to = resultOf[an]; return !to || statuses.indexOf(to) === -1 || to === st; });
+      if (locals.length) {
+        var codes = locals.map(function (an) { return (an.match(/^([A-Z]{1,3}\d{2,3}[a-z]?)/) || [an.slice(0, 5)])[0]; }).join(' ');
+        svg += '<text x="' + (PAD + BW + 12) + '" y="' + (yy + 14) + '" font-size="10" fill="#68727d">also here: ' + codes.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>';
+      }
+    });
+    var lane = 0;
+    edges.forEach(function (e) {
+      var x0 = PAD + BW, y0 = y(e.from), y1 = y(e.to);
+      var xr = x0 + 60 + (lane % 6) * 68; lane++;
+      svg += '<path d="M ' + x0 + ' ' + y0 + ' H ' + xr + ' V ' + y1 + ' H ' + (x0 + 4) + '" fill="none" stroke="#1e6b4f" stroke-width="1.4" marker-end="url(#fw-ar)"/>';
+      svg += '<text x="' + (xr + 3) + '" y="' + ((y0 + y1) / 2) + '" font-size="10" fill="#1e6b4f">' + e.label + '</text>';
+    });
+    svg += '</svg>';
+    return { missing: false, svg: svg, statuses: statuses.length, edges: edges.length };
+  }
+
+  api.factual = factual;
   if (typeof window !== 'undefined') window.StudioFlow = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();
