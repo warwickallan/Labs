@@ -152,8 +152,13 @@
           ]);
         })) : null
       ]));
-      var buildBox = el('div', {});
-      body.appendChild(buildBox);
+      var engineFold = el('details', { class: 'tile cfg-sec', style: 'margin-bottom:12px' });
+      engineFold.appendChild(el('summary', { style: 'cursor:pointer;list-style:none' }, [
+        el('b', { text: 'Build engine (validate / compile the staged plan)' })
+      ]));
+      var buildBox = el('div', { style: 'padding-top:8px' });
+      engineFold.appendChild(buildBox);
+      body.appendChild(engineFold);
       window.StudioBuild.render(buildBox, base);
       return;
     }

@@ -31,6 +31,8 @@
     D().clear(container);
     var page = el('div', { class: 'page wide' });
     container.appendChild(page);
+    page.appendChild(el('p', { class: 'muted', style: 'margin:0 0 10px;font-size:12.5px', text:
+      'Technical wiring view: which statuses offer which actions, and what each action sets. Dense by design — for the readable journey use Diagram → Life of a job.' }));
 
     function rerender() { render(container, model); }
 

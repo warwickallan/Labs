@@ -113,6 +113,8 @@
       (opts.ratified ? ' · ratified ' + esc(opts.ratified) : '') +
       ' · <code>hd:' + esc(vanilla.meta.sourceFingerprints.helpdesk) + '</code></td></tr>';
     if (opts.stamp) h += '<tr><th>Configuration as at</th><td>' + esc(opts.stamp) + '</td></tr>';
+    if (opts.stateLabel) h += '<tr><th>Describes</th><td>' + esc(opts.stateLabel) +
+      ((opts.pendingChanges || []).length ? ' · ' + opts.pendingChanges.length + ' agreed change' + (opts.pendingChanges.length === 1 ? '' : 's') + ' pending build (§10)' : '') + '</td></tr>';
     h += '</table></div>';
 
     /* 1 · solution overview */
@@ -329,6 +331,17 @@
 
     /* 10 · implementation status */
     h += '<h2>10 · Implementation &amp; verification status</h2>';
+    /* changes agreed in the design but not yet applied to the instance —
+       the customer sees exactly what is coming, clearly separated from what
+       is already delivered and verified */
+    if ((opts.pendingChanges || []).length) {
+      h += '<h3>Agreed changes pending build</h3>';
+      h += '<table><thead><tr><th style="width:16%">Change</th><th>Detail</th></tr></thead><tbody>';
+      opts.pendingChanges.forEach(function (c) {
+        h += '<tr><td><b>' + esc(c.kind || '') + ' ' + esc(c.object || '') + '</b></td><td>' + esc(c.detail || '') + '</td></tr>';
+      });
+      h += '</tbody></table>';
+    }
     h += '<table><thead><tr><th>Item</th><th>Status</th></tr></thead><tbody>';
     changes.forEach(function (c) {
       h += '<tr><td>' + esc((c.id ? c.id + ' — ' : '') + (c.object || '')) + '</td><td><b>' +

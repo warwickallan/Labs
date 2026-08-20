@@ -81,6 +81,8 @@
     window.StudioDom.clear(container);
     var page = el('div', { class: 'page wide' });
     container.appendChild(page);
+    page.appendChild(el('p', { class: 'muted', style: 'margin:0 0 10px;font-size:12.5px', text:
+      'Every action as one row: where users can take it, what it does, and its flags. Sort by any column; this is the working reference — the story view is Diagram → Life of a job.' }));
 
     function rerender() { render(container, model, opts); }
 

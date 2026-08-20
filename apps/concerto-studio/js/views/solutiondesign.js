@@ -9,10 +9,20 @@
 
   function buildDocument(base, opts) {
     var SS = window.StudioSnapshots;
+    var M = window.StudioModel;
     var project = opts.project;
     var vanilla = opts.vanilla || base;
-    var model = (SS && project) ? (SS.currentModel(project) || base) : base;
+    var current = (SS && project) ? (SS.currentModel(project) || base) : base;
+    /* TRACEABILITY: the customer document describes the AGREED state. When a
+     * design fork exists, that IS the agreed state — the document renders it
+     * and lists what is agreed-but-not-yet-built as pending changes. With no
+     * fork, the document describes the delivered CURRENT. Either way the doc
+     * is regenerated from the live model on every open — never cached. */
+    var hasDesign = !!(M && M.hasFork());
+    var model = hasDesign ? M.desired() : current;
+    var groups = window.StudioDiff.groupDeviations || window.StudioDiff.deviationSchedule;
     var diff = window.StudioDiff.compare(vanilla, model);
+    var pending = hasDesign ? groups(window.StudioDiff.compare(current, M.desired())) : [];
     var entry = (SS && project) ? (SS.byRole(project, 'current') || SS.selectedEntry(project)) : null;
     var rec = (SS && project && entry) ? SS.entryRecord(project, entry) : null;
     var ratified = window.StudioSettings && window.StudioSettings.ratified && window.StudioSettings.ratified();
@@ -21,13 +31,15 @@
       vanilla: vanilla,
       ratified: ratified || null,
       stamp: (entry && SS) ? SS.stampLabel(entry) : null,
-      deviations: window.StudioDiff.deviationSchedule(diff),
+      stateLabel: hasDesign ? 'Agreed design (current configuration + agreed changes)' : 'Delivered configuration',
+      deviations: groups(diff),
+      pendingChanges: pending,
       ingestReport: rec && rec.meta ? rec.meta.ingestReport : null
     });
   }
 
   function render(container, base, opts) {
-    if (window.StudioSchema && window.StudioSchema.completeModel) container = window.StudioSchema.completeModel(container);
+    if (window.StudioSchema && window.StudioSchema.completeModel) base = window.StudioSchema.completeModel(base);
     var el = window.StudioDom.el;
     opts = opts || {};
     var project = opts.project || null;

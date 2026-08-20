@@ -12,7 +12,20 @@
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
+  /* Every Settings section folds to its title — the page reads as four calm
+     lines; detail on click. A `summaryText` (4th arg via note object) can add
+     a right-hand hint. */
   function section(el, title, note, node) {
+    var d = el('details', { class: 'tile cfg-sec', style: 'margin-bottom:12px' });
+    d.appendChild(el('summary', { style: 'cursor:pointer;list-style:none' }, [el('b', { text: title })]));
+    d.appendChild(el('div', { style: 'padding-top:8px' }, [
+      note ? el('p', { class: 'muted', style: 'margin:0 0 10px;font-size:12px', text: note }) : null,
+      node
+    ]));
+    return d;
+  }
+
+  function sectionOld(el, title, note, node) {
     return el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
       el('h3', { text: title }),
       note ? el('p', { class: 'muted', style: 'margin-top:0', text: note }) : null,

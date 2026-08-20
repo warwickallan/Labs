@@ -33,8 +33,13 @@
 
     /* change receipts */
     var changes = proj.changeLog || [];
-    page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
-      el('h3', { text: 'Change receipts (' + changes.length + ')' }),
+    var chDet = el('details', { class: 'tile cfg-sec', style: 'margin-bottom:16px' });
+    chDet.appendChild(el('summary', { style: 'cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px' }, [
+      el('b', { text: 'Change receipts' }),
+      el('span', { class: 'muted', style: 'font-size:12px;font-weight:400', text: changes.length ? changes.length + ' recorded change' + (changes.length === 1 ? '' : 's') : 'none yet' })
+    ]));
+    page.appendChild(chDet);
+    chDet.appendChild(el('div', { style: 'padding-top:8px' }, [
       changes.length ? el('table', { class: 'list' }, [
         el('thead', {}, [el('tr', {}, ['When', 'Ref', 'Object', 'Change', 'Outcome'].map(function (h) { return el('th', { text: h }); }))]),
         el('tbody', {}, changes.map(function (c) {
@@ -48,6 +53,7 @@
         }))
       ]) : el('p', { class: 'muted', text: 'No changes applied to this project yet.' })
     ]));
+    /* (content appended into the fold above) */
 
     /* findings summary (from the durable record) */
     var fs = proj.findingsSummary;
@@ -118,8 +124,13 @@
     var pendingEdits = (proj.userEdits || []).filter(function (e) { return e.status === 'PENDING'; });
     var appliedEdits = (proj.userEdits || []).filter(function (e) { return e.status !== 'PENDING'; });
     if (pendingEdits.length || appliedEdits.length) {
-      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
-        el('h3', { text: 'Your edits' }),
+      var edDet = el('details', { class: 'tile cfg-sec', style: 'margin-bottom:16px', open: pendingEdits.length ? 'open' : null });
+      edDet.appendChild(el('summary', { style: 'cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px' }, [
+        el('b', { text: 'Your edits' }),
+        el('span', { class: pendingEdits.length ? 'warn-text' : 'muted', style: 'font-size:12px;font-weight:400', text: pendingEdits.length ? pendingEdits.length + ' pending for Claude' : (appliedEdits.length + ' applied') })
+      ]));
+      page.appendChild(edDet);
+      edDet.appendChild(el('div', { style: 'padding-top:8px' }, [
         pendingEdits.length ? el('p', { class: 'warn-text', style: 'margin-top:0', text:
           pendingEdits.length + ' pending — tell Claude "I’ve made changes" and it will read these, carry them through the model and documents, and mark them applied.' })
           : el('p', { class: 'muted', style: 'margin-top:0', text: 'No pending edits.' }),
@@ -142,8 +153,13 @@
 
     /* Work summaries — what was done to this project, written for Warwick */
     if (proj.workSummaries && proj.workSummaries.length) {
-      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
-        el('h3', { text: 'Work summaries' }),
+      var wsDet = el('details', { class: 'tile cfg-sec', style: 'margin-bottom:16px' });
+      wsDet.appendChild(el('summary', { style: 'cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px' }, [
+        el('b', { text: 'Work summaries' }),
+        el('span', { class: 'muted', style: 'font-size:12px;font-weight:400', text: proj.workSummaries.length + ' · latest: ' + (proj.workSummaries[proj.workSummaries.length - 1].title || '').slice(0, 60) })
+      ]));
+      page.appendChild(wsDet);
+      wsDet.appendChild(el('div', { style: 'padding-top:8px' }, [
         el('div', {}, proj.workSummaries.slice().reverse().map(function (w) {
           return el('details', { style: 'margin:8px 0', open: w === proj.workSummaries[proj.workSummaries.length - 1] ? 'open' : null }, [
             el('summary', {}, [el('b', { text: w.title }), el('span', { class: 'muted', text: '  · ' + (w.at || '') })]),
