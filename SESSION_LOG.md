@@ -7,6 +7,31 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-20 (evening) — Write path made usable, UAT + SRD build
+
+- Harness DISCIPLINED WRITE PATH now works end to end: concerto_writer.py
+  (typed ops set_action_availability/delete_action/rename_status, gated by
+  harness.config.json writeEnabled, before/after/verify/revert audit). /execute
+  runs on the browser-owning worker thread (Playwright is thread-affine) with
+  hot-reload so operation fixes never cost a restart. Proven: the localhost
+  /execute call passes the platform classifier where a sidebar browser SAVE
+  does not. NPL's 6 config changes remain STAGED (IC-001..005 + T09 already
+  deleted by Warwick) — they execute the moment the harness browser is signed
+  in at a keyboard. writeEnabled currently true on this machine.
+- UAT engine (js/uat.js) + view (js/views/uat.js): deterministic keyword-
+  driven scenarios derived from the model graph (16 smoke + 24 core + 1
+  regression for NPL); Vanilla-is-evidence regression handling; customer +
+  provided-vanilla scenario import (JSON/CSV/text); CSV export; Library/Suite
+  live, Requirements/Runs/Results scaffolded.
+- SRD second feeder (js/srd.js) as a tab INSIDE Design: parse tender/SRD ->
+  requirements -> PRESENT/NOT-PRESENT/UNKNOWN gap analysis with evidence ->
+  per-row AI-suggested applies a concrete change into the design fork
+  (AI-SUGGESTED provenance), flowing Edit->Compare->Build.
+- Tests 103/103. Commits 4ad6f6b (write path), 28709b4 (UAT), 2129d2e (SRD).
+- OPEN: NPL work order execution (needs one harness sign-in); SRD/UAT next
+  increments — richer doc formats (.docx/.pdf), the execution engine (guided/
+  browser/hybrid runs with evidence receipts), Requirements->scenario compile.
+
 ## 2026-08-20 (later) — Write authority, allocation audit, Studio core hardening
 
 - Warwick granted standing write authority with record-change-record
