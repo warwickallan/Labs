@@ -7,6 +7,36 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-20 (later) — Simple UX; Solution vs Technical Design; process flows
+
+**UX simplification (Warwick's direction — presentation only).** A project
+simply IS its current configuration: one-line context bar, no snapshot
+picker in primary navigation, truth chip limited to CURRENT / PROPOSED /
+HISTORY / NOT INGESTED. History lives under Evidence → History with explicit,
+reversible viewing (amber banner + Return to current). Vanilla is not an
+operating state — project views carry one "Show differences from Vanilla"
+toggle. Settings collapsed to Studio / Vanilla / Storage with engineering
+detail behind disclosures. All internal model distinctions, provenance,
+capture states and tests kept; they now serve the simple UX.
+
+**Solution Design split (Warwick's direction).** The former generated
+document is renamed TECHNICAL DESIGN (internal; may carry faults, gaps,
+register codes; Day-One/Current/Proposed as version controls inside its
+tab). The new SOLUTION DESIGN (soldesign-customer.js) is customer-facing
+sign-off material: document control with the exact Vanilla baseline,
+plain-English overview, embedded journey diagrams, per-status narrative,
+first-class deviations-from-standard, customer decisions, implementation
+status, and appendices. Language rules test-enforced (no register codes in
+the body; engines described as working features).
+
+**Bellrock process flows (flowrender.js).** Journey diagrams in the house
+style (References/Process Flows): swimlanes, numbered cards, owner chips,
+dashed engine arrows, legend. Declared with business meaning, validated
+against the model drawn — absent statuses dropped and noted, bullets from
+the actions actually available. Surfaced as the Diagram view's FLOW mode
+(zoom/pan, click-through), embedded in the Solution Design, and printable
+one-per-A4-landscape via browser print-to-PDF. Tests 73/73.
+
 ## 2026-08-20 — Studio: projects made real; private store; harness proven offline
 
 **Projects now render their own configuration.** Opening a project shows that
