@@ -273,6 +273,7 @@ class ConcertoSession:
         """
         assert self.state == CONNECTED_READ_ONLY, "not connected read-only"
         bare = page_name.split("/")[-1]
+        self._admin_page = bare
         candidates = [f"content/{bare}", bare]
         last = None
         for path in candidates:
@@ -387,9 +388,10 @@ class ConcertoSession:
         """
         names = [label] if isinstance(label, str) else list(label)
         wanted = [self._tab_key(n) for n in names]
-        # The strip is rendered by script, so give it a moment to exist before
-        # concluding it does not.
-        deadline = 6
+        # The strip is rendered by script and NPL takes several seconds to
+        # draw it (page evidence: chrome rendered, seven spinners running).
+        # Patience is cheaper than a false "no tab strip" — up to 20s.
+        deadline = 40
         while deadline > 0:
             for frame in self._tab_frames():
                 for t in self._tabs_in(frame):
@@ -406,6 +408,19 @@ class ConcertoSession:
             deadline -= 1
 
         present = self.visible_tabs()
+        if not present and getattr(self, "_admin_page", None) and not getattr(self, "_reopened", False):
+            # On NPL a record form REPLACES the whole admin page (the demo
+            # instance shows it as a panel beside the list). No tab strip at
+            # all therefore usually means "a form is on screen" — reopen the
+            # admin page and try once more before concluding anything.
+            self._reopened = True
+            try:
+                self._goto_settled(f"{self.target_url}/content/{self._admin_page}")
+                self.page.wait_for_timeout(1200)
+                self._assert_page_usable(self._admin_page)
+                return self.click_tab(label)
+            finally:
+                self._reopened = False
         shown = names[0] if len(names) == 1 else " / ".join(names)
         dump = self._dump_page(names[0])
         where = f" The page markup was saved to {dump} for diagnosis." if dump else ""
@@ -442,7 +457,14 @@ class ConcertoSession:
 
     def harvest_grid_guids(self) -> dict[str, str]:
         """Map visible grid row display-name -> GUID via pbl_form_<guid>_0
-        select checkboxes (technique: GUID harvesting)."""
+        select checkboxes (technique: GUID harvesting).
+
+        The row's name must come from a DATA cell. Some instances (NPL) put
+        an accessibility label — 'Select record' — inside the checkbox's own
+        cell; taking the first non-empty cell there collapses every row to
+        the same name and the crawl chases a phantom record. The checkbox's
+        cell is therefore excluded, and the label is refused by name as a
+        belt-and-braces guard."""
         return self.page.evaluate(
             """() => {
                 const out = {};
@@ -451,8 +473,13 @@ class ConcertoSession:
                     if (!m) continue;
                     const row = cb.closest('tr');
                     if (!row) continue;
-                    const cells = Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim());
-                    const name = cells.find(c => c && c.length > 1);
+                    const own = cb.closest('td');
+                    const cells = Array.from(row.querySelectorAll('td'))
+                        .filter(td => td !== own)
+                        .map(td => td.innerText.trim());
+                    // 'Select record' is the checkbox's accessibility label;
+                    // 'Options' is the per-row menu button. Neither is data.
+                    const name = cells.find(c => c && c.length > 1 && !/^(select( record| all)?|options)$/i.test(c));
                     if (name) out[name] = m[1];
                 }
                 return out;
@@ -486,14 +513,14 @@ class ConcertoSession:
             }"""
         )
 
-    def nav_form_view(self, guid: str, expect_name: str, timeout_s: float = 12.0) -> None:
+    def nav_form_view(self, guid: str, expect_name: str, timeout_s: float = 30.0) -> None:
         """Open a record's Edit form via PblActions.nav('form_view', guid) and
         WAIT until a text input carries the expected record name — the
         stale-panel / render-race defence. Fails loudly on mismatch."""
         self.page.evaluate("g => PblActions.nav('form_view', g)", guid)
         self._wait_for_name(expect_name, timeout_s, context=f"form_view {guid}")
 
-    def nav_record_view(self, guid: str, expect_name: str, timeout_s: float = 12.0) -> None:
+    def nav_record_view(self, guid: str, expect_name: str, timeout_s: float = 30.0) -> None:
         """Open a record's summary VIEW page (RenderActionSummaryConst)."""
         self.page.evaluate("g => PblActions.nav('RenderActionSummaryConst', g)", guid)
         deadline = time.time() + timeout_s
