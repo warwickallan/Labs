@@ -641,12 +641,13 @@
       while (sb.firstChild) sb.removeChild(sb.firstChild);
       window.StudioApp = window.StudioApp || {};
       window.StudioSettings.render(sb, res.model, res.invariants);
-      assert(/Vanilla baselines/i.test(sb.textContent), 'baseline registry section');
-      assert(/active/i.test(sb.textContent), 'marks an active baseline');
+      /* the simplified Settings: three calm sections, detail behind folds */
+      assert(/Baseline registry/i.test(sb.textContent), 'baseline registry (behind the Vanilla fold)');
       assert(sb.querySelector('input[type=date]'), 'ratified-date control');
-      assert(/Vanilla & generic evidence|Vanilla evidence/i.test(sb.textContent), 'Vanilla/generic evidence section');
+      assert(/Discovery evidence/i.test(sb.textContent), 'Vanilla evidence lives under the Vanilla section');
       assert(/Storage/i.test(sb.textContent), 'Storage section');
-      assert(sb.textContent.indexOf(res.model.meta.sourceFingerprints.helpdesk) !== -1, 'shows the baseline fingerprint');
+      assert(sb.textContent.indexOf(res.model.meta.sourceFingerprints.helpdesk) !== -1, 'the baseline fingerprint is available (technical detail)');
+      assert(sb.querySelectorAll('details').length >= 3, 'engineering detail sits behind disclosures, not on the page');
     });
   });
 
@@ -1270,6 +1271,117 @@
       assert(keys.indexOf('vanilla') === -1, 'Vanilla is not in the project list');
       assert(typeof window.StudioSettings.ratified === 'function',
         'the Vanilla baseline registry lives in Settings');
+    });
+  });
+
+  /* ---- simple UX over the clever system --------------------------------
+   * A project simply IS its current configuration; history and comparisons
+   * are explicit, temporary, and clearly announced. */
+
+  test('a project renders CURRENT by default; viewing history is explicit and reversible', function () {
+    return kirklees.then(function (f) {
+      var SS = window.StudioSnapshots;
+      SS.clearView(f.project.key);
+      var cur = SS.currentModel(f.project);
+      assert(SS.modelFor(f.project) === cur, 'default = current, no state to choose');
+      var base = SS.byRole(f.project, 'baseline');
+      SS.setView(f.project.key, base.id);
+      assert(SS.viewing(f.project).id === base.id, 'a history view is announced as such');
+      assert(SS.modelFor(f.project) === SS.baselineModel(f.project), 'and renders the historical capture');
+      SS.clearView(f.project.key);
+      assert(SS.modelFor(f.project) === cur, 'Return to current does exactly that');
+    });
+  });
+
+  /* ---- process flows ----------------------------------------------------- */
+
+  test('process flows render from the model and adapt to what it contains', function () {
+    return loadedPromise.then(function (res) {
+      var out = window.StudioFlow.render('reactive', res.model);
+      assert(!out.missing && out.svg.indexOf('<svg') === 0, 'reactive flow renders as SVG');
+      assert(out.svg.indexOf('REACTIVE HELPDESK PROCESS FLOW') !== -1, 'titled');
+      assert(out.svg.indexOf('data-status="With Helpdesk"') !== -1, 'steps carry their status anchors');
+      assert(out.svg.indexOf('Owner:') !== -1, 'owner chips are drawn');
+      ['planned', 'contractor', 'quote', 'business-case'].forEach(function (fid) {
+        assert(!window.StudioFlow.render(fid, res.model).missing, fid + ' flow renders for Vanilla');
+      });
+    });
+  });
+
+  test('a flow never draws a step this configuration does not have', function () {
+    return Promise.all([loadedPromise, kirklees]).then(function (both) {
+      var k = window.StudioSnapshots.currentModel(both[1].project);
+      var resolved = window.StudioFlow.resolveSteps(window.StudioFlow.FLOWS.contractor, k);
+      /* Kirklees holds SP01..SP07d — the steps stand; bullets say what IS there */
+      var out = window.StudioFlow.render('contractor', k);
+      assert(!out.missing, 'contractor flow renders for Kirklees');
+      assert(out.svg.indexOf('ORC10') === -1, 'nothing about actions Kirklees does not have');
+      void resolved;
+      /* a model without the quote status drops the quote step and says so */
+      var slim = JSON.parse(JSON.stringify({ helpdesk: { statuses: [{ name: 'With Helpdesk' }], actions: [], availability: [], results: [] }, orders: { supplierActions: [] } }));
+      var r2 = window.StudioFlow.resolveSteps(window.StudioFlow.FLOWS.reactive, slim);
+      assert(r2.dropped.length > 0, 'absent statuses are reported as dropped, not drawn');
+      assert(r2.steps.every(function (s) { return !s.status || s.status === 'With Helpdesk'; }), 'only present statuses survive');
+    });
+  });
+
+  test('the printable flow bundle is a standalone landscape document', function () {
+    return loadedPromise.then(function (res) {
+      var flows = ['reactive', 'planned'].map(function (f) { return window.StudioFlow.render(f, res.model); });
+      var html = window.StudioFlow.printable(flows, 'Test flows');
+      assert(html.indexOf('size: A4 landscape') !== -1, 'A4 landscape page rule');
+      assert(html.indexOf('page-break-after') !== -1, 'one flow per page');
+      assert((html.match(/<svg/g) || []).length === 2, 'both flows embedded');
+    });
+  });
+
+  /* ---- Solution Design (customer) vs Technical Design ------------------- */
+
+  test('the customer Solution Design speaks the customer’s language, never register codes', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var diff = window.StudioDiff.compare(f.vanilla, m);
+      var doc = window.StudioSolDesignCustomer.generate(m, {
+        project: f.project, vanilla: f.vanilla,
+        deviations: window.StudioDiff.deviationSchedule(diff)
+      });
+      assert(doc.indexOf('Kirklees Council') !== -1, 'names the customer');
+      assert(doc.indexOf('Solution Design') !== -1, 'is the Solution Design');
+      assert(doc.indexOf('Vanilla baseline') !== -1, 'identifies the exact baseline in document control');
+      /* the language rules */
+      var body = doc.slice(0, doc.indexOf('Appendix C'));
+      assert(!/VI-\d|X-\d\d\d|E-\d\d\d|STRUCTURAL|machine-readable/.test(body),
+        'no internal register codes or software concerns before the evidence appendix');
+      assert(!/dead.?end/i.test(doc), 'engine-driven statuses are never called dead ends');
+      assert(/quote workflow|Business Cases/i.test(doc), 'the engines are described as working features');
+      assert(/Deviations from the standard product/.test(doc), 'deviations are a first-class section');
+      assert(doc.indexOf('CHG-001') === -1 || /Implemented/.test(doc), 'changes appear as delivered design, with status');
+      assert(/Customer decisions/i.test(doc), 'open decisions are the customer’s, stated as such');
+      assert(/DECISION REQUIRED|VERIFIED|STANDARD/.test(doc), 'implementation status states are present');
+    });
+  });
+
+  test('the Solution Design embeds generated workflow diagrams', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var doc = window.StudioSolDesignCustomer.generate(m, { project: f.project, vanilla: f.vanilla, deviations: [] });
+      assert((doc.match(/<svg/g) || []).length >= 3, 'at least three journey diagrams embedded, got ' + (doc.match(/<svg/g) || []).length);
+      assert(doc.indexOf('PROCESS FLOW') !== -1, 'in the Bellrock process-flow style');
+    });
+  });
+
+  test('the Technical Design remains the exhaustive internal document', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var diff = window.StudioDiff.compare(f.vanilla, m);
+      var doc = window.StudioSolDesign.generate(m, {
+        edition: 'instance', project: f.project,
+        stateLabel: 'Current configuration', diff: diff,
+        deviations: window.StudioDiff.deviationSchedule(diff),
+        findings: window.StudioRules.runAll(m)
+      });
+      assert(/CHG-001/.test(doc), 'carries change receipts');
+      assert(/Evidence|evidence/.test(doc), 'carries evidence grading — faults and gaps belong here');
     });
   });
 

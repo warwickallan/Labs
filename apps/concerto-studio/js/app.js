@@ -83,14 +83,31 @@
     ]));
   }
 
-  /* CHANGES mode: render the selected capture, ring what moved since the
-   * previous one, and say it in words above the view. */
+  /* The changes overlay has exactly two triggers, both explicit:
+   *  - the "Show differences from Vanilla" toggle on a current view;
+   *  - "View changes" on a history entry (Evidence → History), which uses
+   *    the snapshot-vs-previous comparison.
+   * There is no standing "mode" the user has to know about. */
   function changesContext() {
     var p = currentProject();
     if (!p || !window.StudioSnapshots) return null;
-    if (window.StudioSnapshots.mode() !== 'changes') return null;
-    if (!window.StudioSnapshots.modelFor(p)) return null;
-    return window.StudioSnapshots.changesFor(p, app.model);
+    var m = window.StudioSnapshots.modelFor(p);
+    if (!m) return null;
+    if (window.StudioSnapshots.viewing(p) && window.StudioSnapshots.mode() === 'changes') {
+      return window.StudioSnapshots.changesFor(p, app.model);
+    }
+    if (uxState.compareVanilla && !window.StudioSnapshots.viewing(p)) {
+      var diff = window.StudioDiff.compare(app.model, m);
+      return {
+        current: null,
+        currentLabel: p.name + ' current configuration',
+        against: { kind: 'vanilla', label: 'the standard product (Vanilla ' + app.model.meta.generatedAt.helpdesk + ')' },
+        identical: false,
+        diff: diff,
+        rows: window.StudioDiff.deviationSchedule(diff)
+      };
+    }
+    return null;
   }
 
   function renderChangeSummary(container, ch) {
@@ -182,6 +199,7 @@
   }
 
   function setContext(val) {
+    uxState.compareVanilla = false;
     if (val === 'vanilla') { if (window.StudioProject) window.StudioProject.close(); app.instance = null; }
     else if (window.StudioProject) { window.StudioProject.open(val); }
     route();
@@ -203,7 +221,10 @@
     if (r.kind !== 'view') return;
     var cur = currentProject();
     var curVal = cur ? cur.key : 'vanilla';
-    var opts = [{ v: 'vanilla', t: 'Vanilla baseline' }];
+    /* Projects are the real choices. The no-project state shows the standard
+     * product for reference — labelled as what it is, not offered as another
+     * operating mode of a project. */
+    var opts = [{ v: 'vanilla', t: 'Standard product (reference)' }];
     if (window.StudioProject) window.StudioProject.list().forEach(function (p) { opts.push({ v: p.key, t: p.name }); });
     sel.innerHTML = '';
     opts.forEach(function (o) {
@@ -215,64 +236,45 @@
     sel.onchange = function () { setContext(sel.value); };
   }
 
-  /* enriched context bar: instance URL · baseline Vanilla · current snapshot */
+  /* The context bar is ONE calm line: whose system, where it lives. The
+   * machinery underneath (snapshots, baselines, capture states) stays out
+   * of it — a project simply IS its current configuration. Two things may
+   * join the line, each only when true: a history banner while a past
+   * snapshot is being viewed, and the compare-with-Vanilla toggle. */
+  var uxState = { compareVanilla: false };
+
   function renderContextInfo() {
     var bar = document.getElementById('ctxInfo');
     var r = currentRoute();
     var p = currentProject();
     if (r.kind !== 'view' || !p) { bar.hidden = true; bar.innerHTML = ''; return; }
     bar.hidden = false;
-    var baseDate = '';
-    try { baseDate = (window.StudioSettings && window.StudioSettings.ratified && window.StudioSettings.ratified()) || app.model.meta.generatedAt.helpdesk; } catch (e) { baseDate = app.model.meta.generatedAt.helpdesk; }
-    var snap = (p.instance && p.instance.meta && p.instance.meta.crawledAt) || p.lastCrawlAt || '—';
     var esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+    var viewingPast = window.StudioSnapshots ? window.StudioSnapshots.viewing(p) : null;
     bar.innerHTML =
       '<span class="ci-name">' + esc(p.name) + '</span>' +
-      '<span class="ci-item">Instance: <a href="' + esc(p.instanceUrl) + '" target="_blank" rel="noopener">' + esc(p.instanceUrl || '—') + '</a></span>' +
-      '<span class="ci-item">Baseline Vanilla: ' + esc(baseDate) + '</span>' +
-      '<span class="ci-item">Current snapshot: ' + esc(snap) + '</span>' +
-      '<span class="ci-item">Changes: ' + ((p.changeLog || []).length) + '</span>';
-    renderSnapshotPicker(bar, p);
-  }
+      '<span class="ci-item"><a href="' + esc(p.instanceUrl) + '" target="_blank" rel="noopener">' + esc(p.instanceUrl || '') + '</a></span>';
 
-  /* Timeline control: pick a stamp, and choose whether to see the whole
-   * capture or only what moved since the one before it. */
-  function renderSnapshotPicker(bar, p) {
-    if (!window.StudioSnapshots) return;
-    var el = window.StudioDom.el;
-    var entries = window.StudioSnapshots.list(p);
-    if (!entries.length) return;
-    var loaded = !!window.StudioSnapshots.modelFor(p);
-    var cur = window.StudioSnapshots.selectedEntry(p);
-    var wrap = el('span', { class: 'ci-snap' }, [el('span', { class: 'ci-snap-label', text: 'Snapshot' })]);
-
-    var sel = el('select', {
-      class: 'ctx-select',
-      title: 'Every crawl is time-and-date stamped — pick one to render it in every view',
-      onchange: function (ev) { window.StudioSnapshots.select(p.key, ev.target.value); route(); }
-    });
-    entries.forEach(function (e) {
-      var o = document.createElement('option');
-      o.value = e.id;
-      o.textContent = window.StudioSnapshots.stampLabel(e) + ' — ' + e.label;
-      if (cur && e.id === cur.id) o.selected = true;
-      sel.appendChild(o);
-    });
-    wrap.appendChild(sel);
-
-    var changes = window.StudioSnapshots.mode() === 'changes';
-    wrap.appendChild(el('button', {
-      class: 'snapbtn' + (changes ? ' on' : ''),
-      text: changes ? 'Changes only ●' : 'Changes only',
-      title: 'Ring what moved since the previous snapshot and summarise it in words',
-      disabled: loaded ? null : 'disabled',
-      onclick: function () {
-        window.StudioSnapshots.setMode(changes ? 'full' : 'changes');
-        route();
-      }
-    }));
-    if (!loaded) wrap.appendChild(el('span', { class: 'ci-item', text: 'loading capture…' }));
-    bar.appendChild(wrap);
+    var elh = window.StudioDom.el;
+    if (viewingPast) {
+      bar.appendChild(elh('span', { class: 'ci-history' }, [
+        document.createTextNode('Viewing history: ' + viewingPast.label + ' (' + window.StudioSnapshots.stampLabel(viewingPast) + ') '),
+        elh('button', {
+          class: 'snapbtn on', text: 'Return to current',
+          onclick: function () { window.StudioSnapshots.clearView(p.key); window.StudioSnapshots.setMode('full'); uxState.compareVanilla = false; route(); }
+        })
+      ]));
+    }
+    var viewIsCtx = viewById(r.id) && viewById(r.id).ctx;
+    if (viewIsCtx && !viewingPast && ctxModel()) {
+      bar.appendChild(elh('button', {
+        class: 'snapbtn' + (uxState.compareVanilla ? ' on' : ''),
+        text: uxState.compareVanilla ? 'Differences from Vanilla ●' : 'Show differences from Vanilla',
+        title: 'Ring what differs from the standard product, with a written summary',
+        style: 'margin-left:auto',
+        onclick: function () { uxState.compareVanilla = !uxState.compareVanilla; route(); }
+      }));
+    }
   }
 
   function renderViewBar() {
@@ -305,35 +307,20 @@
    * else's system. */
   function truthIndicator(p, view) {
     var el = window.StudioDom.el;
-    var ctx = window.StudioSnapshots ? window.StudioSnapshots.contextLabel(p) : null;
     var isDesign = view.id === 'design' || view.id === 'solution-design';
-    var state, line, stamp = null, baseline = null;
-
-    if (isDesign) {
-      var forked = window.StudioModel && window.StudioModel.hasFork();
-      state = forked ? 'DESIRED' : 'CURRENT';
-      line = forked ? 'Desired design — forked from the current configuration'
-        : 'Current configuration (a design forks from here)';
-      stamp = ctx && ctx.stamp;
-      baseline = 'Vanilla ' + app.model.meta.generatedAt.helpdesk + ' (comparison only)';
-    } else if (!ctx || ctx.state === 'NOT-INGESTED') {
-      state = 'NOT INGESTED';
-      line = 'No model for this project yet';
-    } else {
-      state = ctx.state;
-      line = ctx.line;
-      stamp = ctx.stamp;
-      baseline = ctx.baseline ? 'Baseline: ' + ctx.baseline : null;
-    }
-
-    var node = el('span', { class: 'truth' + (state === 'NOT INGESTED' ? ' missing' : '') }, [
+    var viewingPast = window.StudioSnapshots ? window.StudioSnapshots.viewing(p) : null;
+    var hasModel = !!ctxModel();
+    var state, line;
+    if (!hasModel) { state = 'NOT INGESTED'; line = 'No model for this project yet'; }
+    else if (viewingPast) { state = 'HISTORY'; line = viewingPast.label; }
+    else if (isDesign && window.StudioModel && window.StudioModel.hasFork()) {
+      state = 'PROPOSED'; line = 'Proposed design — forked from the current configuration';
+    } else { state = 'CURRENT'; line = 'Current configuration'; }
+    return el('span', { class: 'truth' + (state === 'NOT INGESTED' ? ' missing' : state === 'HISTORY' ? ' history' : '') }, [
       el('b', { text: p.name }),
       el('span', { class: 'truth-state', text: state }),
-      el('span', { text: line }),
-      stamp ? el('span', { text: 'Snapshot: ' + stamp }) : null,
-      baseline ? el('span', { text: baseline }) : null
+      el('span', { text: line })
     ]);
-    return node;
   }
 
   function route() {

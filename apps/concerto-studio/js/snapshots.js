@@ -240,11 +240,31 @@
   function mode() { return state.mode; }
   function setMode(m) { state.mode = (m === 'changes' ? 'changes' : 'full'); persist(); }
 
-  /* The model the views should render for this project right now. */
+  /* ---- history viewing ---------------------------------------------------
+   * NORMAL USE: a project simply IS its current configuration. History
+   * (Day-One, as-found, previous crawls) lives under Evidence → History;
+   * from there the user can temporarily view one historical capture, which
+   * sets an override the shell shows with a clear banner. Session-only —
+   * a reload always returns to current. */
+  var viewOverride = {}; /* projectKey -> snapshotId */
+
+  function setView(projectKey, id) { viewOverride[projectKey] = id; }
+  function clearView(projectKey) { delete viewOverride[projectKey]; }
+  function viewing(project) {
+    if (!project || !viewOverride[project.key]) return null;
+    return entryById(project, viewOverride[project.key]);
+  }
+
+  /* The model the views should render for this project right now:
+   * the historical override if one is active, otherwise CURRENT. */
   function modelFor(project) {
-    var rec = entryRecord(project, selectedEntry(project));
-    if (rec) return rec.model;
-    return (project && project.instance && project.instance.model) || null;
+    var v = viewing(project);
+    if (v) {
+      var rec = entryRecord(project, v);
+      if (rec) return rec.model;
+    }
+    return currentModel(project) ||
+      ((project && project.instance && project.instance.model) || null);
   }
 
   function recordFor(project) { return entryRecord(project, selectedEntry(project)); }
@@ -256,7 +276,7 @@
    * label it honestly. */
   function changesFor(project, baseline) {
     var entries = list(project);
-    var cur = selectedEntry(project);
+    var cur = viewing(project) || selectedEntry(project);
     if (!cur) return null;
     var curRec = entryRecord(project, cur);
     if (!curRec) return null;
@@ -357,6 +377,7 @@
     entryById: entryById, byRole: byRole, entryRecord: entryRecord,
     baselineModel: baselineModel, currentModel: currentModel,
     contextLabel: contextLabel,
+    setView: setView, clearView: clearView, viewing: viewing,
     select: select, mode: mode, setMode: setMode,
     modelFor: modelFor, recordFor: recordFor,
     changesFor: changesFor, highlight: highlight, applyHighlight: applyHighlight,

@@ -75,40 +75,54 @@
       ]));
     }
 
-    /* snapshot timeline — every capture, time-and-date stamped */
+    /* HISTORY — every capture, time-and-date stamped. Normal use never
+     * needs this: the project's views simply show its current state.
+     * From here a past capture can be viewed temporarily (the shell shows
+     * a banner and a Return-to-current), or its changes displayed. */
     var SS = window.StudioSnapshots;
     var entries = SS ? SS.list(proj) : [];
     if (entries.length) {
-      var selected = SS.selectedEntry(proj);
+      var viewingNow = SS.viewing(proj);
       page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:16px' }, [
-        el('h3', { text: 'Snapshot timeline (' + entries.length + ')' }),
-        el('p', { class: 'muted', style: 'margin-top:0;font-size:12px', text: 'Click a stamp to render that capture in every view. Turn on “Changes only” in the context bar to ring what moved since the capture before it.' }),
+        el('h3', { text: 'History (' + entries.length + ')' }),
+        el('p', { class: 'muted', style: 'margin-top:0;font-size:12px', text: 'The project’s views always show its current configuration. From here you can look back: view a past capture, or see what changed between captures.' }),
         el('table', { class: 'list' }, [
-          el('thead', {}, [el('tr', {}, ['Captured', 'Label', 'How', 'Ingested'].map(function (h) { return el('th', { text: h }); }))]),
+          el('thead', {}, [el('tr', {}, ['Captured', 'What', 'How', 'Holds', ''].map(function (h) { return el('th', { text: h }); }))]),
           el('tbody', {}, entries.map(function (s) {
-            var rec = SS._cache['projects/' + proj.key + '/' + s.path];
-            var counts = rec && rec.record.meta.counts;
-            return el('tr', {
-              style: 'cursor:pointer',
-              class: selected && selected.id === s.id ? 'row-on' : '',
-              onclick: function () {
-                SS.select(proj.key, s.id);
-                location.hash = '#diagram';
-              }
-            }, [
+            var rec = SS.entryRecord(proj, s);
+            var counts = rec && rec.meta && rec.meta.counts;
+            var isViewing = viewingNow && viewingNow.id === s.id;
+            var isCurrent = s.role === 'current';
+            return el('tr', { class: isViewing ? 'row-on' : '' }, [
               el('td', {}, [
                 el('b', { text: SS.formatStamp(s.capturedAt) }),
                 s.precision === 'date' ? el('small', { class: 'muted', text: ' (time not recorded)' }) : null
               ]),
-              el('td', { text: s.label || '' }),
+              el('td', {}, [
+                document.createTextNode(s.label || ''),
+                isCurrent ? el('span', { class: 'conf-chip observed', style: 'margin-left:6px', text: 'current' }) : null
+              ]),
               el('td', { style: 'font-size:12px', text: s.source || '' }),
               el('td', { style: 'font-size:12px', text: counts
-                ? (counts.statuses + ' statuses · ' + counts.actions + ' actions · ' + counts.availability + ' availability edges')
-                : 'not loaded' })
+                ? (counts.statuses + ' statuses · ' + counts.actions + ' actions')
+                : (rec ? 'loaded' : 'not loaded') }),
+              el('td', {}, [
+                rec && !isCurrent ? el('button', {
+                  class: 'btn', text: isViewing ? 'Viewing…' : 'View',
+                  title: 'Temporarily show this capture in the views (a banner offers Return to current)',
+                  onclick: function () { SS.setMode('full'); SS.setView(proj.key, s.id); location.hash = '#diagram'; }
+                }) : null,
+                document.createTextNode(' '),
+                rec ? el('button', {
+                  class: 'btn', text: 'View changes',
+                  title: 'Ring what moved since the capture before this one, with a written summary',
+                  onclick: function () { SS.select(proj.key, s.id); SS.setView(proj.key, s.id); SS.setMode('changes'); location.hash = '#diagram'; }
+                }) : null
+              ])
             ]);
           }))
         ]),
-        el('p', { class: 'muted', style: 'font-size:12px', text: 'Snapshot files live under this project’s private folder (git-ignored). ' + (proj.receipts ? 'Full receipts: ' + proj.receipts : '') })
+        el('p', { class: 'muted', style: 'font-size:12px', text: 'Snapshot files live in the private project store. ' + (proj.receipts ? 'Full receipts: ' + proj.receipts : '') })
       ]));
 
       /* how the selected capture was turned into a model */

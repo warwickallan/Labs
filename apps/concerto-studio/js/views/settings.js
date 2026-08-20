@@ -29,38 +29,38 @@
     var projects = window.StudioProject ? window.StudioProject.list() : [];
 
     /* ---- STUDIO ---- */
-    page.appendChild(section(el, 'Studio', 'Application, model and local storage status.',
-      el('table', { class: 'list', style: 'max-width:720px' }, [el('tbody', {}, [
-        el('tr', {}, [el('td', { text: 'Canonical model version' }), el('td', { text: 'v' + model.meta.modelVersion + ' · loaded read-only from ../../model/*.json' })]),
-        el('tr', {}, [el('td', { text: 'Fidelity invariants' }), el('td', {}, [el('span', { class: failing.length ? 'bad-text' : 'ok-text', style: 'font-weight:600', text: failing.length ? '✘ ' + failing.length + ' failing' : '✔ ' + (invariants || []).length + '/' + (invariants || []).length + ' pass' })])]),
-        el('tr', {}, [el('td', { text: 'Harness' }), el('td', {}, [document.createTextNode('read-only by construction (write capability false) · '), el('code', { text: 'apps/concerto-studio/harness/server.py' })])]),
-        el('tr', {}, [el('td', { text: 'Projects loaded' }), el('td', {
-          text: projects.length + ' (from ' + (window.StudioStore && window.StudioStore.source() === 'store'
-            ? 'the durable private store' : 'the repository project files') + ')'
-        })])
-      ])])
+    page.appendChild(section(el, 'Studio', null,
+      el('div', {}, [
+        el('p', { style: 'margin:0 0 8px', text: projects.length + ' project' + (projects.length === 1 ? '' : 's') + ' · standard product model loaded' +
+          (failing.length ? '' : ' and verified') + (window.StudioStore && window.StudioStore.source() === 'store' ? ' · private store connected' : '') },
+        ),
+        failing.length ? el('p', { class: 'bad-text', text: '✘ ' + failing.length + ' model check(s) failing — the loaded model may not match the Labs source.' }) : null,
+        el('details', {}, [
+          el('summary', { style: 'cursor:pointer;font-size:12.5px;color:var(--text-dim)', text: 'Technical detail' }),
+          el('table', { class: 'list', style: 'max-width:720px;margin-top:8px' }, [el('tbody', {}, [
+            el('tr', {}, [el('td', { text: 'Canonical model version' }), el('td', { text: 'v' + model.meta.modelVersion + ' · loaded read-only from ../../model/*.json' })]),
+            el('tr', {}, [el('td', { text: 'Fidelity invariants' }), el('td', {}, [el('span', { class: failing.length ? 'bad-text' : 'ok-text', style: 'font-weight:600', text: failing.length ? '✘ ' + failing.length + ' failing' : '✔ ' + (invariants || []).length + '/' + (invariants || []).length + ' pass' })])]),
+            el('tr', {}, [el('td', { text: 'Harness' }), el('td', {}, [document.createTextNode('read-only by construction (write capability false) · '), el('code', { text: 'apps/concerto-studio/harness/server.py' })])]),
+            el('tr', {}, [el('td', { text: 'Model fingerprints' }), el('td', {}, [el('code', { text: 'hd:' + model.meta.sourceFingerprints.helpdesk + ' ord:' + model.meta.sourceFingerprints.orders })])])
+          ])])
+        ])
+      ])
     ));
 
-    /* ---- VANILLA BASELINES (registry) ----
-     * Only baselines that actually exist appear here, each with the state
-     * it is really in. A row that implies a model we do not hold would make
-     * this registry worse than no registry. States:
-     *   RATIFIED   — adopted as the standard, with a date
-     *   CAPTURED   — a real captured baseline, not (yet) ratified
-     *   PARTIAL    — captured, but knowingly incomplete
-     *   HISTORICAL — superseded, kept for comparison
-     */
+    /* ---- VANILLA ---- */
+    var rows = model.evidenceIndex.map(function (e) {
+      return '<tr><td><code>' + esc(e.id) + '</code></td><td>' + esc(e.description) + '</td><td><code>' + esc(e.path) + '</code></td><td>' + esc(e.capturedAt) + '</td></tr>';
+    }).join('');
+
+    /* Baselines actually held: the Labs model, plus each project Day-One a
+     * model is loaded for. Nothing conceptual, nothing implied. */
     var baselines = [{
       name: 'Labs discovery baseline (' + model.meta.generatedAt.helpdesk + ')',
       state: ratified() ? 'RATIFIED' : 'CAPTURED',
       ratifiedControl: true,
       fingerprints: 'hd:' + model.meta.sourceFingerprints.helpdesk + ' ord:' + model.meta.sourceFingerprints.orders,
-      source: 'Discovery of warwick.concertodemo.co.uk (evidence E-001..E-024 / EO-001..EO-006)',
-      note: 'The model the Studio loads. Set the ratified date when this version is adopted as the standard.'
+      source: 'Discovery of warwick.concertodemo.co.uk (evidence E-001..E-024 / EO-001..EO-006)'
     }];
-
-    /* Each project's Day-One IS a captured baseline in its own right — but
-     * only list the ones we actually hold a model for. */
     (projects || []).forEach(function (p) {
       var SS = window.StudioSnapshots;
       if (!SS) return;
@@ -71,49 +71,54 @@
         name: p.name + ' Day-One (' + SS.formatStamp(entry.capturedAt) + ')',
         state: rec ? 'CAPTURED' : 'PARTIAL',
         fingerprints: rec ? 'project baseline' : '—',
-        source: entry.source || 'project capture',
-        note: rec
-          ? 'This deployment\u2019s configuration as supplied. Vanilla is versioned: newer deployments differ from the Labs baseline (see docs/VANILLA-VERSIONING.md).'
-          : 'Declared by the project but no model is loaded for it — nothing here claims otherwise.'
+        source: entry.source || 'project capture'
       });
     });
 
-    var registry = el('table', { class: 'list' }, [
-      el('thead', {}, [el('tr', {}, ['Baseline', 'State', 'Ratified', 'Fingerprints', 'Source'].map(function (h) { return el('th', { text: h }); }))]),
-      el('tbody', {}, baselines.map(function (b) {
-        return el('tr', {}, [
-          el('td', {}, [el('b', { text: b.name }), b.note ? el('div', { class: 'muted', style: 'font-size:11.5px', text: b.note }) : null]),
-          el('td', {}, [el('span', {
-            class: 'conf-chip' + (b.state === 'RATIFIED' ? ' observed' : b.state === 'PARTIAL' ? '' : ' structural'),
-            text: b.state
-          })]),
-          el('td', {}, [b.ratifiedControl
-            ? el('input', {
-              type: 'date', value: ratified(),
-              style: 'font:inherit;padding:3px 6px;border:1px solid var(--border-strong);border-radius:5px',
-              onchange: function (e) { setRatified(e.target.value); render(container, model, invariants); }
-            })
-            : document.createTextNode('—')]),
-          el('td', {}, [el('code', { text: b.fingerprints })]),
-          el('td', { style: 'font-size:12px', text: b.source })
-        ]);
-      }))
-    ]);
-    page.appendChild(section(el, 'Vanilla baselines',
-      'Vanilla is the standard Concerto product — a versioned reference, not a project. ' +
-      'Each project records the baseline it started from. Only baselines a model is actually held for are listed.',
-      registry));
-
-    /* ---- VANILLA / GENERIC EVIDENCE ---- */
-    var rows = model.evidenceIndex.map(function (e) {
-      return '<tr><td><code>' + esc(e.id) + '</code></td><td>' + esc(e.description) + '</td><td><code>' + esc(e.path) + '</code></td><td>' + esc(e.capturedAt) + '</td></tr>';
-    }).join('');
-    page.appendChild(section(el, 'Vanilla & generic evidence',
-      'Discovery evidence, model provenance and generic Concerto findings behind the Vanilla baseline. Project-specific evidence lives with each project (open a project → Evidence).',
+    page.appendChild(section(el, 'Vanilla',
+      'The standard Concerto product — the reference every project is measured against. Not a project.',
       el('div', {}, [
-        el('table', { class: 'list', style: 'margin-bottom:14px', html: '<thead><tr><th>ID</th><th>Description</th><th>Path</th><th>Captured</th></tr></thead><tbody>' + rows + '</tbody>' }),
+        el('p', { style: 'margin:0 0 8px' }, [
+          document.createTextNode('Baseline ' + model.meta.generatedAt.helpdesk + ' · ratified: '),
+          el('input', {
+            type: 'date', value: ratified(),
+            style: 'font:inherit;padding:3px 6px;border:1px solid var(--border-strong);border-radius:5px',
+            onchange: function (e) { setRatified(e.target.value); }
+          }),
+          document.createTextNode('  '),
+          el('button', {
+            class: 'btn', text: 'Vanilla Technical Design',
+            title: 'The full generated reference document for the standard product',
+            onclick: function () {
+              var doc = window.StudioSolDesign.generate(model, {
+                edition: 'vanilla',
+                findings: window.StudioRules.runAll(model)
+              });
+              var w = window.open('', '_blank');
+              w.document.write(doc); w.document.close();
+            }
+          })
+        ]),
         el('details', {}, [
-          el('summary', { style: 'cursor:pointer;font-size:13px;color:var(--text-dim)', text: 'Vanilla model, domain stats & generic findings' }),
+          el('summary', { style: 'cursor:pointer;font-size:12.5px;color:var(--text-dim)', text: 'Baseline registry (' + baselines.length + ')' }),
+          el('table', { class: 'list', style: 'margin-top:8px' }, [
+            el('thead', {}, [el('tr', {}, ['Baseline', 'State', 'Fingerprints', 'Source'].map(function (h) { return el('th', { text: h }); }))]),
+            el('tbody', {}, baselines.map(function (b) {
+              return el('tr', {}, [
+                el('td', {}, [el('b', { text: b.name })]),
+                el('td', {}, [el('span', { class: 'conf-chip' + (b.state === 'RATIFIED' ? ' observed' : b.state === 'PARTIAL' ? '' : ' structural'), text: b.state })]),
+                el('td', {}, [el('code', { text: b.fingerprints })]),
+                el('td', { style: 'font-size:12px', text: b.source })
+              ]);
+            }))
+          ])
+        ]),
+        el('details', {}, [
+          el('summary', { style: 'cursor:pointer;font-size:12.5px;color:var(--text-dim)', text: 'Discovery evidence & provenance' }),
+          el('table', { class: 'list', style: 'margin:8px 0 14px', html: '<thead><tr><th>ID</th><th>Description</th><th>Path</th><th>Captured</th></tr></thead><tbody>' + rows + '</tbody>' })
+        ]),
+        el('details', {}, [
+          el('summary', { style: 'cursor:pointer;font-size:12.5px;color:var(--text-dim)', text: 'Vanilla model, domain stats & generic findings' }),
           (function () { var h = el('div', { style: 'margin-top:10px' }); if (window.StudioOverview) window.StudioOverview.render(h, model, invariants); return h; })()
         ])
       ])
@@ -151,6 +156,7 @@
       el('span', { class: cls, text: S ? S.durabilityLine() : 'store client not loaded' })
     ]));
 
+    /* the sentence above is the whole story; the internals live below the fold */
     var rows = [
       ['Project source', !S ? 'unknown' : (S.source() === 'store' ? 'the private store (authoritative)'
         : S.source() === 'files' ? 'repository projects/ folder (fallback — the store is not running)'
@@ -163,24 +169,21 @@
       ['Off-machine remote', live ? (h.git.remote || 'NONE — add one to get a backup') : '—'],
       ['Last commit', live && h.git.lastCommit ? h.git.lastCommit : '—']
     ];
-    host.appendChild(el('table', { class: 'list', style: 'max-width:760px' }, [
-      el('tbody', {}, rows.map(function (r) {
-        return el('tr', {}, [el('td', { text: r[0] }), el('td', { text: r[1] })]);
-      }))
+    host.appendChild(el('details', {}, [
+      el('summary', { style: 'cursor:pointer;font-size:12.5px;color:var(--text-dim)', text: 'Technical detail & how to add a backup' }),
+      el('table', { class: 'list', style: 'max-width:760px;margin-top:8px' }, [
+        el('tbody', {}, rows.map(function (r) {
+          return el('tr', {}, [el('td', { text: r[0] }), el('td', { text: r[1] })]);
+        }))
+      ]),
+      el('ul', { style: 'margin:10px 0 0;font-size:12.5px' }, [
+        el('li', {}, [document.createTextNode('Start the store: '), el('code', { text: 'python apps/concerto-studio/store/store_server.py' })]),
+        el('li', {}, [document.createTextNode('Get an off-machine copy: create a PRIVATE repo, then in the store root '),
+          el('code', { text: 'git remote add origin <private-url> && git push -u origin main' })]),
+        el('li', { text: 'Browser localStorage only mirrors the session; whichever source loaded wins on startup.' })
+      ])
     ]));
-
-    (live ? (h.warnings || []) : []).forEach(function (w) {
-      host.appendChild(el('p', { class: 'warn-text', style: 'font-size:12px;margin:4px 0', text: w }));
-    });
-
-    host.appendChild(el('ul', { style: 'margin:10px 0 0;font-size:12.5px' }, [
-      el('li', {}, [document.createTextNode('Start the store: '), el('code', { text: 'python apps/concerto-studio/store/store_server.py' })]),
-      el('li', {}, [document.createTextNode('Get an off-machine copy: create a PRIVATE repo, then in the store root '),
-        el('code', { text: 'git remote add origin <private-url> && git push -u origin main' })]),
-      el('li', { text: 'Browser localStorage only mirrors the session; whichever source loaded wins on startup.' })
-    ]));
-
-    if (live && !bad[h.durability] && h.durability !== 'OFF-MACHINE') { /* LOCAL-HISTORY: versioned, no remote */ }
+    void bad;
   }
 
   window.StudioSettings = { render: render, ratified: ratified };

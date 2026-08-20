@@ -1,77 +1,80 @@
-/* solutiondesign.js — the Solution Design page: choose an edition, preview
- * the generated document inline, open it in its own tab for printing
- * (browser print → PDF), or download the standalone HTML.
+/* solutiondesign.js — the document page for the selected project.
  *
- * PROJECT CONTEXTUAL. With a project selected, the editions are that
- * project's own states — Current, Day-One baseline, Desired design — and
- * the document describes THAT engagement: its instance, its changes and
- * verifications, its findings, its open customer decisions, its coverage
- * gaps. The generic Vanilla Solution Design is not produced here; Vanilla
- * belongs to Settings → Vanilla baselines.
+ * SOLUTION DESIGN (default) — customer-facing. It tells the customer what
+ * has been delivered, in their language, and is something they sign off
+ * against. It never carries internal fault registers, capture states or
+ * software concerns. One document per project: the current/agreed design
+ * and its deviations from the relevant Vanilla reference.
+ *
+ * TECHNICAL DESIGN (second tab) — the implementation team's exhaustive
+ * generated document (the former Solution Design format, renamed). It may
+ * legitimately contain known faults, gaps and internal register codes —
+ * that is its job. Its historical states (Day-One / Current / Proposed)
+ * sit inside this tab as version controls, not in the primary UX.
+ *
+ * Vanilla's own Technical Design lives in Settings → Vanilla.
  */
 (function () {
   'use strict';
 
-  var state = { edition: null };
+  var state = { tab: 'solution', tdVersion: 'current' };
 
-  function editionsFor(project) {
-    var M = window.StudioModel;
+  function projectModels(project, base, opts) {
     var SS = window.StudioSnapshots;
-    if (!project) return [{ id: 'vanilla', label: 'Vanilla', available: true }];
-    var base = SS && SS.byRole(project, 'baseline');
-    return [
-      { id: 'current', label: 'Current configuration', available: !!(SS && SS.currentModel(project)) },
-      { id: 'baseline', label: 'Day-One baseline', available: !!(base && SS.entryRecord(project, base)) },
-      { id: 'desired', label: 'Desired design', available: !!(M && M.hasFork()) }
-    ];
+    var M = window.StudioModel;
+    return {
+      current: (SS && project) ? (SS.currentModel(project) || base) : base,
+      baseline: (SS && project) ? SS.baselineModel(project) : null,
+      desired: (M && M.hasFork()) ? M.desired() : null
+    };
   }
 
-  function modelFor(edition, base, opts) {
-    var M = window.StudioModel;
-    var SS = window.StudioSnapshots;
-    var project = opts.project;
-    if (!project) return opts.vanilla || base;
-    if (edition === 'desired' && M.hasFork()) return M.desired();
-    if (edition === 'baseline') return SS ? SS.baselineModel(project) : null;
-    return SS ? SS.currentModel(project) : base;
-  }
-
-  function buildDocument(base, opts) {
-    var SS = window.StudioSnapshots;
+  function buildSolutionDesign(base, opts) {
     var project = opts.project;
     var vanilla = opts.vanilla || base;
-    var model = modelFor(state.edition, base, opts) || base;
-    var findings = window.StudioRules.runAll(model);
-
-    if (!project) {
-      return window.StudioSolDesign.generate(model, { edition: 'vanilla', findings: findings });
-    }
-
-    /* The comparison baseline is the project's OWN Day-One for a current or
-     * desired document; the Day-One document itself is compared with
-     * Vanilla, because that is the only earlier thing it can be measured
-     * against. */
-    var dayOne = SS ? SS.baselineModel(project) : null;
-    var against = (state.edition === 'baseline' || !dayOne) ? vanilla : dayOne;
-    var againstLabel = (state.edition === 'baseline' || !dayOne)
-      ? 'Vanilla ' + vanilla.meta.generatedAt.helpdesk
-      : project.name + ' Day-One';
-    var diff = window.StudioDiff.compare(against, model);
-    var entry = SS ? SS.selectedEntry(project) : null;
-    var rec = (SS && entry) ? SS.entryRecord(project, entry) : null;
-
-    return window.StudioSolDesign.generate(model, {
-      edition: state.edition === 'desired' ? 'customer' : 'instance',
+    var models = projectModels(project, base, opts);
+    var model = models.current || base;
+    var diff = window.StudioDiff.compare(vanilla, model);
+    var SS = window.StudioSnapshots;
+    var entry = (SS && project) ? (SS.byRole(project, 'current') || SS.selectedEntry(project)) : null;
+    var rec = (SS && project && entry) ? SS.entryRecord(project, entry) : null;
+    var ratified = window.StudioSettings && window.StudioSettings.ratified && window.StudioSettings.ratified();
+    return window.StudioSolDesignCustomer.generate(model, {
       project: project,
-      stateLabel: state.edition === 'desired' ? 'Desired design'
-        : state.edition === 'baseline' ? 'Day-One baseline' : 'Current configuration',
-      snapshotStamp: entry ? SS.stampLabel(entry) : null,
-      baselineLabel: againstLabel,
+      vanilla: vanilla,
+      ratified: ratified || null,
+      stamp: (entry && SS) ? SS.stampLabel(entry) : null,
+      deviations: window.StudioDiff.deviationSchedule(diff),
+      ingestReport: rec && rec.meta ? rec.meta.ingestReport : null
+    });
+  }
+
+  function buildTechnicalDesign(base, opts) {
+    var project = opts.project;
+    var vanilla = opts.vanilla || base;
+    var models = projectModels(project, base, opts);
+    var model = state.tdVersion === 'baseline' ? models.baseline
+      : state.tdVersion === 'proposed' ? models.desired
+        : models.current;
+    model = model || base;
+    var against = (state.tdVersion === 'baseline' || !models.baseline) ? vanilla : models.baseline;
+    var diff = window.StudioDiff.compare(against, model);
+    var SS = window.StudioSnapshots;
+    var entry = (SS && project) ? SS.selectedEntry(project) : null;
+    var rec = (SS && project && entry) ? SS.entryRecord(project, entry) : null;
+    return window.StudioSolDesign.generate(model, {
+      edition: state.tdVersion === 'proposed' ? 'customer' : (project ? 'instance' : 'vanilla'),
+      project: project,
+      stateLabel: state.tdVersion === 'proposed' ? 'Proposed design'
+        : state.tdVersion === 'baseline' ? 'Day-One baseline' : 'Current configuration',
+      snapshotStamp: (entry && SS) ? SS.stampLabel(entry) : null,
+      baselineLabel: (state.tdVersion === 'baseline' || !models.baseline)
+        ? 'Vanilla ' + vanilla.meta.generatedAt.helpdesk
+        : (project ? project.name + ' Day-One' : 'Vanilla'),
       ingestReport: rec && rec.meta ? rec.meta.ingestReport : null,
       diff: diff,
       deviations: window.StudioDiff.deviationSchedule(diff),
-      notCrawled: null,
-      findings: findings
+      findings: window.StudioRules.runAll(model)
     });
   }
 
@@ -85,53 +88,71 @@
 
     function rerender() { render(container, base, opts); }
 
-    var editions = editionsFor(project);
-    var chosen = editions.filter(function (e) { return e.id === state.edition && e.available; })[0];
-    if (!chosen) {
-      chosen = editions.filter(function (e) { return e.available; })[0] || editions[0];
-      state.edition = chosen.id;
-    }
+    var isSolution = state.tab === 'solution';
+    var doc = isSolution ? buildSolutionDesign(base, opts) : buildTechnicalDesign(base, opts);
+    var docName = (project ? project.key.toUpperCase() + '-' : '') +
+      (isSolution ? 'SOLUTION-DESIGN' : 'TECHNICAL-DESIGN' + '-' + state.tdVersion.toUpperCase());
+
+    var models = projectModels(project, base, opts);
 
     page.appendChild(el('div', { class: 'toolstrip' }, [
-      el('label', { text: project ? project.name : 'Edition' }),
-      el('span', { class: 'seg' }, editions.map(function (e) {
-        return el('button', {
-          class: state.edition === e.id ? 'on' : '',
-          text: e.label + (e.available ? '' : ' (none)'),
-          disabled: e.available ? null : 'disabled',
-          onclick: function () { state.edition = e.id; rerender(); }
-        });
-      })),
-      project ? el('span', { class: 'src-chip', text: 'The Vanilla Solution Design lives in Settings → Vanilla baselines' }) : null,
+      el('span', { class: 'seg' }, [
+        el('button', {
+          class: isSolution ? 'on' : '', text: 'Solution Design',
+          title: 'Customer-facing: what has been delivered, for sign-off',
+          onclick: function () { state.tab = 'solution'; rerender(); }
+        }),
+        el('button', {
+          class: !isSolution ? 'on' : '', text: 'Technical Design',
+          title: 'Implementation team: exhaustive configuration, faults and evidence',
+          onclick: function () { state.tab = 'technical'; rerender(); }
+        })
+      ]),
+      !isSolution && project ? el('label', { text: 'Version' }) : null,
+      !isSolution && project ? el('span', { class: 'seg' }, [
+        el('button', { class: state.tdVersion === 'current' ? 'on' : '', text: 'Current', onclick: function () { state.tdVersion = 'current'; rerender(); } }),
+        el('button', {
+          class: state.tdVersion === 'baseline' ? 'on' : '', text: 'Day-One',
+          disabled: models.baseline ? null : 'disabled',
+          onclick: function () { state.tdVersion = 'baseline'; rerender(); }
+        }),
+        el('button', {
+          class: state.tdVersion === 'proposed' ? 'on' : '', text: 'Proposed',
+          disabled: models.desired ? null : 'disabled',
+          title: models.desired ? null : 'No proposed design yet — start one in Design',
+          onclick: function () { state.tdVersion = 'proposed'; rerender(); }
+        })
+      ]) : null,
+      isSolution ? el('span', { class: 'src-chip', text: 'Customer-facing — describes the delivered system for sign-off' })
+        : el('span', { class: 'src-chip', text: 'Internal — may contain known faults, gaps and register codes' }),
       el('span', { style: 'flex:1' }),
       el('button', {
         class: 'btn', text: 'Open for printing',
-        title: 'Opens the document in its own tab — use the browser\'s Print for a PDF',
+        title: 'Opens the document in its own tab — use the browser’s Print for a PDF',
         onclick: function () {
           var w = window.open('', '_blank');
-          w.document.write(buildDocument(base, opts));
+          w.document.write(doc);
           w.document.close();
         }
       }),
       el('button', {
         class: 'btn', text: 'Download HTML',
         onclick: function () {
-          var blob = new Blob([buildDocument(base, opts)], { type: 'text/html' });
+          var blob = new Blob([doc], { type: 'text/html' });
           var a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = ((project ? project.key.toUpperCase() + '-' : '') + String(state.edition || 'vanilla').toUpperCase()) + '-SOLUTION-DESIGN.html';
+          a.download = docName + '.html';
           a.click();
           URL.revokeObjectURL(a.href);
         }
       })
     ]));
 
-    /* inline preview via a sandboxed same-origin iframe (srcdoc) */
     var frame = el('iframe', {
       style: 'flex:1;border:0;background:#fff;width:100%',
-      title: 'Solution Design preview'
+      title: isSolution ? 'Solution Design preview' : 'Technical Design preview'
     });
-    frame.setAttribute('srcdoc', buildDocument(base, opts));
+    frame.setAttribute('srcdoc', doc);
     page.appendChild(frame);
   }
 

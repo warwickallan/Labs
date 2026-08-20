@@ -16,7 +16,10 @@
     search: '',
     collapsed: {},          /* statusName -> true */
     zoom: 1,
-    selected: null          /* action name */
+    selected: null,         /* action name */
+    present: 'board',       /* board | flow (process-flow journeys) */
+    flow: 'reactive',
+    flowZoom: 1
   };
 
   function actionMatches(a) {
@@ -250,6 +253,83 @@
     }));
   }
 
+  /* ---- FLOW presentation ------------------------------------------------
+   * The same model drawn as a Bellrock-style process-flow journey (see
+   * References/Process Flows): swimlanes, numbered steps, owner chips.
+   * The Board answers "what is configured"; the Flow answers "what is the
+   * journey". Printable via a standalone landscape page.
+   */
+  var FLOW_LABELS = [
+    ['reactive', 'Reactive'], ['planned', 'Planned'],
+    ['contractor', 'Contractor & Orders'], ['quote', 'Quote'], ['business-case', 'Business Case']
+  ];
+
+  function renderFlow(page, model, rerender) {
+    var el = D().el;
+    page.appendChild(el('div', { class: 'toolstrip' }, [
+      el('span', { class: 'seg' }, [
+        el('button', { text: 'Board', onclick: function () { state.present = 'board'; rerender(); } }),
+        el('button', { class: 'on', text: 'Flow' })
+      ]),
+      el('label', { text: 'Journey' }),
+      el('span', { class: 'seg' }, FLOW_LABELS.map(function (f) {
+        return el('button', {
+          class: state.flow === f[0] ? 'on' : '', text: f[1],
+          onclick: function () { state.flow = f[0]; rerender(); }
+        });
+      })),
+      el('span', { style: 'flex:1' }),
+      el('button', { class: 'btn', text: '−', title: 'Zoom out', onclick: function () { state.flowZoom = Math.max(0.4, (state.flowZoom || 1) - 0.15); apply(); } }),
+      el('button', { class: 'btn', text: '+', title: 'Zoom in', onclick: function () { state.flowZoom = Math.min(2.5, (state.flowZoom || 1) + 0.15); apply(); } }),
+      el('button', { class: 'btn', text: 'Fit', onclick: function () { state.flowZoom = 1; apply(); } }),
+      el('button', {
+        class: 'btn', text: 'Open for printing',
+        title: 'All five journeys, one per landscape A4 page — use the browser’s Print for a PDF',
+        onclick: function () {
+          var flows = FLOW_LABELS.map(function (f) { return window.StudioFlow.render(f[0], model); })
+            .filter(function (r) { return !r.missing; });
+          var w = window.open('', '_blank');
+          w.document.write(window.StudioFlow.printable(flows, 'Concerto process flows'));
+          w.document.close();
+        }
+      })
+    ]));
+
+    var wrap = el('div', { id: 'diagramWrap', style: 'padding:18px' });
+    var host = el('div', { id: 'flowHost', style: 'transform-origin:0 0;margin:0 auto;max-width:1280px' });
+    wrap.appendChild(host);
+    page.appendChild(wrap);
+    function apply() { host.style.transform = 'scale(' + (state.flowZoom || 1) + ')'; }
+
+    var out = window.StudioFlow.render(state.flow || 'reactive', model);
+    if (out.missing) {
+      host.appendChild(el('p', { class: 'muted', text: 'This journey has nothing to draw in this configuration.' }));
+    } else {
+      host.innerHTML = out.svg;
+      /* clicking a step with a status opens the inspector */
+      host.querySelectorAll('[data-status]').forEach(function (g) {
+        g.style.cursor = 'pointer';
+        g.addEventListener('click', function () {
+          window.StudioInspector.showStatus(model, g.getAttribute('data-status'));
+        });
+      });
+    }
+    apply();
+
+    /* drag-to-pan, same feel as the board */
+    var panning = null;
+    wrap.addEventListener('mousedown', function (e) {
+      panning = { x: e.clientX, y: e.clientY, left: wrap.scrollLeft, top: wrap.scrollTop };
+      wrap.classList.add('panning');
+    });
+    window.addEventListener('mousemove', function (e) {
+      if (!panning) return;
+      wrap.scrollLeft = panning.left - (e.clientX - panning.x);
+      wrap.scrollTop = panning.top - (e.clientY - panning.y);
+    });
+    window.addEventListener('mouseup', function () { panning = null; wrap.classList.remove('panning'); });
+  }
+
   function render(container, model, opts) {
     var el = D().el;
     D().clear(container);
@@ -258,7 +338,18 @@
 
     function rerender() { render(container, model, opts); }
 
+    /* FLOW presentation replaces the whole page (read-only journeys);
+     * the editable design board never shows it. */
+    if (state.present === 'flow' && !(opts && opts.editable) && window.StudioFlow) {
+      renderFlow(page, model, rerender);
+      return;
+    }
+
     page.appendChild(el('div', { class: 'toolstrip' }, [
+      (!(opts && opts.editable) && window.StudioFlow) ? el('span', { class: 'seg' }, [
+        el('button', { class: 'on', text: 'Board' }),
+        el('button', { text: 'Flow', onclick: function () { state.present = 'flow'; rerender(); } })
+      ]) : null,
       el('label', { text: 'Type' }),
       seg(['All', 'Reactive', 'Planned'], state.type, function (v) { state.type = v; rerender(); }),
       el('label', { text: 'Surface' }),
