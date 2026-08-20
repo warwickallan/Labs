@@ -229,9 +229,14 @@
     var payload;
     try { payload = JSON.parse(exportProject(key)); }
     catch (e) { return Promise.resolve({ saved: false, reason: 'export failed: ' + e.message }); }
-    return S.save(key, payload).catch(function (e) {
-      return { saved: false, reason: 'store refused the save: ' + e.message };
-    });
+    var work = function () {
+      return S.save(key, payload).catch(function (e) {
+        return { saved: false, reason: 'store refused the save: ' + e.message };
+      });
+    };
+    /* a save is deterministic — receipt with a measured duration */
+    if (window.StudioReceipts) return window.StudioReceipts.timed('SAVE PROJECT', key, work);
+    return work();
   }
 
   /* file-shaped export — persisted by persist() into the private store, or

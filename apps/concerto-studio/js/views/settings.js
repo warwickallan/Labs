@@ -126,6 +126,100 @@
 
     /* ---- STORAGE ---- */
     page.appendChild(storageSection(el));
+
+    /* ---- RECEIPTS ---- */
+    page.appendChild(receiptsSection(el, projects));
+  }
+
+  /* ---- RECEIPTS: what each operation actually cost --------------------
+   * Time taken and tokens burned, per operation, newest first. Truthful or
+   * nothing: deterministic operations carry measured durations and REAL
+   * ZEROS for AI; AI-assisted work the Studio cannot meter is shown as
+   * 'unavailable' — counted, never estimated into a total. */
+  function receiptsSection(el, projects) {
+    var host = el('div', { id: 'receiptsHostSettings' }, [el('p', { class: 'muted', text: 'Loading receipts…' })]);
+    var node = section(el, 'Receipts',
+      'What each operation cost — time taken and tokens burned. Deterministic work (the harness crawler, ingests, saves) uses no AI: real zeros. AI-assisted work burns Claude tokens the Studio cannot meter — shown as unavailable, never estimated.',
+      host);
+    if (!window.StudioReceipts) {
+      window.StudioDom.clear(host);
+      host.appendChild(el('p', { class: 'muted', text: 'Receipts module not loaded.' }));
+      return node;
+    }
+    window.StudioReceipts.all(projects).then(function (list) {
+      renderReceipts(el, host, list);
+    });
+    return node;
+  }
+
+  function renderReceipts(el, host, list) {
+    var R = window.StudioReceipts;
+    window.StudioDom.clear(host);
+    var s = R.summarise(list);
+
+    host.appendChild(el('p', { style: 'margin:0 0 8px' }, [
+      el('b', { text: s.operations + ' operation' + (s.operations === 1 ? '' : 's') }),
+      document.createTextNode(' · ' + R.fmtDuration(s.timedMs) + ' measured time · '),
+      el('b', { text: s.knownTokens + ' AI tokens known' }),
+      document.createTextNode(s.unmetered
+        ? ' · ' + s.unmetered + ' AI-assisted operation' + (s.unmetered === 1 ? '' : 's') + ' unmetered (side-panel sessions — real usage was not recorded, so no number is shown)'
+        : ' · every operation fully metered')
+    ]));
+
+    if (!list.length) {
+      host.appendChild(el('p', { class: 'muted', text: 'No operations recorded yet. Harness crawls, snapshot ingests and project saves will appear here as they happen.' }));
+      return;
+    }
+
+    var shown = list.slice(0, 40);
+    host.appendChild(el('table', { class: 'list' }, [
+      el('thead', {}, [el('tr', {}, ['When', 'Operation', 'Target', 'Duration', 'Runtime', 'Tokens', 'AI cost', 'Outcome'].map(function (h) { return el('th', { text: h }); }))]),
+      el('tbody', {}, shown.map(function (r) {
+        var det = null;
+        var row = el('tr', { style: 'cursor:pointer', title: 'Click for the full receipt' }, [
+          el('td', { style: 'white-space:nowrap', text: String(r.when).replace('T', ' ').slice(0, 19) }),
+          el('td', {}, [el('b', { style: 'font-size:12px', text: r.operation || '' })]),
+          el('td', { style: 'font-size:12px', text: r.target || '' }),
+          el('td', { text: R.fmtDuration(r.durationMs) }),
+          el('td', {}, [el('span', {
+            class: 'conf-chip' + (r.aiInvoked ? '' : ' observed'),
+            text: r.aiInvoked ? 'AI-ASSISTED' : 'DETERMINISTIC'
+          })]),
+          el('td', { text: typeof r.totalTokens === 'number' ? String(r.totalTokens) : 'unavailable' }),
+          el('td', { text: r.aiCost == null ? '—' : String(r.aiCost) }),
+          el('td', {}, [el('span', {
+            class: 'conf-chip' + (/COMPLETE|VERIFIED/.test(r.outcome || '') ? ' observed' : ''),
+            style: /FAIL/.test(r.outcome || '') ? 'background:#fdeaea;color:var(--danger)' : '',
+            text: r.outcome || ''
+          })])
+        ]);
+        row.addEventListener('click', function () {
+          if (det) { det.remove(); det = null; return; }
+          var c = Object.assign({}, r); delete c.raw;
+          det = el('tr', {}, [el('td', { colspan: '8' }, [
+            el('pre', { style: 'margin:0;font-size:10.5px;white-space:pre-wrap', text: JSON.stringify(r.raw || c, null, 1) })
+          ])]);
+          row.after(det);
+        });
+        return row;
+      }))
+    ]));
+    if (list.length > shown.length) {
+      host.appendChild(el('p', { class: 'muted', style: 'font-size:12px', text: shown.length + ' of ' + list.length + ' shown — download the full set below.' }));
+    }
+    host.appendChild(el('p', {}, [
+      el('button', {
+        class: 'btn', text: 'Download all (JSONL)',
+        onclick: function () {
+          var blob = new Blob([R.toJsonl(list)], { type: 'application/jsonl' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'studio-receipts.jsonl';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        }
+      })
+    ]));
   }
 
   /* ---- STORAGE: report the real state, never the intended one ---- */

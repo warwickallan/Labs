@@ -7,6 +7,22 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-20 (later still) — Receipts: cost accounting in Settings
+
+Studio gains the Launch app's receipts discipline (Settings → Receipts):
+every operation with its time taken and tokens burned, newest first, with
+JSONL download. Truthful or nothing — deterministic work (harness crawls,
+snapshot ingests, project saves) carries measured durations and REAL ZEROS
+for AI usage; AI-assisted work (side-panel discovery, assisted config
+changes) burns Claude tokens the Studio cannot meter and is shown as
+"unavailable", counted in the summary but never estimated into the total.
+Harness receipts now carry the deterministic-runtime block + durationMs
+(harness 0.2; old lines untouched — append-only). Sources merged: harness
+receipts (:8602), local timed Studio operations, and AI-assisted activity
+derived from the durable project files, which may carry recorded actuals
+(`ai: {totalTokens}`) that override "unavailable" — a written number beats
+the unknown, but only a written one. Tests 88/88 · harness offline 7/7.
+
 ## 2026-08-20 (later) — Simple UX; Solution vs Technical Design; process flows
 
 **UX simplification (Warwick's direction — presentation only).** A project

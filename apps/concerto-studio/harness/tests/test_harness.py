@@ -96,6 +96,27 @@ def t6():
         assert r.get("writeCapability") is False, "receipts must record writeCapability=false"
 
 
+@test("new receipts carry truthful deterministic-runtime accounting (real zeros, never fabricated)")
+def t7():
+    code, body = call("GET", "/receipts")
+    assert code == 200, body
+    # only receipts written by harness >= 0.2 carry the runtime block;
+    # older lines predate it and must not be rewritten (append-only)
+    new = [r for r in body["receipts"] if r.get("harnessVersion", "0") >= "0.2"]
+    for r in new:
+        assert r["runtimeImplementation"] == "DETERMINISTIC", r
+        assert r["aiInvoked"] is False and r["totalTokens"] == 0, r
+        assert r["aiCost"] == "£0.00", r
+    # and the module constant itself is honest by construction
+    import pathlib  # noqa: PLC0415
+
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+    import server  # noqa: PLC0415
+
+    rt = server.DETERMINISTIC_RUNTIME
+    assert rt["totalTokens"] == 0 and rt["aiInvoked"] is False
+
+
 def main() -> int:
     passed = failed = 0
     for name, fn in results:

@@ -44,7 +44,23 @@ SNAPSHOT_DIR = HERE.parent / "snapshots"
 RECEIPT_DIR = HERE.parent / "receipts"
 RECEIPT_FILE = RECEIPT_DIR / "harness-receipts.jsonl"
 PORT = 8602
-HARNESS_VERSION = "0.1"
+HARNESS_VERSION = "0.2"
+
+# Truthful runtime accounting, mirroring the Launch/RLMCP receipts
+# discipline: the harness crawler is deterministic Playwright automation —
+# no AI is invoked, so its receipts carry REAL ZEROS. If an AI-assisted
+# operation is ever recorded, it must carry the provider's RETURNED usage
+# or the string "unavailable" — never a fabricated number.
+DETERMINISTIC_RUNTIME = {
+    "runtimeImplementation": "DETERMINISTIC",
+    "aiInvoked": False,
+    "aiProvider": None,
+    "aiModel": None,
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0,
+    "aiCost": "£0.00",
+}
 
 SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
 RECEIPT_DIR.mkdir(parents=True, exist_ok=True)
@@ -63,7 +79,14 @@ def now_iso() -> str:
 
 def write_receipt(rec: dict) -> None:
     rec = dict(rec, recordedAt=now_iso(), harnessVersion=HARNESS_VERSION,
-               writeCapability=adapter.WRITE_CAPABILITY)
+               writeCapability=adapter.WRITE_CAPABILITY, **DETERMINISTIC_RUNTIME)
+    if rec.get("startedAt") and rec.get("finishedAt") and "durationMs" not in rec:
+        try:
+            t0 = time.mktime(time.strptime(rec["startedAt"], "%Y-%m-%dT%H:%M:%S"))
+            t1 = time.mktime(time.strptime(rec["finishedAt"], "%Y-%m-%dT%H:%M:%S"))
+            rec["durationMs"] = int((t1 - t0) * 1000)
+        except Exception:
+            rec["durationMs"] = None
     with RECEIPT_FILE.open("a", encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 

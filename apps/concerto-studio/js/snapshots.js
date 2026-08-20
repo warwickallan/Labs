@@ -125,16 +125,29 @@
   function loadEntry(project, entry, baseline) {
     var key = cacheKey(project, entry);
     if (cache[key]) return Promise.resolve(cache[key]);
+    var work;
     if (entry.derivedFrom) {
       var src = entryById(project, entry.derivedFrom);
       if (!src) return Promise.resolve(null);
-      return loadParts(project, src).then(function (parts) {
-        return (parts && parts.length) ? store(project, entry, parts, baseline, entry.changes || []) : null;
-      });
+      work = function () {
+        return loadParts(project, src).then(function (parts) {
+          return (parts && parts.length) ? store(project, entry, parts, baseline, entry.changes || []) : null;
+        });
+      };
+    } else {
+      work = function () {
+        return loadParts(project, entry).then(function (parts) {
+          return (parts && parts.length) ? store(project, entry, parts, baseline, null) : null;
+        });
+      };
     }
-    return loadParts(project, entry).then(function (parts) {
-      return (parts && parts.length) ? store(project, entry, parts, baseline, null) : null;
-    });
+    /* ingests are deterministic local compute — receipt with a measured
+     * duration and real zero AI usage */
+    if (window.StudioReceipts) {
+      return window.StudioReceipts.timed('INGEST SNAPSHOT', project.name + ' — ' + entry.id, work,
+        function (hit) { return hit && hit.record && hit.record.meta ? hit.record.meta.counts : undefined; });
+    }
+    return work();
   }
 
   function loadParts(project, entry) {

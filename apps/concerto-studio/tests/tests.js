@@ -1524,6 +1524,93 @@
     });
   });
 
+  /* ---- receipts: truthful cost accounting --------------------------------
+   * The Launch discipline: deterministic operations carry real zeros;
+   * AI-assisted operations carry recorded actuals or 'unavailable' —
+   * a number is never invented. */
+
+  function withCleanReceipts(fn) {
+    var KEY = window.StudioReceipts._key;
+    var saved = localStorage.getItem(KEY);
+    localStorage.removeItem(KEY);
+    return Promise.resolve().then(fn).then(function (v) {
+      if (saved) localStorage.setItem(KEY, saved); else localStorage.removeItem(KEY);
+      return v;
+    }, function (e) {
+      if (saved) localStorage.setItem(KEY, saved); else localStorage.removeItem(KEY);
+      throw e;
+    });
+  }
+
+  test('a deterministic operation is timed and carries real zeros for AI', function () {
+    return withCleanReceipts(function () {
+      return window.StudioReceipts.timed('TEST OP', 'target', function () {
+        return new Promise(function (res) { setTimeout(res, 20); });
+      }).then(function () {
+        var list = window.StudioReceipts._loadLocal();
+        assert(list.length === 1, 'one receipt recorded');
+        var r = list[0];
+        assert(typeof r.durationMs === 'number' && r.durationMs >= 10, 'a measured duration: ' + r.durationMs);
+        assert(r.runtimeImplementation === 'DETERMINISTIC' && r.aiInvoked === false, 'deterministic runtime');
+        assert(r.totalTokens === 0 && r.aiCost === '£0.00', 'REAL zeros, not blanks');
+        assert(r.outcome === 'COMPLETE', 'outcome recorded');
+      });
+    });
+  });
+
+  test('a failed operation still gets a truthful receipt', function () {
+    return withCleanReceipts(function () {
+      return window.StudioReceipts.timed('TEST FAIL', 'target', function () {
+        return Promise.reject(new Error('boom'));
+      }).then(function () { throw new Error('should have rethrown'); }, function () {
+        var r = window.StudioReceipts._loadLocal()[0];
+        assert(r.outcome === 'FAILED' && /boom/.test(r.error), 'failure recorded with the error');
+      });
+    });
+  });
+
+  test('AI-assisted project activity is unmetered — never a fabricated number', function () {
+    return kirklees.then(function (f) {
+      var derived = window.StudioReceipts.derivedFor(f.project);
+      assert(derived.length >= 3, 'captures + changes derive receipts, got ' + derived.length);
+      var assisted = derived.filter(function (r) { return r.aiInvoked; });
+      assert(assisted.length >= 3, 'the assisted crawls and CHG-001/002 are AI-assisted');
+      assisted.forEach(function (r) {
+        assert(r.totalTokens === 'unavailable' || typeof r.totalTokens === 'number',
+          'tokens are a recorded actual or the string unavailable: ' + r.totalTokens);
+        assert(r.totalTokens !== 0 || !r.aiInvoked, 'an AI-assisted op never claims zero tokens');
+      });
+      var chg = derived.filter(function (r) { return /CONFIG CHANGE/.test(r.operation); });
+      assert(chg.length === 2 && chg.every(function (r) { return r.outcome === 'VERIFIED'; }),
+        'CHG-001/002 appear as verified changes');
+    });
+  });
+
+  test('the summary sums only KNOWN tokens and counts the unmetered', function () {
+    var s = window.StudioReceipts.summarise([
+      { totalTokens: 100, durationMs: 50, aiInvoked: false },
+      { totalTokens: 'unavailable', durationMs: 'unavailable', aiInvoked: true },
+      { totalTokens: 200, durationMs: 30, aiInvoked: true }
+    ]);
+    assert(s.knownTokens === 300, 'known tokens summed: ' + s.knownTokens);
+    assert(s.unmetered === 1, 'unmetered counted, not guessed into the sum');
+    assert(s.timedMs === 80 && s.untimed === 1, 'durations likewise');
+    assert(s.aiOps === 2, 'AI operations counted');
+  });
+
+  test('Settings renders the Receipts section with the honesty note', function () {
+    return loadedPromise.then(function (res) {
+      var sb = document.getElementById('sandbox');
+      sb.innerHTML = '';
+      window.StudioSettings.render(sb, res.model, res.invariants);
+      return new Promise(function (r) { setTimeout(r, 250); }).then(function () {
+        assert(/Receipts/.test(sb.textContent), 'Receipts section exists');
+        assert(/never estimated/i.test(sb.textContent), 'the truthfulness rule is stated on the page');
+        sb.innerHTML = '';
+      });
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');
