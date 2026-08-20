@@ -255,13 +255,17 @@
           report.notes.push('Sort order not captured for ' + typeName + ' status "' + n +
             '" — display order follows the crawl listing, not an observed value.');
         }
-        return {
+        var rec = {
           name: n,
           isDefault: typeName === 'Reactive' && n === defaultStatus,
           ordering: ord,
           confidence: 'VERIFIED — OBSERVED',
           evidence: ev.slice()
         };
+        /* record-level ticked options where the crawl read the record —
+         * these carry the status-level gates (mobile, workforce page…) */
+        if (recordLevel[n]) rec.flags = (recordLevel[n].ticked || []).slice();
+        return rec;
       });
     }
 

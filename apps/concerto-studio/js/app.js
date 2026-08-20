@@ -182,8 +182,16 @@
       render: function (c) {
         window.StudioSolutionDesignView.render(c, designBase(), {
           vanilla: app.model,
-          project: currentProject(),
-          baseline: currentProject() && window.StudioSnapshots ? window.StudioSnapshots.baselineModel(currentProject()) : null
+          project: currentProject()
+        });
+      }
+    },
+    {
+      id: 'technical-design', label: 'Technical Design', needsModel: true, base: designBase,
+      render: function (c) {
+        window.StudioTechnicalDesignView.render(c, designBase(), {
+          vanilla: app.model,
+          project: currentProject()
         });
       }
     },

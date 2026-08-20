@@ -49,6 +49,11 @@
             isDefaultFor: [],
             ordering: {},
             displayOrder: Infinity,
+            /* record-level ticked options where the source captured them
+             * (e.g. "Appear on mobile app") — empty means NOT CAPTURED,
+             * never "none ticked" */
+            flags: (st.flags || []).slice(),
+            flagsCaptured: !!st.flags,
             confidence: st.confidence,
             evidence: st.evidence.slice()
           };

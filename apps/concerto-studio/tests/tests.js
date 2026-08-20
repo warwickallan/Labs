@@ -1385,6 +1385,145 @@
     });
   });
 
+  /* ---- the effective business view --------------------------------------
+   * Raw configuration says what exists; the customer document must say how
+   * the system behaves for this type of job and this user. */
+
+  test('two-gate mobile: jobs appear on the app only where the STATUS carries the gate', function () {
+    return loadedPromise.then(function (res) {
+      var mob = window.StudioEffective.mobileStatuses(res.model).map(function (m) { return m.name; }).sort();
+      assert(mob.join('|') === 'With Maintenance Team|With Maintenance Team - R',
+        'Vanilla: only the two maintenance-team statuses are on the app, got ' + mob.join(', '));
+      /* Closed has a mobile-capable action (G001) but no status gate */
+      assert(!window.StudioEffective.mobileGate(res.model, 'Closed').gated,
+        'a mobile-capable action in Closed does not put Closed on the app');
+    });
+  });
+
+  test('mobile gates come from observed status records when the capture read them', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var g = window.StudioEffective.mobileGate(m, 'With Maintenance Team - R');
+      assert(g.gated && g.provenance === 'OBSERVED',
+        'Kirklees WMT-R gate was read from the record (“Appear on mobile app”), got ' + JSON.stringify(g));
+      var wh = window.StudioEffective.mobileGate(m, 'With Helpdesk');
+      assert(!wh.gated && wh.provenance === 'OBSERVED',
+        'Kirklees With Helpdesk record was read and carries no mobile gate');
+    });
+  });
+
+  test('type scoping: a Planned status never appears to fall into Reactive statuses', function () {
+    return loadedPromise.then(function (res) {
+      var outs = window.StudioEffective.outcomesOf(res.model, 'With Maintenance Team', 'Planned');
+      assert(outs.every(function (o) { return !/- R$|Quote|Business Case/.test(o); }),
+        'Planned WMT outcomes stay Planned, got: ' + outs.join(', '));
+      var acts = window.StudioEffective.actionsIn(res.model, 'With Maintenance Team', 'Planned', false);
+      assert(acts.length > 0, 'and the Planned status still has its own actions');
+    });
+  });
+
+  test('a Reactive-only capture inherits the standard Planned design, and says so', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var tv = window.StudioEffective.typeView(m, f.vanilla, 'Planned');
+      assert(tv.state === 'INHERITED-STANDARD', 'Kirklees Planned = inherited standard, got ' + tv.state);
+      assert(/not captured/i.test(tv.note) && /standard/i.test(tv.note), 'with an honest note: ' + tv.note);
+      assert(tv.model === f.vanilla, 'rendered from the standard product model');
+      var rv = window.StudioEffective.typeView(m, f.vanilla, 'Reactive');
+      assert(rv.state === 'OBSERVED', 'while Reactive is observed in the capture');
+    });
+  });
+
+  test('the Kirklees Solution Design carries the Planned detail (as inherited standard)', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var doc = window.StudioSolDesignCustomer.generate(m, { project: f.project, vanilla: f.vanilla, deviations: [] });
+      assert(doc.indexOf('Planned Helpdesk design') !== -1, 'the Planned section exists');
+      assert(doc.indexOf('With Maintenance Team</h4>') !== -1 || /With Maintenance Team<\/h4>/.test(doc),
+        'with real status detail');
+      assert(/not captured for this instance/i.test(doc) && /to be verified/i.test(doc),
+        'introduced as standard-product design to be verified, not passed off as observed');
+      assert(/TO VERIFY/.test(doc), 'and the implementation status table carries TO VERIFY');
+    });
+  });
+
+  test('the Solution Design mobile section follows the two-gate model', function () {
+    return loadedPromise.then(function (res) {
+      var doc = window.StudioSolDesignCustomer.generate(res.model, { vanilla: res.model, deviations: [] });
+      var sec = doc.slice(doc.indexOf('Mobile (Orchestrate)'), doc.indexOf('Customer decisions'));
+      assert(sec.indexOf('With Maintenance Team') !== -1, 'names the gated statuses');
+      assert(sec.indexOf('Closed') === -1 && sec.indexOf('With Helpdesk') === -1,
+        'and does not claim app visibility for ungated statuses');
+      assert(/do not appear on the app/.test(sec), 'states the boundary explicitly');
+    });
+  });
+
+  test('known live deltas appear as deviations — never beside a "no deviations" claim', function () {
+    return warwick.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var rec = window.StudioSnapshots.entryRecord(f.project, window.StudioSnapshots.selectedEntry(f.project));
+      var doc = window.StudioSolDesignCustomer.generate(m, {
+        project: f.project, vanilla: f.vanilla, deviations: [],
+        ingestReport: rec.meta.ingestReport
+      });
+      var devSection = doc.slice(doc.indexOf('Deviations from the standard product'), doc.indexOf('Implementation'));
+      assert(devSection.indexOf('With AMO') !== -1, 'the known live deviation is IN the deviations section');
+      assert(/Known live deviation/.test(devSection), 'labelled as a known live deviation');
+      assert(/Operational \/ test residue/.test(devSection), 'test residue is labelled as residue, not design');
+      assert(devSection.indexOf('No deviations') === -1, 'no contradictory "no deviations" claim');
+      assert(/not yet verified/.test(devSection), 'unverified drift is stated');
+    });
+  });
+
+  test('engine behaviour is phrased by provenance, not promoted across versions', function () {
+    return Promise.all([loadedPromise, kirklees, warwick]).then(function (all) {
+      var kf = all[1], wf = all[2];
+      assert(window.StudioEffective.engineProvenance(kf.project, 'quote') === 'OBSERVED',
+        'Kirklees verified its quote engine');
+      assert(window.StudioEffective.engineProvenance(wf.project, 'quote') === 'INHERITED-STANDARD',
+        'Warwick Demo did not — the claim stays standard-product');
+      var wm = window.StudioSnapshots.currentModel(wf.project);
+      var doc = window.StudioSolDesignCustomer.generate(wm, { project: wf.project, vanilla: all[0].model, deviations: [] });
+      assert(/standard product behaviour/.test(doc), 'the Warwick document says which behaviour is standard, not observed');
+    });
+  });
+
+  test('the Orders section explains the portal column instead of contradicting it', function () {
+    return loadedPromise.then(function (res) {
+      var doc = window.StudioSolDesignCustomer.generate(res.model, { vanilla: res.model, deviations: [] });
+      assert(/control the contractor\/order lifecycle/.test(doc), 'lifecycle framing');
+      assert(!/what your contractors see and do/.test(doc), 'the contradictory intro is gone');
+    });
+  });
+
+  /* ---- two separate document views --------------------------------------- */
+
+  test('Solution Design and Technical Design are two separate views', function () {
+    assert(window.StudioSolutionDesignView && window.StudioTechnicalDesignView,
+      'both view modules exist');
+    return kirklees.then(function (f) {
+      var host = document.getElementById('sandbox');
+      host.innerHTML = '';
+      window.StudioTechnicalDesignView.render(host, window.StudioSnapshots.currentModel(f.project),
+        { vanilla: f.vanilla, project: f.project });
+      var seg = host.querySelector('.seg');
+      assert(seg && /Current configuration/.test(seg.textContent) && /Day-One baseline/.test(seg.textContent),
+        'Technical Design keeps the original edition controls');
+      var frame = host.querySelector('iframe');
+      var doc = frame.getAttribute('srcdoc');
+      assert(/Solution Design<\/h1>|Instance As-Is/.test(doc) || /Evidence grading/.test(doc),
+        'and generates the ORIGINAL detailed format');
+      host.innerHTML = '';
+      window.StudioSolutionDesignView.render(host, window.StudioSnapshots.currentModel(f.project),
+        { vanilla: f.vanilla, project: f.project });
+      var sdoc = host.querySelector('iframe').getAttribute('srcdoc');
+      assert(/Solution Design/.test(sdoc) && /Workflow at a glance/.test(sdoc),
+        'Solution Design renders the customer document');
+      assert(!host.querySelector('.seg'), 'with no edition maze in the customer view');
+      host.innerHTML = '';
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');

@@ -1,42 +1,37 @@
 /* soldesign-customer.js — the CUSTOMER-FACING Solution Design generator.
  *
  * A Solution Design tells a customer exactly what has been delivered, in
- * their language, so they can sign off against it. It is layered:
+ * their language, so they can sign off against it. It reads the EFFECTIVE
+ * WORKFLOW (js/effective.js), never the raw configuration: type-scoped
+ * actions and outcomes, the two-gate mobile model, channels separated from
+ * delivery routes, and provenance-aware phrasing — behaviour observed in
+ * this instance is stated; standard-product behaviour not verified here is
+ * introduced as such, never quietly promoted.
  *
- *   1. the document a customer reads — overview, journey diagrams, each
- *      status explained simply, the deviations from standard, the decisions
- *      still theirs to make, and the implementation status;
- *   2. appendices carrying the full configuration detail;
- *   3. an evidence & provenance appendix for the implementation team.
- *
- * LANGUAGE RULES (hard):
+ * LANGUAGE RULES (hard, test-enforced):
  *   - No internal codes in the body (E-*, X-*, VI-*, STRUCTURAL, register
- *     ids). Those live in Appendix C.
- *   - No internal software concerns ("machine-readable model", capture
- *     states). If detail was not captured, the appendix says so plainly.
- *   - Engine-driven statuses (Quote Requested, Business Case) are described
- *     as the working features they are — never as dead ends.
- *   - The Vanilla baseline is identified by version/date/fingerprint in
- *     document control, not treated as one eternal reference.
- *
- * The same project data drives the whole document; nothing here is written
- * by hand per customer.
+ *     ids). Those live in the evidence appendix.
+ *   - No internal software concerns. If detail was not captured, the
+ *     document says what is known instead ("shown as standard, to be
+ *     verified") — it never renders another instance's data as this one's.
+ *   - Engine-driven statuses (Quote, Business Case) are working features.
+ *   - The Vanilla baseline is identified by date/fingerprint in document
+ *     control, not treated as one eternal reference.
  */
 (function () {
   'use strict';
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function stripCode(name) { return String(name).replace(/^[A-Z]+\d+[a-z]?\.\s*/, ''); }
+  function E() { return window.StudioEffective; }
 
-  /* Plain-English purpose per status — curated meaning, model-verified
-   * presence. A status the map does not know gets an honest generic line. */
   var PURPOSE = {
     'With Helpdesk': 'A new or returned job waiting for the helpdesk to triage and route it.',
     'With Maintenance Team - R': 'The job has been allocated to an internal maintenance resource.',
     'Awaiting Order Approval - R': 'The order value is above the approval level; the job waits for approval.',
     'With Contractor - R': 'The job is with an external contractor, driven by their order.',
-    'Quote Requested - R': 'A quote has been requested; the quote workflow manages this stage and returns the job automatically when the order is raised.',
-    'Business Case - R': 'A cost uplift is under review in the Business Cases area; approval returns the job to the workflow automatically.',
+    'Quote Requested - R': 'A quote has been requested; the quote workflow manages this stage.',
+    'Business Case - R': 'A cost uplift is under review in the Business Cases area.',
     'Work Complete - R': 'The work is done; the job awaits closure checks.',
     'Closed': 'The job is finished and closed for reporting.',
     'Cancelled': 'The job has been cancelled.',
@@ -45,74 +40,18 @@
     'With Contractor': 'The planned job is with an external contractor.',
     'PPM Complete': 'The planned work is done; the job awaits closure.'
   };
+  function statusPurpose(name) { return PURPOSE[name] || 'A configured stage of this workflow.'; }
 
-  function statusPurpose(name) {
-    return PURPOSE[name] || 'A configured stage of this workflow.';
-  }
-
-  function entriesInto(model, statusName) {
-    var seen = {}, out = [];
-    model.helpdesk.results.forEach(function (r) {
-      if (r.toStatus !== statusName || seen[r.action]) return;
-      seen[r.action] = true;
-      out.push(stripCode(r.action));
-    });
-    return out;
-  }
-
-  function actionsIn(model, statusName, wantMachine) {
-    var byName = {};
-    model.helpdesk.actions.forEach(function (a) { byName[a.name] = a; });
-    var seen = {}, out = [];
-    model.helpdesk.availability.forEach(function (e) {
-      if (e.status !== statusName || seen[e.action]) return;
-      seen[e.action] = true;
-      var a = byName[e.action];
-      if (!a) return;
-      if (!!a.machineFired !== !!wantMachine) return;
-      out.push(a);
-    });
-    return out;
-  }
-
-  function outcomesOf(model, statusName) {
-    var actions = actionsIn(model, statusName, false).concat(actionsIn(model, statusName, true));
-    var names = {};
-    actions.forEach(function (a) { names[a.name] = true; });
-    var seen = {}, out = [];
-    model.helpdesk.results.forEach(function (r) {
-      if (!names[r.action] || r.toStatus === statusName || seen[r.toStatus]) return;
-      seen[r.toStatus] = true;
-      out.push(r.toStatus);
-    });
-    return out;
-  }
-
-  function channels(model, statusName) {
-    var out = [];
-    var acts = actionsIn(model, statusName, false);
-    if (acts.some(function (a) { return a.mobileAvailable; })) out.push('Mobile (Orchestrate)');
-    if (acts.some(function (a) { return (a.flags || []).indexOf('supplier_assignment') !== -1; })) out.push('Supplier / contractor route');
-    out.unshift('Web');
-    return out;
-  }
-
-  /* Deviations touching one status, said simply. */
-  function statusDeviations(diffRows, statusName) {
-    return (diffRows || []).filter(function (r) {
-      return r.detail.indexOf(statusName) !== -1;
-    });
-  }
-
-  function statusBlock(model, statusName, diffRows) {
-    var user = actionsIn(model, statusName, false);
-    var auto = actionsIn(model, statusName, true);
-    var devs = statusDeviations(diffRows, statusName);
+  /* One status, in the customer's terms — everything type-scoped. */
+  function statusBlock(model, statusName, typeName, diffRows) {
+    var user = E().actionsIn(model, statusName, typeName, false);
+    var auto = E().actionsIn(model, statusName, typeName, true);
+    var devs = (diffRows || []).filter(function (r) { return r.detail.indexOf(statusName) !== -1; });
     var h = '<div class="status-block">';
     h += '<h4>' + esc(statusName) + '</h4>';
     h += '<table class="kv">';
     h += '<tr><th>Purpose</th><td>' + esc(statusPurpose(statusName)) + '</td></tr>';
-    var into = entriesInto(model, statusName);
+    var into = E().entriesInto(model, statusName, typeName).map(stripCode);
     if (into.length) h += '<tr><th>Entered from</th><td>' + esc(into.slice(0, 4).join(' · ')) + '</td></tr>';
     if (user.length) {
       h += '<tr><th>Main actions</th><td>' + esc(user.slice(0, 6).map(function (a) { return stripCode(a.name); }).join(' · ')) +
@@ -121,9 +60,11 @@
     if (auto.length) {
       h += '<tr><th>Automated</th><td>' + esc(auto.slice(0, 4).map(function (a) { return stripCode(a.name); }).join(' · ')) + '</td></tr>';
     }
-    var outs = outcomesOf(model, statusName);
+    var outs = E().outcomesOf(model, statusName, typeName);
     if (outs.length) h += '<tr><th>Main outcomes</th><td>' + esc(outs.slice(0, 5).join(' · ')) + '</td></tr>';
-    h += '<tr><th>Channels</th><td>' + esc(channels(model, statusName).join(' · ')) + '</td></tr>';
+    h += '<tr><th>Available through</th><td>' + esc(E().channels(model, statusName, typeName).join(' · ')) + '</td></tr>';
+    var routes = E().deliveryRoutes(model, statusName, typeName);
+    if (routes.length) h += '<tr><th>Delivery route</th><td>' + esc(routes.join(' · ')) + '</td></tr>';
     if (devs.length) {
       h += '<tr><th class="dev">Your design</th><td class="dev">' +
         devs.slice(0, 3).map(function (d) { return esc(d.kind.toLowerCase() + ': ' + d.detail); }).join('<br>') + '</td></tr>';
@@ -132,7 +73,18 @@
     return h;
   }
 
-  /* ---- the document ------------------------------------------------------ */
+  function statusTable(model, typeName, statuses) {
+    var h = '<table><thead><tr><th>Status</th><th>Purpose</th><th>Main actions</th><th>Main ways out</th></tr></thead><tbody>';
+    statuses.forEach(function (name) {
+      var user = E().actionsIn(model, name, typeName, false);
+      var outs = E().outcomesOf(model, name, typeName);
+      h += '<tr><td><b>' + esc(name) + '</b></td><td>' + esc(statusPurpose(name)) + '</td><td>' +
+        esc(user.slice(0, 3).map(function (a) { return stripCode(a.name); }).join(' · ') || '—') + '</td><td>' +
+        esc(outs.slice(0, 3).join(' · ') || '—') + '</td></tr>';
+    });
+    return h + '</tbody></table>';
+  }
+
   function generate(model, opts) {
     opts = opts || {};
     var proj = opts.project || null;
@@ -141,11 +93,12 @@
     var deviations = opts.deviations || [];
     var changes = (proj && proj.changeLog) || [];
     var fs = (proj && proj.findingsSummary) || {};
+    var rep = opts.ingestReport || null;
     var docStatus = opts.docStatus || (changes.length ? 'Implemented (in progress)' : 'Draft');
 
     var h = '';
 
-    /* 1 · cover & document control */
+    /* cover & document control */
     h += '<div class="cover">';
     h += '<div class="brand">Bellrock · Concerto</div>';
     h += '<h1>Solution Design</h1>';
@@ -161,82 +114,89 @@
     if (opts.stamp) h += '<tr><th>Configuration as at</th><td>' + esc(opts.stamp) + '</td></tr>';
     h += '</table></div>';
 
-    /* 2 · solution overview */
-    var reactive = model.helpdesk.types.filter(function (t) { return t.name === 'Reactive'; })[0];
-    var planned = model.helpdesk.types.filter(function (t) { return t.name === 'Planned'; })[0];
+    /* 1 · solution overview */
+    var reactiveView = E().typeView(model, vanilla, 'Reactive');
+    var plannedView = E().typeView(model, vanilla, 'Planned');
     var hasQuote = model.helpdesk.statuses.some(function (s) { return /Quote Requested/.test(s.name); });
     var hasBC = model.helpdesk.statuses.some(function (s) { return /Business Case/.test(s.name); });
     var supplierCount = (model.orders.supplierActions || []).length;
+    var quoteProv = E().engineProvenance(proj, 'quote');
+    var bcProv = E().engineProvenance(proj, 'business-case');
 
     h += '<h2>1 · Solution overview</h2>';
     h += '<p>Your Concerto system manages two kinds of work. <b>Reactive</b> jobs are faults and requests, raised through ' +
-      'the reporter wizard or by the helpdesk, and worked through ' + (reactive ? reactive.statuses.length : 0) + ' workflow stages. ' +
+      'the reporter wizard or by the helpdesk, and worked through ' + reactiveView.statuses.length + ' workflow stages. ' +
       '<b>Planned</b> jobs originate from planned maintenance and follow their own shorter workflow. ' +
-      'Work is delivered either by your <b>internal maintenance team</b> — who receive and progress jobs on the Orchestrate mobile app — ' +
+      'Work is delivered either by your <b>internal maintenance team</b> — who receive and progress their jobs on the Orchestrate mobile app — ' +
       'or by <b>external contractors</b>, who receive an order and drive it from the supplier portal' +
       (supplierCount ? ' through ' + supplierCount + ' portal actions' : '') + '. ' +
       'Each portal step automatically updates the job, so the helpdesk always sees the contractor’s progress without re-keying.</p>';
     if (hasQuote || hasBC) {
       h += '<p>' +
-        (hasQuote ? 'Where work needs pricing first, the <b>quote workflow</b> takes over: quotes are issued, received and approved, and raising the order returns the job to the contractor workflow automatically. ' : '') +
-        (hasBC ? 'Where costs rise mid-job, a <b>cost uplift</b> goes to the Business Cases area for approval, and the job returns to the workflow automatically once decided.' : '') +
+        (hasQuote ? 'Where work needs pricing first, the <b>quote workflow</b> takes over: quotes are issued, received and approved, and raising the order ' +
+          (quoteProv === 'OBSERVED' ? 'returns the job to the contractor workflow automatically — verified in this instance. '
+            : 'returns the job to the contractor workflow (standard product behaviour). ') : '') +
+        (hasBC ? 'Where costs rise mid-job, a <b>cost uplift</b> goes to the Business Cases area for approval' +
+          (bcProv === 'OBSERVED' ? ', and the decision returns the job to the workflow automatically — verified in this instance.'
+            : '; in the standard product, the decision returns the job to the workflow automatically.') : '') +
         '</p>';
     }
 
-    /* 3 · workflow overview — diagrams */
-    h += '<h2>2 · Workflow overview</h2>';
+    /* 2 · workflow at a glance — the tables lead, the diagrams follow */
+    h += '<h2>2 · Workflow at a glance</h2>';
+    h += '<h4>Reactive</h4>' + statusTable(reactiveView.model, 'Reactive', reactiveView.statuses);
+    if (plannedView.state !== 'ABSENT') {
+      h += '<h4>Planned</h4>';
+      if (plannedView.note) h += '<p class="inherit">' + esc(plannedView.note) + '</p>';
+      if (plannedView.state !== 'UNKNOWN') h += statusTable(plannedView.model, 'Planned', plannedView.statuses);
+      else h += '<p>Stages: ' + esc(plannedView.statuses.join(' · ')) + '</p>';
+    }
     if (window.StudioFlow) {
       ['reactive', 'planned', 'contractor', 'quote', 'business-case'].forEach(function (fid) {
-        var out = window.StudioFlow.render(fid, model, { compact: true });
+        var src = (fid === 'planned' && plannedView.state === 'INHERITED-STANDARD') ? plannedView.model : model;
+        var out = window.StudioFlow.render(fid, src, { compact: true });
         if (!out.missing) h += '<div class="flow-embed">' + out.svg + '</div>';
       });
     }
-    /* simple status table */
-    h += '<table><thead><tr><th>Status</th><th>Purpose</th><th>Main actions</th><th>Main ways out</th></tr></thead><tbody>';
-    model.helpdesk.statuses.forEach(function (s) {
-      var user = actionsIn(model, s.name, false);
-      var outs = outcomesOf(model, s.name);
-      h += '<tr><td><b>' + esc(s.name) + '</b></td><td>' + esc(statusPurpose(s.name)) + '</td><td>' +
-        esc(user.slice(0, 3).map(function (a) { return stripCode(a.name); }).join(' · ') || '—') + '</td><td>' +
-        esc(outs.slice(0, 3).join(' · ') || '—') + '</td></tr>';
+
+    /* 3 · reactive design */
+    h += '<h2>3 · Reactive Helpdesk design</h2>';
+    reactiveView.statuses.forEach(function (name) {
+      h += statusBlock(reactiveView.model, name, 'Reactive', deviations);
     });
-    h += '</tbody></table>';
 
-    /* 4 · reactive design */
-    if (reactive) {
-      h += '<h2>3 · Reactive Helpdesk design</h2>';
-      reactive.statuses.forEach(function (name) { h += statusBlock(model, name, deviations); });
-    }
-
-    /* 5 · planned design */
-    if (planned && planned.statuses.length) {
+    /* 4 · planned design */
+    if (plannedView.state !== 'ABSENT') {
       h += '<h2>4 · Planned Helpdesk design</h2>';
-      var plannedDetailed = planned.statuses.some(function (name) {
-        return actionsIn(model, name, false).length;
-      });
-      if (plannedDetailed) planned.statuses.forEach(function (name) { h += statusBlock(model, name, deviations); });
-      else h += '<p>The Planned workflow stages are listed above; their detailed configuration is carried in Appendix B as it is captured.</p>';
+      if (plannedView.note) h += '<p class="inherit">' + esc(plannedView.note) + '</p>';
+      if (plannedView.state === 'UNKNOWN') {
+        h += '<p>Stages: ' + esc(plannedView.statuses.join(' · ')) + '. The detailed design will be added once captured.</p>';
+      } else {
+        plannedView.statuses.forEach(function (name) {
+          h += statusBlock(plannedView.model, name, 'Planned', plannedView.state === 'OBSERVED' ? deviations : []);
+        });
+      }
     }
 
-    /* 6 · orders & contractor */
+    /* 5 · orders & contractor */
     h += '<h2>5 · Orders &amp; contractor design</h2>';
     var sas = model.orders.supplierActions || [];
     if (sas.length) {
-      h += '<p>Contractors work their orders from the supplier portal. The actions below are what your contractors see and do; each one updates the job automatically.</p>';
-      h += '<table><thead><tr><th>Portal action</th><th>Available when the order is</th><th>Moves the order to</th><th>On the portal?</th></tr></thead><tbody>';
+      h += '<p>The following supplier actions control the contractor/order lifecycle. The <b>Portal</b> column identifies which of them are exposed to contractors through the supplier portal; the others are driven from the contractor’s app or by Concerto itself.</p>';
+      h += '<table><thead><tr><th>Supplier action</th><th>Available when the order is</th><th>Moves the order to</th><th>Portal</th></tr></thead><tbody>';
       sas.forEach(function (sa) {
         var unread = sa.detailObserved === false;
         h += '<tr><td><b>' + esc(unread ? sa.canonicalKey : (sa.name || sa.canonicalKey)) + '</b></td><td>' +
-          esc(unread ? 'detail to be confirmed' : ((sa.availableIn || []).join(' · ') || '—')) + '</td><td>' +
+          esc(unread ? 'to be confirmed' : ((sa.availableIn || []).join(' · ') || '—')) + '</td><td>' +
           esc(unread ? '—' : (sa.resultingOrderStatus || '—')) + '</td><td>' +
           (unread ? '—' : (sa.portalVisible ? 'Yes' : 'No')) + '</td></tr>';
       });
       h += '</tbody></table>';
     } else {
-      h += '<p>The Orders configuration for this instance is carried in Appendix B as it is captured.</p>';
+      h += '<p>The Orders configuration for this instance will be described here once captured.</p>';
     }
 
-    /* 7 · SLA */
+    /* 6 · SLA */
     h += '<h2>6 · SLA &amp; response categories</h2>';
     var rc = model.orders.responseCategories;
     if (rc && rc.categories) {
@@ -252,30 +212,43 @@
       h += '<p>Response categories follow the standard product configuration (P1–P4, Planned, By agreement).</p>';
     }
 
-    /* 8 · mobile */
+    /* 7 · mobile — the two-gate model, honestly */
     h += '<h2>7 · Mobile (Orchestrate)</h2>';
-    var mobileStatuses = model.helpdesk.statuses.filter(function (s) {
-      return actionsIn(model, s.name, false).some(function (a) { return a.mobileAvailable; });
-    }).map(function (s) { return s.name; });
-    h += '<p>Your internal maintenance team works from the Orchestrate mobile app. Jobs appear on the app at: <b>' +
-      esc(mobileStatuses.join(' · ') || 'the operational statuses') + '</b>. Operatives accept, start, hold and complete work from their device, ' +
-      'and each mobile action updates the job in real time.</p>';
+    var mob = E().mobileStatuses(model);
+    var inherited = mob.length && mob.every(function (m) { return m.provenance === 'INHERITED-STANDARD'; });
+    h += '<p>Your internal maintenance team works from the Orchestrate mobile app. Jobs appear on the app while they are at: <b>' +
+      esc(mob.map(function (m) { return m.name; }).join(' · ') || '—') + '</b>' +
+      (inherited ? ' (standard product behaviour)' : '') +
+      '. There, operatives accept, start, hold and complete their work, and each mobile action updates the job in real time. ' +
+      'Jobs in other statuses are visible on the web but do not appear on the app.</p>';
 
-    /* 9 · customer decisions */
+    /* 8 · customer decisions — a working table, not a footnote */
     h += '<h2>8 · Customer decisions &amp; assumptions</h2>';
     var decisions = fs.customerDecisions || [];
     if (decisions.length) {
-      h += '<ul>';
-      decisions.forEach(function (d) { h += '<li class="decision">' + esc(String(d).replace(/DECISION-\d+\s+—\s+/, '')) + '</li>'; });
-      h += '</ul>';
+      h += '<table><thead><tr><th>Decision</th><th>Current position</th><th>Owner</th><th>Status</th></tr></thead><tbody>';
+      decisions.forEach(function (d) {
+        if (typeof d === 'object') {
+          h += '<tr><td><b>' + esc(d.decision) + '</b></td><td>' + esc(d.assumption || '—') + '</td><td>' + esc(d.owner || 'Customer') + '</td><td><b>' + esc(d.status || 'OPEN') + '</b></td></tr>';
+        } else {
+          var text = String(d).replace(/DECISION-\d+\s+—\s+/, '');
+          var dot = text.indexOf('.');
+          var title = dot > 10 ? text.slice(0, dot) : text;
+          var rest = dot > 10 ? text.slice(dot + 1).trim() : '';
+          h += '<tr><td><b>' + esc(title) + '</b></td><td>' + esc(rest || '—') + '</td><td>Customer</td><td><b>OPEN</b></td></tr>';
+        }
+      });
+      h += '</tbody></table>';
     } else {
       h += '<p>No design decisions are currently open.</p>';
     }
 
-    /* 10 · deviation from vanilla — first class */
+    /* 9 · deviations — including what is KNOWN to differ from the capture */
     h += '<h2>9 · Deviations from the standard product</h2>';
     h += '<p>Your system is the ratified standard product plus the explicit changes below. Everything not listed here behaves as standard.</p>';
+    var anyDeviation = false;
     if (changes.length) {
+      anyDeviation = true;
       h += '<table><thead><tr><th>Area</th><th>Standard behaviour</th><th>Your design</th><th>Reason</th><th>Status</th></tr></thead><tbody>';
       changes.forEach(function (c) {
         h += '<tr><td><b>' + esc(c.object || '') + '</b></td><td>' +
@@ -285,8 +258,23 @@
           (/PASS/.test(c.outcome || '') ? '<b>Implemented &amp; verified</b>' : esc(c.outcome || '')) + '</td></tr>';
       });
       h += '</tbody></table>';
-    } else {
-      h += '<p>No deviations — this system runs the standard product configuration.</p>';
+    }
+    /* known deltas since capture (e.g. a status added to the live system
+     * after the design was captured) belong HERE, not buried in evidence —
+     * a "no deviations" claim beside a known one is a contradiction */
+    if (rep && rep.knownDeltas && rep.knownDeltas.length) {
+      anyDeviation = true;
+      h += '<h4>Known differences between this design and the live system</h4>';
+      h += '<table><thead><tr><th>Kind</th><th>What</th><th>Position</th></tr></thead><tbody>';
+      rep.knownDeltas.forEach(function (d) {
+        var kind = d.kind === 'EXPERIMENT-RESIDUE' ? 'Operational / test residue' : 'Known live deviation';
+        h += '<tr><td>' + esc(kind) + '</td><td><b>' + esc(d.object) + '</b></td><td>' + esc(d.detail) + '</td></tr>';
+      });
+      h += '</tbody></table>';
+      h += '<p class="inherit">This document describes the captured design; anything changed in the live system since capture, beyond the items above, is not yet verified.</p>';
+    }
+    if (!anyDeviation) {
+      h += '<p>No deviations — this system runs the standard product configuration as captured.</p>';
     }
     if (deviations.length && proj) {
       h += '<details class="appendix-link"><summary>Every configuration difference from the Vanilla baseline (' + deviations.length + ')</summary><ul>';
@@ -296,7 +284,7 @@
       h += '</ul></details>';
     }
 
-    /* 11 · implementation status */
+    /* 10 · implementation status */
     h += '<h2>10 · Implementation &amp; verification status</h2>';
     h += '<table><thead><tr><th>Item</th><th>Status</th></tr></thead><tbody>';
     changes.forEach(function (c) {
@@ -304,14 +292,20 @@
         (/PASS/.test(c.outcome || '') ? 'VERIFIED' : 'BUILT') + '</b></td></tr>';
     });
     decisions.forEach(function (d) {
-      h += '<tr><td>' + esc(String(d).split('.')[0]) + '</td><td><b>DECISION REQUIRED</b></td></tr>';
+      var t = typeof d === 'object' ? d.decision : String(d).split('.')[0];
+      h += '<tr><td>' + esc(t) + '</td><td><b>DECISION REQUIRED</b></td></tr>';
     });
-    if (!changes.length && !decisions.length) h += '<tr><td>Standard product configuration</td><td><b>STANDARD</b></td></tr>';
+    if (plannedView.state === 'INHERITED-STANDARD') {
+      h += '<tr><td>Planned workflow detail (shown as standard)</td><td><b>TO VERIFY</b></td></tr>';
+    }
+    if (!changes.length && !decisions.length && plannedView.state !== 'INHERITED-STANDARD') {
+      h += '<tr><td>Standard product configuration</td><td><b>STANDARD</b></td></tr>';
+    }
     h += '</tbody></table>';
 
     /* appendices */
     h += '<h2 class="appendix">Appendix A · Full status / action matrix</h2>';
-    h += '<table class="dense"><thead><tr><th>Action</th><th>Available in</th><th>Outcome</th><th>Mobile</th></tr></thead><tbody>';
+    h += '<table class="dense"><thead><tr><th>Action</th><th>Available in</th><th>Outcome</th><th>Mobile-capable</th></tr></thead><tbody>';
     model.helpdesk.actions.forEach(function (a) {
       var results = model.helpdesk.results.filter(function (r) { return r.action === a.name; });
       h += '<tr><td>' + esc(a.name) + '</td><td>' + esc((a.availableIn || []).join(' · ') || (a.machineFired ? 'system-fired' : '—')) + '</td><td>' +
@@ -319,13 +313,13 @@
         (a.mobileAvailable ? '✔' : '') + '</td></tr>';
     });
     h += '</tbody></table>';
+    h += '<p class="dense-list">“Mobile-capable” is the action’s own capability; jobs only appear on the app at the statuses listed in section 7.</p>';
 
     h += '<h2 class="appendix">Appendix B · Detailed configuration</h2>';
     h += '<p>The complete technical configuration — every field, flag, tag and trigger — is generated as the companion ' +
-      '<b>Technical Design</b> document, which the implementation team maintains from the same source as this Solution Design.</p>';
+      '<b>Technical Design</b> document, maintained from the same source as this Solution Design.</p>';
 
     h += '<h2 class="appendix">Appendix C · Evidence &amp; provenance (implementation team)</h2>';
-    var rep = opts.ingestReport;
     if (rep) {
       h += '<ul class="dense-list">';
       h += '<li>Acquired: ' + esc(rep.crawlMethod || 'see project evidence') + '</li>';
@@ -358,7 +352,7 @@
       '.status-block { margin-bottom: 6px; }' +
       'td.dev, th.dev { background: #fbf7ea; }' +
       '.decision { background: #fbf7ea; padding: 8px 12px; border-left: 3px solid #8a6d1f; }' +
-      'ul li.decision { list-style: none; margin: 6px 0; }' +
+      '.inherit { background: #eff4f6; padding: 8px 12px; border-left: 3px solid #3d5a66; font-size: 12.5px; }' +
       '.more { color: #8aa39a; font-size: 11px; }' +
       '.flow-embed { margin: 14px 0; page-break-inside: avoid; }' +
       '.flow-embed svg { width: 100%; height: auto; border: 1px solid #e2e9e6; border-radius: 8px; }' +
