@@ -7,6 +7,33 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-20 — NPL: first real customer capture, end-to-end (crawl + AI inspection)
+
+- Deterministic crawl of fmhelpdesk.npl.co.uk COMPLETE after three evidence-led
+  repairs (nbsp tab labels + per-instance naming, row-name pollution
+  ('Select record'/'Options'), full-page record forms replacing the admin page,
+  slower AJAX). Captured: 13 helpdesk statuses with forms, operative statuses,
+  2 job types, 11 order statuses, 12 priorities, 11 supplier actions with forms.
+- Crawler gap (Actions tab renders Diagram view first on this instance) closed
+  by AI side-panel inspection of the Full list table: 48 actions with GUIDs,
+  flags, resulting statuses, button groups, type scoping. Merged into the
+  project CURRENT model as acquiredBy=AI-INSPECTION, VERIFIED — OBSERVED.
+- Findings: NPL-F-001 duplicate RH02 actions (one emails originator, one not);
+  NPL-F-002 RH03b Quote Ordered in no button group (Not allocated);
+  NPL-F-003 reactive assignment lands on 'With SMART - R' (SMART = NPL team).
+- Instance identity discipline extended: /build.txt read — NPL and the demo are
+  the SAME platform build 2026.08.9839-main; NPL differs by Applied
+  Customisation Package npl 1.0.0.510 (Kirklees: 9854, no package). Rendering
+  differences are the customisation layer, not platform age. SOP: read
+  /build.txt first on any engagement.
+- Working model confirmed with Warwick: AI-led from chat harness; deterministic
+  plumbing serves the AI and is repaired/extended from what the AI actually did;
+  acquisition method (crawl / AI-inspection / import / read-back) recorded
+  separately from evidence confidence. A /skill SOP will be distilled AFTER NPL
+  proves the process end-to-end (explicitly not yet).
+- Evidence/receipts: snapshots npl-CRAWL-0cecfc7785f8 + npl-AI-INSPECT-actions
+  on the project timeline in the durable store; operational receipts recorded.
+
 ## 2026-08-20 (later still) — Receipts: cost accounting in Settings
 
 Studio gains the Launch app's receipts discipline (Settings → Receipts):
