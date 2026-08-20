@@ -452,15 +452,17 @@
             })
             .catch(function () { /* a single unreadable project must not blank the list */ });
         })).then(function () {
-          /* Prune stale localStorage cards the store does not know about —
-           * but NEVER a project that has simply not been saved yet. Losing
-           * a project someone just created would be far worse than showing
-           * one extra card. */
+          /* STUDIO NEVER SILENTLY DELETES A PROJECT. Anything the store
+           * does not know about is marked unsaved and shown with a way to
+           * save it — deleting someone's work to tidy a list is the worse
+           * failure by a wide margin. Removal is a deliberate act. */
           try {
             window.StudioProject.list().forEach(function (p) {
-              if (keys.indexOf(p.key) !== -1) return;
-              if (p.unsaved) return;
-              window.StudioProject.remove(p.key);
+              if (keys.indexOf(p.key) !== -1) {
+                if (p.unsaved) window.StudioProject.save(p.key, { unsaved: false });
+                return;
+              }
+              if (!p.unsaved) window.StudioProject.save(p.key, { unsaved: true });
             });
           } catch (e) { /* */ }
         });

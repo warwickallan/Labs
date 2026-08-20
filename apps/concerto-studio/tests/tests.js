@@ -1739,18 +1739,29 @@
     });
   });
 
-  test('a newly created project is never pruned before it has been saved', function () {
+  test('Studio never silently deletes a project — unknown ones are flagged, not pruned', function () {
     return withCleanProjects(function () {
       var rec = window.StudioProject.create({ key: 'brand-new', name: 'Brand New', instanceUrl: 'https://x.example' });
       assert(rec.unsaved === true, 'a fresh project is marked unsaved');
-      /* the startup prune keeps only manifest/store keys — but must spare unsaved ones */
+      /* startup reconciliation: the store knows nothing about this one */
       var storeKeys = ['kirklees-council'];
       window.StudioProject.list().forEach(function (p) {
-        if (storeKeys.indexOf(p.key) !== -1) return;
-        if (p.unsaved) return;
-        window.StudioProject.remove(p.key);
+        if (storeKeys.indexOf(p.key) !== -1) {
+          if (p.unsaved) window.StudioProject.save(p.key, { unsaved: false });
+          return;
+        }
+        if (!p.unsaved) window.StudioProject.save(p.key, { unsaved: true });
       });
-      assert(window.StudioProject.get('brand-new'), 'the unsaved project survives the prune');
+      assert(window.StudioProject.get('brand-new'), 'the project still exists after reconciliation');
+      assert(window.StudioProject.get('brand-new').unsaved === true, 'and is flagged as not saved');
+      /* the card says so, and offers the fix */
+      var sb = document.getElementById('sandbox');
+      sb.innerHTML = '';
+      window.StudioProjects.render(sb, window.StudioApp.model);
+      assert(/NOT SAVED/.test(sb.textContent), 'the Projects page flags it');
+      assert(Array.prototype.slice.call(sb.querySelectorAll('button'))
+        .some(function (b) { return b.textContent === 'Save now'; }), 'and offers Save now');
+      sb.innerHTML = '';
     });
   });
 

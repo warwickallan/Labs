@@ -97,8 +97,29 @@
       return el('div', { class: 'tile project-card' + (isCurrent ? ' current' : '') }, [
         el('h3', {}, [
           document.createTextNode(rec.name),
-          isCurrent ? el('span', { class: 'conf-chip observed', style: 'margin-left:8px', text: 'OPEN' }) : null
+          isCurrent ? el('span', { class: 'conf-chip observed', style: 'margin-left:8px', text: 'OPEN' }) : null,
+          /* never deleted quietly — surfaced, with the way to fix it */
+          rec.unsaved ? el('span', {
+            class: 'conf-chip', style: 'margin-left:8px;background:#fdeaea;color:var(--danger)',
+            title: 'This project is only in this browser. Save it to the durable store.',
+            text: 'NOT SAVED'
+          }) : null
         ]),
+        rec.unsaved ? el('div', { class: 'wrong-instance', style: 'margin:8px 0' }, [
+          document.createTextNode('In this browser only — not in the durable store. '),
+          el('button', {
+            class: 'btn', text: 'Save now',
+            onclick: function () {
+              P.persist(rec.key).then(function (r) {
+                if (!r || r.saved !== true) {
+                  window.alert('Could not save: ' + ((r && r.reason) || 'unknown') +
+                    '\n\nStart the store with:\npython apps/concerto-studio/store/store_server.py');
+                }
+                rerender();
+              });
+            }
+          })
+        ]) : null,
         el('div', { class: 'muted', text: rec.instanceUrl || '(no instance URL)' }),
         el('div', { class: 'muted', text: 'Domains: ' + ((rec.domains || []).join(', ') || '—') }),
         el('div', { class: 'stat-row', style: 'margin-top:12px' }, [
