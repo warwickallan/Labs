@@ -1612,6 +1612,43 @@
     });
   });
 
+  test('Studio-build cost is separated from operational cost — never one blended number', function () {
+    var R = window.StudioReceipts;
+    var rows = [
+      { operation: 'HARNESS CRAWL', target: 'https://x', totalTokens: 0, aiInvoked: false },
+      { operation: 'INGEST SNAPSHOT', target: 'Kirklees Council — x', totalTokens: 0, aiInvoked: false },
+      { operation: 'ASSISTED SESSION — receipts feature build', target: 'Studio build (no instance contact)', totalTokens: 28000, aiInvoked: true },
+      { operation: 'ASSISTED SESSION — capture', target: 'Kirklees', category: 'OPERATIONAL', totalTokens: 5000, aiInvoked: true },
+      { operation: 'CONFIG CHANGE CHG-001', target: 'Kirklees — SP01', totalTokens: 'unavailable', aiInvoked: true }
+    ];
+    assert(R.classify(rows[0]) === 'OPERATIONAL', 'a harness crawl is operational');
+    assert(R.classify(rows[2]) === 'BUILD', 'Studio build work is BUILD');
+    assert(R.classify(rows[3]) === 'OPERATIONAL', 'an explicit category wins');
+    var s = R.summarise(rows);
+    assert(s.byCategory.BUILD.knownTokens === 28000, 'build tokens counted apart: ' + s.byCategory.BUILD.knownTokens);
+    assert(s.byCategory.OPERATIONAL.knownTokens === 5000, 'operational tokens counted apart: ' + s.byCategory.OPERATIONAL.knownTokens);
+    assert(s.byCategory.OPERATIONAL.unmetered === 1, 'operational unmetered counted apart');
+    var ops = R.filter(rows, 'OPERATIONAL', null);
+    assert(ops.length === 4 && ops.every(function (r) { return R.classify(r) === 'OPERATIONAL'; }), 'category filter');
+    var aiOps = R.filter(rows, 'OPERATIONAL', 'AI');
+    assert(aiOps.length === 2, 'category + runtime filters compose: ' + aiOps.length);
+    assert(R.filter(rows, 'BUILD', 'DETERMINISTIC').length === 0, 'no deterministic build rows here');
+  });
+
+  test('the real ledger separates the categories too', function () {
+    return storeProbe.then(function () {
+      return window.StudioReceipts.all([]).then(function (list) {
+        if (!list.length) return;
+        var s = window.StudioReceipts.summarise(list);
+        assert(s.byCategory.OPERATIONAL.operations + s.byCategory.BUILD.operations === s.operations,
+          'every receipt lands in exactly one category');
+        list.forEach(function (r) {
+          assert(r.category === 'OPERATIONAL' || r.category === 'BUILD', 'each merged receipt is categorised');
+        });
+      });
+    });
+  });
+
   test('Settings renders the Receipts section with the honesty note', function () {
     return loadedPromise.then(function (res) {
       var sb = document.getElementById('sandbox');

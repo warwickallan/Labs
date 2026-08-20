@@ -152,32 +152,69 @@
     return node;
   }
 
+  /* the filter state survives re-renders within the session */
+  var receiptFilter = { category: null, runtime: null };
+
   function renderReceipts(el, host, list) {
     var R = window.StudioReceipts;
     window.StudioDom.clear(host);
     var s = R.summarise(list);
 
+    /* the split that matters: what running projects costs vs what building
+     * the Studio costs — never blended into one number */
     host.appendChild(el('p', { style: 'margin:0 0 8px' }, [
-      el('b', { text: s.operations + ' operation' + (s.operations === 1 ? '' : 's') }),
-      document.createTextNode(' · ' + R.fmtDuration(s.timedMs) + ' measured time · '),
-      el('b', { text: s.knownTokens + ' AI tokens known' }),
-      document.createTextNode(s.unmetered
-        ? ' · ' + s.unmetered + ' AI-assisted operation' + (s.unmetered === 1 ? '' : 's') + ' unmetered (side-panel sessions — real usage was not recorded, so no number is shown)'
-        : ' · every operation fully metered')
+      el('b', { text: 'Operational: ' + s.byCategory.OPERATIONAL.knownTokens + ' tokens known' }),
+      document.createTextNode(' across ' + s.byCategory.OPERATIONAL.operations + ' operation' + (s.byCategory.OPERATIONAL.operations === 1 ? '' : 's') +
+        (s.byCategory.OPERATIONAL.unmetered ? ' (' + s.byCategory.OPERATIONAL.unmetered + ' unmetered)' : '') + '   ·   '),
+      el('b', { text: 'Studio build: ' + s.byCategory.BUILD.knownTokens + ' tokens known' }),
+      document.createTextNode(' across ' + s.byCategory.BUILD.operations + ' operation' + (s.byCategory.BUILD.operations === 1 ? '' : 's') +
+        (s.byCategory.BUILD.unmetered ? ' (' + s.byCategory.BUILD.unmetered + ' unmetered)' : '') +
+        ' · ' + R.fmtDuration(s.timedMs) + ' measured time')
     ]));
 
-    if (!list.length) {
-      host.appendChild(el('p', { class: 'muted', text: 'No operations recorded yet. Harness crawls, snapshot ingests and project saves will appear here as they happen.' }));
+    function chip(label, active, onclick) {
+      return el('button', { class: 'snapbtn' + (active ? ' on' : ''), text: label, onclick: onclick });
+    }
+    function setFilter(k, v) {
+      receiptFilter[k] = receiptFilter[k] === v ? null : v;
+      renderReceipts(el, host, list);
+    }
+    host.appendChild(el('p', { style: 'margin:0 0 10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center' }, [
+      el('span', { class: 'muted', style: 'font-size:12px', text: 'Show:' }),
+      chip('All', !receiptFilter.category && !receiptFilter.runtime, function () { receiptFilter.category = null; receiptFilter.runtime = null; renderReceipts(el, host, list); }),
+      chip('Operational', receiptFilter.category === 'OPERATIONAL', function () { setFilter('category', 'OPERATIONAL'); }),
+      chip('Studio build', receiptFilter.category === 'BUILD', function () { setFilter('category', 'BUILD'); }),
+      el('span', { class: 'muted', style: 'font-size:12px;margin-left:8px', text: 'Runtime:' }),
+      chip('AI-assisted', receiptFilter.runtime === 'AI', function () { setFilter('runtime', 'AI'); }),
+      chip('Deterministic', receiptFilter.runtime === 'DETERMINISTIC', function () { setFilter('runtime', 'DETERMINISTIC'); })
+    ]));
+
+    var filtered = R.filter(list, receiptFilter.category, receiptFilter.runtime);
+    if ((receiptFilter.category || receiptFilter.runtime) && filtered.length !== list.length) {
+      var fs = R.summarise(filtered);
+      host.appendChild(el('p', { class: 'muted', style: 'margin:0 0 8px;font-size:12px', text:
+        'Filtered: ' + fs.operations + ' operation' + (fs.operations === 1 ? '' : 's') + ' · ' +
+        fs.knownTokens + ' tokens known' + (fs.unmetered ? ' · ' + fs.unmetered + ' unmetered' : '') }));
+    }
+
+    if (!filtered.length) {
+      host.appendChild(el('p', { class: 'muted', text: list.length
+        ? 'Nothing matches this filter.'
+        : 'No operations recorded yet. Harness crawls, snapshot ingests and project saves will appear here as they happen.' }));
       return;
     }
 
-    var shown = list.slice(0, 40);
+    var shown = filtered.slice(0, 40);
     host.appendChild(el('table', { class: 'list' }, [
-      el('thead', {}, [el('tr', {}, ['When', 'Operation', 'Target', 'Duration', 'Runtime', 'Tokens', 'AI cost', 'Outcome'].map(function (h) { return el('th', { text: h }); }))]),
+      el('thead', {}, [el('tr', {}, ['When', 'Category', 'Operation', 'Target', 'Duration', 'Runtime', 'Tokens', 'AI cost', 'Outcome'].map(function (h) { return el('th', { text: h }); }))]),
       el('tbody', {}, shown.map(function (r) {
         var det = null;
         var row = el('tr', { style: 'cursor:pointer', title: 'Click for the full receipt' }, [
           el('td', { style: 'white-space:nowrap', text: String(r.when).replace('T', ' ').slice(0, 19) }),
+          el('td', {}, [el('span', {
+            class: 'conf-chip' + (r.category === 'BUILD' ? ' parsed' : ' structural'),
+            text: r.category === 'BUILD' ? 'BUILD' : 'OPERATIONAL'
+          })]),
           el('td', {}, [el('b', { style: 'font-size:12px', text: r.operation || '' })]),
           el('td', { style: 'font-size:12px', text: r.target || '' }),
           el('td', { text: R.fmtDuration(r.durationMs) }),
@@ -196,7 +233,7 @@
         row.addEventListener('click', function () {
           if (det) { det.remove(); det = null; return; }
           var c = Object.assign({}, r); delete c.raw;
-          det = el('tr', {}, [el('td', { colspan: '8' }, [
+          det = el('tr', {}, [el('td', { colspan: '9' }, [
             el('pre', { style: 'margin:0;font-size:10.5px;white-space:pre-wrap', text: JSON.stringify(r.raw || c, null, 1) })
           ])]);
           row.after(det);
@@ -204,14 +241,14 @@
         return row;
       }))
     ]));
-    if (list.length > shown.length) {
-      host.appendChild(el('p', { class: 'muted', style: 'font-size:12px', text: shown.length + ' of ' + list.length + ' shown — download the full set below.' }));
+    if (filtered.length > shown.length) {
+      host.appendChild(el('p', { class: 'muted', style: 'font-size:12px', text: shown.length + ' of ' + filtered.length + ' shown — download the full set below.' }));
     }
     host.appendChild(el('p', {}, [
       el('button', {
         class: 'btn', text: 'Download all (JSONL)',
         onclick: function () {
-          var blob = new Blob([R.toJsonl(list)], { type: 'application/jsonl' });
+          var blob = new Blob([R.toJsonl(filtered)], { type: 'application/jsonl' });
           var a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           a.download = 'studio-receipts.jsonl';

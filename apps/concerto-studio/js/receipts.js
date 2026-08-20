@@ -139,6 +139,18 @@
     }, r, { raw: r });
   }
 
+  /* ---- category: OPERATIONAL vs BUILD ------------------------------------
+   * OPERATIONAL = working a customer/instance: crawls, captures, ingests,
+   * config changes, saves. BUILD = work on the Studio itself — Claude's
+   * development overhead, which must never be read as the cost of running
+   * a project. An explicit category on the receipt wins; older receipts
+   * without one are classified by what they plainly are. */
+  function classify(r) {
+    if (r.category === 'BUILD' || r.category === 'OPERATIONAL') return r.category;
+    if (/studio build/i.test(r.target || '') || /^test$/i.test(r.operation || '')) return 'BUILD';
+    return 'OPERATIONAL';
+  }
+
   /* Everything, merged newest-first. Both fetches are best-effort. */
   function all(projects) {
     var local = loadLocal();
@@ -154,18 +166,38 @@
       var merged = local.concat(derived,
         (both[0].receipts || []).map(normaliseHarness),
         (both[1] || []).map(normaliseStore));
+      merged.forEach(function (r) { r.category = classify(r); });
       merged.sort(function (a, b) { return String(b.when).localeCompare(String(a.when)); });
       return merged;
+    });
+  }
+
+  /* Filter by category ('OPERATIONAL' | 'BUILD' | null = all) and runtime
+   * ('AI' | 'DETERMINISTIC' | null = all). */
+  function filter(list, category, runtime) {
+    return list.filter(function (r) {
+      if (category && classify(r) !== category) return false;
+      if (runtime === 'AI' && !r.aiInvoked) return false;
+      if (runtime === 'DETERMINISTIC' && r.aiInvoked) return false;
+      return true;
     });
   }
 
   /* Honest totals: known token spend summed; unmetered operations COUNTED,
    * never guessed into the sum. */
   function summarise(list) {
-    var s = { operations: list.length, knownTokens: 0, unmetered: 0, timedMs: 0, untimed: 0, aiOps: 0 };
+    var s = {
+      operations: list.length, knownTokens: 0, unmetered: 0, timedMs: 0, untimed: 0, aiOps: 0,
+      byCategory: {
+        OPERATIONAL: { operations: 0, knownTokens: 0, unmetered: 0 },
+        BUILD: { operations: 0, knownTokens: 0, unmetered: 0 }
+      }
+    };
     list.forEach(function (r) {
-      if (typeof r.totalTokens === 'number') s.knownTokens += r.totalTokens;
-      else s.unmetered++;
+      var c = s.byCategory[classify(r)];
+      c.operations++;
+      if (typeof r.totalTokens === 'number') { s.knownTokens += r.totalTokens; c.knownTokens += r.totalTokens; }
+      else { s.unmetered++; c.unmetered++; }
       if (typeof r.durationMs === 'number') s.timedMs += r.durationMs;
       else s.untimed++;
       if (r.aiInvoked) s.aiOps++;
@@ -190,7 +222,8 @@
   var api = {
     DETERMINISTIC: DETERMINISTIC, AI_ASSISTED_UNMETERED: AI_ASSISTED_UNMETERED,
     record: record, timed: timed, derivedFor: derivedFor,
-    all: all, summarise: summarise, fmtDuration: fmtDuration, toJsonl: toJsonl,
+    all: all, filter: filter, classify: classify,
+    summarise: summarise, fmtDuration: fmtDuration, toJsonl: toJsonl,
     _key: KEY, _loadLocal: loadLocal
   };
   if (typeof window !== 'undefined') window.StudioReceipts = api;

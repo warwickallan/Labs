@@ -152,6 +152,18 @@ def main() -> int:
     check("there is no way to delete a receipt",
           not [n for n in dir(store) if "receipt" in n.lower() and any(w in n.lower() for w in ("delete", "remove", "prune"))])
 
+    # receipts carry a category so build overhead never blends into
+    # operational cost
+    rc = store.append_receipt({"operation": "op-default"})
+    check("a receipt defaults to OPERATIONAL", rc["category"] == "OPERATIONAL")
+    rb = store.append_receipt({"operation": "build work", "category": "BUILD"})
+    check("BUILD is accepted as a category", rb["category"] == "BUILD")
+    try:
+        store.append_receipt({"operation": "bad", "category": "MISC"})
+        check("an unknown category is refused", False)
+    except ValueError:
+        check("an unknown category is refused", True)
+
     # ---- over HTTP, as the Studio uses it --------------------------------
     srv = ThreadingHTTPServer(("127.0.0.1", 0), store.Handler)
     Thread(target=srv.serve_forever, daemon=True).start()

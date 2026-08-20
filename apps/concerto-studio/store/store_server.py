@@ -251,7 +251,10 @@ def append_receipt(entry: dict) -> dict:
             raise ValueError("a numeric token figure must state its basis (where the reading came from)")
     elif tokens != "unavailable":
         raise ValueError("totalTokens must be an integer reading or the string 'unavailable'")
-    rec = dict(entry, recordedAt=now_iso(), storeVersion=STORE_VERSION)
+    category = entry.get("category", "OPERATIONAL")
+    if category not in ("OPERATIONAL", "BUILD"):
+        raise ValueError("category must be OPERATIONAL (project/instance work) or BUILD (work on the Studio itself)")
+    rec = dict(entry, recordedAt=now_iso(), storeVersion=STORE_VERSION, category=category)
     rec.setdefault("totalTokens", "unavailable")
     rec.setdefault("aiCost", "unavailable" if rec["totalTokens"] != 0 else "£0.00")
     with receipts_path().open("a", encoding="utf-8") as f:
