@@ -307,23 +307,37 @@ def delete_action(session, op: dict, apply: bool = False) -> dict:
         guid,
     )
     session.page.wait_for_timeout(400)
-    pressed = session.page.evaluate(
-        """() => {
-            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim().toLowerCase();
-            const b = [...document.querySelectorAll('button,a')].find(x => x.offsetParent && /delete selected/.test(norm(x.innerText)));
-            if (!b) return false; b.click(); return true;
-        }"""
-    )
-    session.page.wait_for_timeout(900)
-    # a confirmation dialog may appear — accept it
-    session.page.evaluate(
-        """() => {
-            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim().toLowerCase();
-            const b = [...document.querySelectorAll('button,a')].find(x => x.offsetParent && /^(ok|yes|confirm|delete)$/.test(norm(x.innerText)));
-            if (b) b.click();
-        }"""
-    )
-    session.page.wait_for_timeout(2000)
+    # Concerto confirms deletion with a NATIVE window.confirm() dialog.
+    # Playwright auto-dismisses (Cancel) native dialogs by default, which
+    # silently cancels the delete — so a one-shot ACCEPT handler is armed
+    # just before pressing DELETE SELECTED. It also answers a possible
+    # follow-up "deleted" alert, then detaches so it can never affect a
+    # later operation.
+    _dialogs = {"seen": 0}
+
+    def _accept(dialog):
+        _dialogs["seen"] += 1
+        try:
+            dialog.accept()
+        except Exception:
+            pass
+
+    session.page.on("dialog", _accept)
+    try:
+        pressed = session.page.evaluate(
+            """() => {
+                const norm = t => (t||'').replace(/\\u00a0/g,' ').trim().toLowerCase();
+                const b = [...document.querySelectorAll('button,a')].find(x => x.offsetParent && /delete selected/.test(norm(x.innerText)));
+                if (!b) return false; b.click(); return true;
+            }"""
+        )
+        session.page.wait_for_timeout(2500)
+    finally:
+        try:
+            session.page.remove_listener("dialog", _accept)
+        except Exception:
+            pass
+    audit["confirmDialogs"] = _dialogs["seen"]
 
     if not pressed:
         audit["status"] = "FAILED"
@@ -354,15 +368,19 @@ def rename_status(session, op: dict, apply: bool = False) -> dict:
     session.nav_form_view(guid, frm)
     session.page.wait_for_timeout(800)
 
+    # Identify the name field by its VALUE (== the from-name), not a label
+    # guess: the field is labelled 'Status*' on some builds, 'Name' on others,
+    # but its value is always the current status name.
     before = session.page.evaluate(
-        """() => {
+        """(frm) => {
             const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
+            const want = norm(frm).toLowerCase();
             for (const i of document.querySelectorAll('input[type=text]')) {
-                const lab = norm((i.closest('div,td')||{}).innerText).toLowerCase();
-                if (/status/.test(lab) && (i.value||'').trim()) return i.value.trim();
+                if (norm(i.value).toLowerCase() === want) return norm(i.value);
             }
             return null;
-        }"""
+        }""",
+        frm,
     )
     audit = {
         "op": "rename_status", "guid": guid, "before": before, "intended": to,
@@ -403,12 +421,15 @@ def rename_status(session, op: dict, apply: bool = False) -> dict:
     session.nav_form_view(guid, to)
     session.page.wait_for_timeout(600)
     after = session.page.evaluate(
-        """() => {
+        """(to) => {
+            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
+            const want = norm(to).toLowerCase();
             for (const i of document.querySelectorAll('input[type=text]')) {
-                if ((i.value||'').trim()) { const l=(i.closest('div,td')||{}).innerText||''; if(/status/i.test(l)) return i.value.trim(); }
+                if (norm(i.value).toLowerCase() === want) return norm(i.value);
             }
             return null;
-        }"""
+        }""",
+        to,
     )
     audit["after"] = after
     audit["status"] = "APPLIED" if (after and after.strip().lower() == to.strip().lower()) else "UNVERIFIED"
