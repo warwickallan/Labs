@@ -120,12 +120,13 @@ _SECTION_LINK = "statuses in which this action can be taken"
 _SECTION_USER = "select which statuses can be selected"
 
 
-def _read_link_statuses(page) -> dict:
-    """The current tick-state of the 'Statuses in which this action can be
-    taken' section: {status_name: bool}. This IS the before-state for an
-    availability edit."""
+def _read_section(page, target) -> dict:
+    """Tick-state of one status section ({status: bool}). `target` is the
+    section's label prefix (_SECTION_LINK or _SECTION_USER); the OTHER section
+    resets the bucket so ticks never bleed between the two."""
     return page.evaluate(
-        """(sec) => {
+        """(args) => {
+            const [target, link, user] = args;
             const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
             const out = {};
             let bucket = null;
@@ -134,27 +135,30 @@ def _read_link_statuses(page) -> dict:
             while (n = walker.nextNode()) {
                 if ((n.tagName==='LABEL'||n.tagName==='LEGEND') && n.childElementCount===0) {
                     const t = norm(n.innerText).toLowerCase();
-                    if (t.indexOf(sec) === 0) bucket = 'link';
-                    else if (t.indexOf('select which statuses can be selected') === 0) bucket = 'other';
+                    if (t.indexOf(target) === 0) bucket = 'target';
+                    else if (t.indexOf(link) === 0 || t.indexOf(user) === 0) bucket = 'other';
                     else if (t.length > 28) bucket = null;
                 }
-                if (n.tagName==='INPUT' && n.type==='checkbox' && bucket==='link') {
+                if (n.tagName==='INPUT' && n.type==='checkbox' && bucket==='target') {
                     const row = norm((n.closest('div,li,td')||{}).innerText).slice(0,45);
                     if (row) out[row] = n.checked;
                 }
             }
             return out;
         }""",
-        _SECTION_LINK,
+        [target, _SECTION_LINK, _SECTION_USER],
     )
 
 
-def _set_link_statuses(page, desired: dict) -> list:
-    """Tick/untick rows in the Link-to-Statuses section to match `desired`
-    {status_name: bool}. Returns the list of rows actually toggled."""
+def _read_link_statuses(page) -> dict:
+    return _read_section(page, _SECTION_LINK)
+
+
+def _set_section(page, target, desired: dict) -> list:
+    """Tick/untick rows in one status section to match `desired`."""
     return page.evaluate(
         """(args) => {
-            const [sec, desired] = args;
+            const [target, desired, link, user] = args;
             const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
             const toggled = [];
             let bucket = null;
@@ -163,11 +167,11 @@ def _set_link_statuses(page, desired: dict) -> list:
             while (n = walker.nextNode()) {
                 if ((n.tagName==='LABEL'||n.tagName==='LEGEND') && n.childElementCount===0) {
                     const t = norm(n.innerText).toLowerCase();
-                    if (t.indexOf(sec) === 0) bucket = 'link';
-                    else if (t.indexOf('select which statuses can be selected') === 0) bucket = 'other';
+                    if (t.indexOf(target) === 0) bucket = 'target';
+                    else if (t.indexOf(link) === 0 || t.indexOf(user) === 0) bucket = 'other';
                     else if (t.length > 28) bucket = null;
                 }
-                if (n.tagName==='INPUT' && n.type==='checkbox' && bucket==='link') {
+                if (n.tagName==='INPUT' && n.type==='checkbox' && bucket==='target') {
                     const row = norm((n.closest('div,li,td')||{}).innerText).slice(0,45);
                     if (row in desired && n.checked !== desired[row]) {
                         n.click();
@@ -177,8 +181,12 @@ def _set_link_statuses(page, desired: dict) -> list:
             }
             return toggled;
         }""",
-        [_SECTION_LINK, desired],
+        [target, desired, _SECTION_LINK, _SECTION_USER],
     )
+
+
+def _set_link_statuses(page, desired: dict) -> list:
+    return _set_section(page, _SECTION_LINK, desired)
 
 
 def _press_save(page) -> bool:
@@ -439,8 +447,67 @@ def rename_status(session, op: dict, apply: bool = False) -> dict:
     return audit
 
 
+def set_user_selectable(session, op: dict, apply: bool = False) -> dict:
+    """Tick/untick statuses in the 'Select which statuses can be selected when
+    carrying out this action' section — the user-selectable list, distinct
+    from Link-to-Statuses. op = { action_guid, action_name, add:[], remove:[] }.
+    Used to finish corrections like T06 (its four ticks belonged in
+    Link-to-Statuses, not here)."""
+    _require_enabled()
+    guid = op["action_guid"]
+    name = op.get("action_name", guid)
+    add = op.get("add", []) or []
+    remove = op.get("remove", []) or []
+
+    session.goto_admin("helpdesk_admin.aspx")
+    session.click_tab(("Actions",))
+    session.nav_form_view(guid, name)
+    session.page.wait_for_timeout(800)
+
+    before = _read_section(session.page, _SECTION_USER)
+    desired = dict(before)
+    for s in add:
+        desired[s] = True
+    for s in remove:
+        desired[s] = False
+
+    audit = {
+        "op": "set_user_selectable", "action": name, "guid": guid,
+        "before": {k: v for k, v in before.items() if k in add or k in remove},
+        "intended": {"add": add, "remove": remove},
+        "revert": {"op": "set_user_selectable", "action_guid": guid, "action_name": name,
+                   "add": [s for s in remove if before.get(s)],
+                   "remove": [s for s in add if not before.get(s)]},
+    }
+    if not apply:
+        audit["status"] = "DRY-RUN"
+        session.cancel_form()
+        return audit
+
+    toggled = _set_section(session.page, _SECTION_USER, desired)
+    saved = _press_save(session.page)
+    if not saved:
+        audit["status"] = "FAILED"
+        audit["reason"] = "no SAVE control found; nothing was saved"
+        session.cancel_form()
+        return audit
+    session.click_tab(("Actions",))
+    session.nav_form_view(guid, name)
+    session.page.wait_for_timeout(600)
+    after = _read_section(session.page, _SECTION_USER)
+    ok = all(after.get(s) is True for s in add) and all(after.get(s) is False for s in remove)
+    audit["after"] = {k: v for k, v in after.items() if k in add or k in remove}
+    audit["toggled"] = toggled
+    audit["status"] = "APPLIED" if ok else "UNVERIFIED"
+    session.cancel_form()
+    if not ok:
+        raise WriteFailed(f"{name}: user-selectable change did not verify — {audit['after']}")
+    return audit
+
+
 OPERATIONS = {
     "set_action_availability": set_action_availability,
+    "set_user_selectable": set_user_selectable,
     "delete_action": delete_action,
     "rename_status": rename_status,
 }
