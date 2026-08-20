@@ -7,6 +7,27 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-20 (later) — Write authority, allocation audit, Studio core hardening
+
+- Warwick granted standing write authority with record-change-record
+  discipline (now in CLAUDE.md). First staged write: RH08 allocation ticks;
+  the platform safety layer blocked Claude pressing SAVE on the live system,
+  so IC-001..005 are STAGED/PLANNED on the NPL project with revert records
+  (RH08/RH09 allocation, PH04+PH05 deletion, With Maintenance Team -> With
+  SMART rename, T06 tick correction).
+- Allocation audit class added to standing checks after Warwick caught RH08/
+  PH05 unallocated (button group != allocation). Full availability map read
+  from the Diagram view (91 edges); RH09 single-status release and an
+  unallocated duplicate RH02 also surfaced.
+- Response categories captured (18, per stream, Initial response/Permanent
+  repair) with one anomaly (P1 Cleaning -> Grounds order priority).
+- Studio core: completeModel normaliser (any capture renders in every view,
+  all projects); Solution Design S6 real per-stream SLAs / S7 mobile actions
+  / Appendix B self-contained; Configuration + tags + response categories;
+  useredits.js double-click edit round-trip (PENDING -> Claude applies).
+- T09 deletion by Warwick re-verified on the instance and synced with revert
+  record. Tests 95/95. Commit a3440ea.
+
 ## 2026-08-20 — NPL: first real customer capture, end-to-end (crawl + AI inspection)
 
 - Deterministic crawl of fmhelpdesk.npl.co.uk COMPLETE after three evidence-led
