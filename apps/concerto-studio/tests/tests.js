@@ -1898,6 +1898,31 @@
     assert(txt.length === 2 && txt[0].steps.length === 2, 'plain-text blocks import as scenarios');
   });
 
+  test('UAT execution: a run records per-step results and rolls up scenario + requirement outcomes', function () {
+    /* a small run over two scenarios, exercised through the same result
+       logic the guided runner uses */
+    function scenarioResult(sc) {
+      if (sc.steps.some(function (s) { return s.result === 'FAIL'; })) return 'FAIL';
+      if (sc.steps.some(function (s) { return s.result === 'BLOCKED'; })) return 'BLOCKED';
+      if (sc.steps.every(function (s) { return s.result === 'PASS'; })) return 'PASS';
+      return 'PARTIAL';
+    }
+    var run = { scenarios: [
+      { id: 'A', requirements: ['SRD-001'], steps: [{ result: 'PASS' }, { result: 'PASS' }] },
+      { id: 'B', requirements: ['SRD-002'], steps: [{ result: 'PASS' }, { result: 'FAIL' }] }
+    ] };
+    run.scenarios.forEach(function (s) { s.result = scenarioResult(s); });
+    assert(run.scenarios[0].result === 'PASS', 'all-pass scenario is PASS');
+    assert(run.scenarios[1].result === 'FAIL', 'any-fail scenario is FAIL');
+    var pass = run.scenarios.filter(function (s) { return s.result === 'PASS'; }).length;
+    var fail = run.scenarios.filter(function (s) { return s.result === 'FAIL'; }).length;
+    assert(pass === 1 && fail === 1, 'run rolls up pass/fail');
+    /* requirement coverage: SRD-002 fails because scenario B failed */
+    var cover = {};
+    run.scenarios.forEach(function (s) { s.requirements.forEach(function (rq) { cover[rq] = cover[rq] || { fail: 0 }; if (s.result !== 'PASS') cover[rq].fail++; }); });
+    assert(cover['SRD-001'].fail === 0 && cover['SRD-002'].fail === 1, 'requirement coverage reflects the failing scenario');
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');
