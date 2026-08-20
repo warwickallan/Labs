@@ -87,22 +87,29 @@
     safe(function () { m.helpdesk = m.helpdesk || {}; });
     if (!m.helpdesk) return m;
     var hd = m.helpdesk;
-    hd.types = hd.types || [];
-    hd.statuses = hd.statuses || [];
-    hd.actions = hd.actions || [];
-    hd.availability = hd.availability || [];
-    hd.results = hd.results || [];
-    hd.operativeStatuses = hd.operativeStatuses || [];
-    hd.tags = hd.tags || [];
-    hd.responseCategories = hd.responseCategories || [];
+    /* a frozen helpdesk sub-tree is canonical and already complete — leave it
+       untouched. Only fill gaps when it is actually mutable. */
+    if (Object.isFrozen(hd)) return m;
+    safe(function () {
+      hd.types = hd.types || [];
+      hd.statuses = hd.statuses || [];
+      hd.actions = hd.actions || [];
+      hd.availability = hd.availability || [];
+      hd.results = hd.results || [];
+      hd.operativeStatuses = hd.operativeStatuses || [];
+      hd.tags = hd.tags || [];
+      hd.responseCategories = hd.responseCategories || [];
+    });
+    if (!hd.statuses) return m;
     safe(function () { hd.statuses.forEach(function (st) {
+      if (Object.isFrozen(st)) return;
       st.types = st.types || ['Reactive', 'Planned'];
       st.isDefaultFor = st.isDefaultFor || [];
       st.ordering = st.ordering || {};
       st.suppressed = !!st.suppressed;
-      st.suppressed = !!st.suppressed;
     }); });
-    safe(function () { hd.actions.forEach(function (a) {
+    safe(function () { (hd.actions || []).forEach(function (a) {
+      if (Object.isFrozen(a)) return;
       a.flags = (a.flags || []).filter(function (f) { return typeof f === 'string'; });
       a.addsTags = a.addsTags || [];
       a.removesTags = a.removesTags || [];

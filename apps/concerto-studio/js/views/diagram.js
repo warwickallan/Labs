@@ -259,23 +259,54 @@
    * The Board answers "what is configured"; the Flow answers "what is the
    * journey". Printable via a standalone landscape page.
    */
-  var FLOW_LABELS = [
-    ['reactive', 'Reactive'], ['planned', 'Planned'],
-    ['contractor', 'Contractor & Orders'], ['quote', 'Quote'], ['business-case', 'Business Case']
-  ];
+  var FLOW_LABELS = [['Reactive', 'Reactive job'], ['Planned', 'Planned (PPM) job']];
+
+  function cssEsc(s) { return String(s).replace(/["\\]/g, '\\$&'); }
+
+  /* The second layer: click a milestone, see exactly what a job can do there
+   * — every action, where it leads, and how it leaves the happy path. This is
+   * the detail that stays OFF the diagram until asked for. */
+  function statusDetailCard(el, model, name, detail) {
+    detail = detail || { actions: [], exits: [] };
+    var forward = detail.actions.filter(function (a) { return a.to && detail.exits.indexOf(a) === -1; });
+    var noChange = detail.actions.filter(function (a) { return !a.to; });
+    function row(a) {
+      return el('tr', {}, [
+        el('td', {}, [el('b', { text: a.code || '' })]),
+        el('td', { text: a.verb }),
+        el('td', {}, [a.to ? el('span', { text: '→ ' + a.to }) : el('span', { class: 'muted', text: 'no status change' })])
+      ]);
+    }
+    return el('div', { class: 'tile', style: 'margin:14px 0' }, [
+      el('div', { style: 'display:flex;justify-content:space-between;align-items:center' }, [
+        el('h3', { text: 'At “' + name + '” a job can…', style: 'margin:0' }),
+        el('button', { class: 'btn', style: 'font-size:12px', text: 'Open full status detail', onclick: function () { window.StudioInspector.showStatus(model, name); } })
+      ]),
+      detail.actions.length ? el('table', { class: 'list', style: 'margin-top:10px' }, [
+        el('tbody', {}, [].concat(
+          forward.length ? [el('tr', {}, [el('td', { colspan: '3', class: 'muted', style: 'font-size:11px', text: 'MOVES THE JOB ON' })])] : [],
+          forward.map(row),
+          detail.exits.length ? [el('tr', {}, [el('td', { colspan: '3', class: 'muted', style: 'font-size:11px', text: 'LEAVES THE HAPPY PATH' })])] : [],
+          detail.exits.map(row),
+          noChange.length ? [el('tr', {}, [el('td', { colspan: '3', class: 'muted', style: 'font-size:11px', text: 'ADMIN / IN-PLACE (no status change)' })])] : [],
+          noChange.map(row)
+        ))
+      ]) : el('p', { class: 'muted', text: 'No actions recorded here.' })
+    ]);
+  }
 
   function renderFlow(page, model, rerender) {
     var el = D().el;
+    if (!state.flowType) state.flowType = 'Reactive';
     page.appendChild(el('div', { class: 'toolstrip' }, [
       el('span', { class: 'seg' }, [
         el('button', { text: 'Board', onclick: function () { state.present = 'board'; rerender(); } }),
-        el('button', { class: 'on', text: 'Flow' })
+        el('button', { class: 'on', text: 'Life of a job' })
       ]),
-      el('label', { text: 'Journey' }),
       el('span', { class: 'seg' }, FLOW_LABELS.map(function (f) {
         return el('button', {
-          class: state.flow === f[0] ? 'on' : '', text: f[1],
-          onclick: function () { state.flow = f[0]; rerender(); }
+          class: state.flowType === f[0] ? 'on' : '', text: f[1],
+          onclick: function () { state.flowType = f[0]; state.flowOpen = null; rerender(); }
         });
       })),
       el('span', { style: 'flex:1' }),
@@ -286,33 +317,42 @@
         class: 'btn', text: 'Open for printing',
         title: 'All five journeys, one per landscape A4 page — use the browser’s Print for a PDF',
         onclick: function () {
-          var flows = FLOW_LABELS.map(function (f) { return window.StudioFlow.render(f[0], model); })
-            .filter(function (r) { return !r.missing; });
           var w = window.open('', '_blank');
-          w.document.write(window.StudioFlow.printable(flows, 'Concerto process flows'));
+          var body = FLOW_LABELS.map(function (f) {
+            var o = window.StudioLifeFlow.render(model, f[0]);
+            return o.missing ? '' : '<h2>' + f[1] + '</h2>' + o.svg;
+          }).join('<div style="page-break-after:always"></div>');
+          w.document.write('<!doctype html><meta charset="utf-8"><title>Life of a job — process flows</title>' +
+            '<style>body{font-family:Segoe UI,Arial,sans-serif;margin:24px}h2{color:#0e3e33}svg{max-width:100%}@media print{h2{page-break-before:always}}</style>' + body);
           w.document.close();
         }
       })
     ]));
 
     var wrap = el('div', { id: 'diagramWrap', style: 'padding:18px' });
-    var host = el('div', { id: 'flowHost', style: 'transform-origin:0 0;margin:0 auto;max-width:1280px' });
+    var host = el('div', { id: 'flowHost', style: 'transform-origin:0 0;margin:0 auto;max-width:1000px' });
+    var detailHost = el('div', { id: 'flowDetail', style: 'max-width:1000px;margin:0 auto' });
     wrap.appendChild(host);
+    wrap.appendChild(detailHost);
     page.appendChild(wrap);
     function apply() { host.style.transform = 'scale(' + (state.flowZoom || 1) + ')'; }
 
-    var out = window.StudioFlow.render(state.flow || 'reactive', model);
+    var out = window.StudioLifeFlow.render(model, state.flowType);
     if (out.missing) {
-      host.appendChild(el('p', { class: 'muted', text: 'This journey has nothing to draw in this configuration.' }));
+      host.appendChild(el('p', { class: 'muted', style: 'text-align:center', text: 'This job type has no reachable lifecycle in this configuration yet.' }));
     } else {
       host.innerHTML = out.svg;
-      /* clicking a step with a status opens the inspector */
+      var openStatus = function (name) {
+        state.flowOpen = state.flowOpen === name ? null : name;
+        D().clear(detailHost);
+        if (state.flowOpen) detailHost.appendChild(statusDetailCard(el, model, name, out.detail[name]));
+        host.querySelectorAll('[data-status] rect').forEach(function (r) { r.setAttribute('stroke-width', '1.3'); });
+        if (state.flowOpen) { var g = host.querySelector('[data-status="' + cssEsc(state.flowOpen) + '"] rect'); if (g) g.setAttribute('stroke-width', '3'); }
+      };
       host.querySelectorAll('[data-status]').forEach(function (g) {
-        g.style.cursor = 'pointer';
-        g.addEventListener('click', function () {
-          window.StudioInspector.showStatus(model, g.getAttribute('data-status'));
-        });
+        g.addEventListener('click', function () { openStatus(g.getAttribute('data-status')); });
       });
+      if (state.flowOpen && out.detail[state.flowOpen]) detailHost.appendChild(statusDetailCard(el, model, state.flowOpen, out.detail[state.flowOpen]));
     }
     apply();
 
