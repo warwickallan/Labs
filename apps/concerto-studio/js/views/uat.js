@@ -41,6 +41,7 @@
       projectKey: proj.key,
       vanillaId: vanilla && vanilla.meta && vanilla.meta.version,
       findings: proj.aiFindings || [],
+      customScenarios: proj.uatScenarios || [],
       source: 'model-derived'
     };
     var packs = window.StudioUAT.library(target, ctx);
@@ -75,11 +76,24 @@
       return;
     }
     if (packNames.indexOf(state.pack) === -1) state.pack = packNames[0];
-    page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:12px' }, [
+    var packLabel = { smoke: 'Smoke', core: 'Core', negative: 'Negative', regression: 'Regression', customer: 'Customer', vanillaProvided: 'Vanilla pack' };
+    page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px' }, [
       el('span', { class: 'seg' }, packNames.map(function (k) {
-        return el('button', { class: state.pack === k ? 'on' : '', text: k.charAt(0).toUpperCase() + k.slice(1) + ' (' + packs[k].length + ')',
+        return el('button', { class: state.pack === k ? 'on' : '', text: (packLabel[k] || k) + ' (' + packs[k].length + ')',
           onclick: function () { state.pack = k; state.open = null; rerender(); } });
-      }))
+      })),
+      el('span', { style: 'display:flex;gap:6px' }, [
+        el('label', { class: 'btn', style: 'cursor:pointer;font-size:12px' }, [
+          document.createTextNode('Import customer scenarios…'),
+          el('input', { type: 'file', accept: '.json,.csv,.txt,.md', style: 'display:none',
+            onchange: function (e) { importScenarioFile(e.target.files[0], 'customer', rerender); } })
+        ]),
+        el('label', { class: 'btn', style: 'cursor:pointer;font-size:12px' }, [
+          document.createTextNode('Import Vanilla test pack…'),
+          el('input', { type: 'file', accept: '.json,.csv,.txt,.md', style: 'display:none',
+            onchange: function (e) { importScenarioFile(e.target.files[0], 'vanilla', rerender); } })
+        ])
+      ])
     ]));
     var list = packs[state.pack] || [];
     page.appendChild(el('div', { class: 'tile' }, [
@@ -145,6 +159,23 @@
         }))
       ])
     ]));
+  }
+
+  function importScenarioFile(file, pack, rerender) {
+    if (!file) return;
+    var proj = window.StudioProject.current();
+    var r = new FileReader();
+    r.onload = function () {
+      var scs = window.StudioUAT.importScenarios(String(r.result || ''), { pack: pack });
+      if (!scs.length) { alert('No scenarios could be read from that file. Accepted: canonical JSON, CSV (id/scenario/steps/expected), or plain-text blocks.'); return; }
+      proj.uatScenarios = (proj.uatScenarios || []).concat(scs);
+      window.StudioProject.save(proj.key, { uatScenarios: proj.uatScenarios });
+      if (window.StudioProject.persist) window.StudioProject.persist(proj.key);
+      alert('Imported ' + scs.length + ' scenario' + (scs.length > 1 ? 's' : '') + ' into the ' + pack + ' pack.');
+      state.pack = pack === 'customer' ? 'customer' : 'vanillaProvided';
+      rerender();
+    };
+    r.readAsText(file);
   }
 
   function requirementsTab(page, el, proj) {

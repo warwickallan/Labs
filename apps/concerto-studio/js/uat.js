@@ -167,6 +167,14 @@
         if (j.length <= 3) packs.smoke.push(sc);
       });
     });
+    /* customer-supplied scenarios (uploaded UAT scripts / questions) and any
+     * provided Vanilla test pack — kept as their own packs, never silently
+     * merged with generated ones so their provenance stays visible. */
+    (ctx.customScenarios || []).forEach(function (sc) {
+      var pack = sc.pack === 'vanilla' ? 'vanillaProvided' : 'customer';
+      (packs[pack] = packs[pack] || []).push(sc);
+    });
+
     /* known Vanilla defects → regression scenarios (from project findings
      * flagged as defects). The scenario asserts the CORRECT behaviour. */
     (ctx.findings || []).forEach(function (f) {
@@ -247,7 +255,106 @@
     });
   }
 
+  /* Import customer scenarios / a provided Vanilla test pack from pasted or
+   * uploaded content. Accepts three shapes, auto-detected:
+   *   - canonical JSON (a scenario object or an array of them)
+   *   - CSV in the workbook shape (header row with id/scenario/steps/expected)
+   *   - plain text: one scenario per blank-line-separated block, first line
+   *     the title, "- " lines the steps.
+   * Every imported scenario is tagged with provenance and a pack. */
+  function importScenarios(text, opts) {
+    opts = opts || {};
+    var pack = opts.pack || 'customer';
+    if (!text || !text.trim()) return [];
+    var trimmed = text.trim();
+    // JSON?
+    if (trimmed[0] === '[' || trimmed[0] === '{') {
+      try {
+        var j = JSON.parse(trimmed);
+        var arr = Array.isArray(j) ? j : (j.scenarios || [j]);
+        return arr.map(function (sc, i) { return normaliseImported(sc, pack, i); });
+      } catch (e) { /* fall through to CSV/text */ }
+    }
+    // CSV?
+    var firstLine = trimmed.split(/\r?\n/)[0].toLowerCase();
+    if (/[,;\t]/.test(firstLine) && /(id|scenario|test)/.test(firstLine) && /(step|expected|description)/.test(firstLine)) {
+      return importCsv(trimmed, pack);
+    }
+    // plain text blocks
+    return trimmed.split(/\n{2,}/).map(function (block, i) {
+      var lines = block.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+      if (!lines.length) return null;
+      var steps = lines.slice(1).filter(function (l) { return /^[-*•\d]/.test(l); })
+        .map(function (l, j) { return { id: 'step-' + (j + 1), keyword: 'MANUAL', parameters: { instruction: l.replace(/^[-*•]\s*|\d+[.)]\s*/, '') }, assertions: [] }; });
+      return normaliseImported({ title: lines[0].replace(/^[-*•\d.)\s]+/, ''), steps: steps }, pack, i);
+    }).filter(Boolean);
+  }
+
+  function importCsv(text, pack) {
+    var rows = parseCsv(text);
+    if (rows.length < 2) return [];
+    var head = rows[0].map(function (h) { return h.toLowerCase().trim(); });
+    var col = function (names) { for (var i = 0; i < head.length; i++) { if (names.some(function (n) { return head[i].indexOf(n) !== -1; })) return i; } return -1; };
+    var ci = { id: col(['id', 'ref']), title: col(['scenario', 'test', 'title', 'description']), steps: col(['step']), expected: col(['expected', 'result']), pri: col(['priority', 'pri']), role: col(['role']) };
+    return rows.slice(1).filter(function (r) { return r.join('').trim(); }).map(function (r, i) {
+      var stepText = ci.steps >= 0 ? r[ci.steps] : '';
+      var expText = ci.expected >= 0 ? r[ci.expected] : '';
+      var stepLines = String(stepText || '').split(/\n|(?=\d+[.)])/).map(function (s) { return s.trim(); }).filter(Boolean);
+      var steps = stepLines.map(function (s, j) {
+        return { id: 'step-' + (j + 1), keyword: 'MANUAL', parameters: { instruction: s.replace(/^\d+[.)]\s*/, '') },
+          assertions: expText ? [{ keyword: 'MANUAL_CHECK', value: String(expText).split(/\n/)[j] || expText }] : [] };
+      });
+      return normaliseImported({
+        id: ci.id >= 0 ? r[ci.id] : null,
+        title: ci.title >= 0 ? r[ci.title] : ('Imported ' + (i + 1)),
+        risk: { priority: ci.pri >= 0 ? r[ci.pri] : 'medium' },
+        steps: steps,
+        actorHint: ci.role >= 0 ? r[ci.role] : null
+      }, pack, i);
+    });
+  }
+
+  function parseCsv(text) {
+    var rows = [], row = [], field = '', q = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) {
+        if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+        else if (c === '"') q = false;
+        else field += c;
+      } else if (c === '"') q = true;
+      else if (c === ',' || c === ';' || c === '\t') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else field += c;
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  function normaliseImported(sc, pack, i) {
+    var steps = (sc.steps || []).map(function (st, j) {
+      if (typeof st === 'string') return { id: 'step-' + (j + 1), keyword: 'MANUAL', parameters: { instruction: st }, assertions: [] };
+      return Object.assign({ id: st.id || 'step-' + (j + 1), keyword: st.keyword || 'MANUAL', parameters: st.parameters || {}, assertions: st.assertions || [] }, st);
+    });
+    return {
+      id: sc.id || ('UAT-IMP-' + pack.toUpperCase().slice(0, 3) + '-' + String(i + 1).padStart(3, '0')),
+      version: sc.version || 1,
+      title: sc.title || sc.name || ('Imported scenario ' + (i + 1)),
+      module: sc.module || (pack === 'vanillaProvided' ? 'Vanilla acceptance' : 'Customer scenario'),
+      risk: sc.risk || { priority: 'medium' },
+      target: sc.target || { expectedModel: 'desired', executeAgainstModel: 'current' },
+      traceability: sc.traceability || { requirements: [] },
+      preconditions: sc.preconditions || [],
+      steps: steps,
+      passCriteria: sc.passCriteria || { allMandatoryAssertions: true },
+      provenance: { generatedBy: 'import', reviewStatus: 'imported', acquiredFrom: pack === 'vanillaProvided' ? 'provided-vanilla-pack' : 'customer-upload', pack: pack },
+      pack: pack
+    };
+  }
+
   window.StudioUAT = {
+    importScenarios: importScenarios,
     journeys: journeys,
     scenarioFromJourney: scenarioFromJourney,
     library: library,

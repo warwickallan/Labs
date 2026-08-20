@@ -1846,6 +1846,58 @@
     });
   });
 
+  test('SRD: parses modal requirements and anchors clause numbers', function () {
+    var text = '3.1 The system shall allow a helpdesk agent to raise a reactive job.\n' +
+      '3.2 The contractor must be able to accept or reject an order.\n' +
+      'This is just background prose with no obligation.\n' +
+      '3.3 Jobs should move to a "With Surveyor" status when a survey is required.';
+    var reqs = window.StudioSRD.parseRequirements(text);
+    assert(reqs.length === 3, 'three requirements extracted, prose ignored — got ' + reqs.length);
+    assert(reqs[0].clause === '3.1', 'clause number anchored');
+    assert(reqs[0].priority === 'mandatory' && reqs[2].priority === 'expected', 'modality drives priority');
+  });
+
+  test('SRD: gap analysis judges PRESENT / NOT-PRESENT / UNKNOWN against the baseline with evidence', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var reqs = window.StudioSRD.parseRequirements(
+        'The system shall support a reactive helpdesk.\n' +
+        'Jobs shall be able to move to a "With Surveyor" status.\n' +
+        'The solution must integrate with the customer SAP finance system.');
+      var res = window.StudioSRD.assess(reqs, m);
+      assert(res.rows.length === 3, 'three assessed');
+      var present = res.rows.filter(function (r) { return r.verdict === 'PRESENT'; });
+      assert(present.length >= 1 && present[0].evidence.length >= 0, 'a covered requirement is PRESENT with a basis');
+      /* the SAP integration cannot be judged from config → UNKNOWN, never a false PRESENT */
+      var sap = res.rows.filter(function (r) { return /SAP/.test(r.text); })[0];
+      assert(sap && sap.verdict === 'UNKNOWN', 'an unmappable integration requirement is UNKNOWN, got ' + (sap && sap.verdict));
+      assert(res.summary.total === 3, 'summary counts every requirement');
+    });
+  });
+
+  test('SRD: AI-suggested turns a status gap into an addStatus op with AI-SUGGESTED provenance', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var row = { ref: 'SRD-001', text: 'Jobs shall move to a "With Surveyor" status when a survey is required.', verdict: 'NOT-PRESENT' };
+      var sug = window.StudioSRD.suggest(row, m);
+      assert(sug.kind === 'add-status', 'a status gap suggests add-status, got ' + sug.kind);
+      assert(sug.op && sug.op.op === 'addStatus' && /Surveyor/.test(sug.op.name), 'the op adds the named status');
+      assert(sug.provenance === 'AI-SUGGESTED', 'provenance is AI-SUGGESTED for review');
+    });
+  });
+
+  test('UAT: customer scenarios import from JSON / CSV / plain text and keep their provenance', function () {
+    var json = window.StudioUAT.importScenarios('[{"title":"Contractor accepts order","steps":["Assign to contractor","Accept the order"]}]', { pack: 'customer' });
+    assert(json.length === 1 && json[0].steps.length === 2, 'JSON import');
+    assert(json[0].provenance.acquiredFrom === 'customer-upload', 'customer provenance preserved');
+    var csv = window.StudioUAT.importScenarios('id,scenario,steps,expected\nT1,Raise a job,"1. Log a job\n2. Save","Job created", ', { pack: 'vanilla' });
+    assert(csv.length === 1 && csv[0].pack === 'vanilla', 'CSV import tagged as the vanilla pack');
+    var packed = window.StudioUAT.library({ helpdesk: {}, orders: {} }, { customScenarios: csv });
+    assert((packed.vanillaProvided || []).length === 1, 'library routes a vanilla-tagged scenario into the Vanilla pack');
+    var txt = window.StudioUAT.importScenarios('Cancel a job\n- Open the job\n- Press cancel\n\nClose a job\n- Complete the work\n- Press close', { pack: 'customer' });
+    assert(txt.length === 2 && txt[0].steps.length === 2, 'plain-text blocks import as scenarios');
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');

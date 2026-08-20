@@ -89,7 +89,7 @@
     }
 
     page.appendChild(el('div', { class: 'toolstrip' }, [
-      el('span', { class: 'seg' }, [tabBtn('edit', 'Edit'), tabBtn('compare', 'Compare'), tabBtn('findings', 'Findings'), tabBtn('build', 'Build')]),
+      el('span', { class: 'seg' }, [tabBtn('edit', 'Edit'), tabBtn('srd', 'SRD'), tabBtn('compare', 'Compare'), tabBtn('findings', 'Findings'), tabBtn('build', 'Build')]),
       el('span', {
         class: 'src-chip',
         html: diff.isEmpty ? 'No deviations from ' + (project ? 'current' : 'Vanilla') + ' yet'
@@ -115,6 +115,7 @@
     var body = el('div', { style: 'flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto' });
     page.appendChild(body);
 
+    if (panelState.tab === 'srd') { window.StudioSRDView.render(body, { vanilla: vanilla, base: base, project: project }); return; }
     if (panelState.tab === 'compare') { window.StudioCompare.render(body, vanilla, { base: base, project: project }); return; }
     if (panelState.tab === 'findings') { window.StudioFindings.render(body, base); return; }
     if (panelState.tab === 'build') {
