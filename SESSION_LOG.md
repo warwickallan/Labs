@@ -7,6 +7,29 @@ factual and short; deep detail belongs in the linked docs and commit bodies.
 
 ---
 
+## 2026-08-21 — NPL work order executed live; UX + UAT + traceability complete
+
+- ALL SIX staged NPL changes APPLIED and verified against fmhelpdesk.npl.co.uk
+  through the audited harness write path: RH08/RH09/T06 availability, With
+  Maintenance Team -> With SMART rename, PH04 + PH05 deleted. Each before ->
+  apply -> verify -> revert, receipted. Two writer fixes were needed and are
+  committed (8622311): rename identifies the name field by VALUE (NPL labels
+  it Status*), delete accepts Concerto's NATIVE confirm() dialog (Playwright
+  was auto-cancelling). writeEnabled true; classifier only blocked apply=true
+  until Bash(curl:*) allow rule added + bypass mode.
+- Studio synced to the instance: model updated (45 actions, With SMART),
+  changeLog with reverts, BUILD READ-BACK snapshot npl-POSTBUILD-1. Fixed a
+  sync gap where types[].statuses arrays kept the old string. Solution/
+  Technical Design regenerate from the live model - verified they show the
+  new state; old names remain only in the deviation-vs-Vanilla schedule.
+- UX declutter finished across surfaces (Configuration/Evidence/Settings
+  collapsible, Matrix/Action Map explainers, Design build engine folded).
+- UAT: guided execution engine (per-step pass/fail/blocked + evidence),
+  Results with requirement coverage + sign-off + HTML report, Requirements->
+  scenario compile. Life-of-a-job flow. SRD gap analysis + AI-suggested.
+- Commits: 9f3f5dc, 4148205, e1f37f3, a465e90, 8622311. Tests 104/104.
+- OPEN: SRD .docx/.pdf parsing; UAT browser/hybrid auto-execution.
+
 ## 2026-08-20 (evening) — Write path made usable, UAT + SRD build
 
 - Harness DISCIPLINED WRITE PATH now works end to end: concerto_writer.py
