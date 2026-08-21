@@ -30,10 +30,9 @@ absolute. When an item is done, move it to the SESSION_LOG, don't just delete.
       preview, dependency-ordered build plan, work-order creation). Executable
       steps run via writer create+wire ops; `configure_job_type` is STAGED.
       Prove the pipeline end-to-end on a sandbox with Warwick watching.
-- [ ] **Suppression on re-crawl.** The harness crawler now captures
-      "Suppress status from use"; `completeModel` derives `suppressed` from
-      flags. VERIFY the crawl→ingest→model path actually carries it on the next
-      real crawl (the ingest has more than one status path).
+- [x] **Suppression on re-crawl — VERIFIED 2026-08-21.** The independent NPL
+      re-crawl carried the suppress flag through capture→interpret and the
+      suppressed set matched the model exactly (3 statuses).
 - [ ] **Durable store off-machine remote.** Store is one-machine-only until
       Warwick creates a private GitHub repo; then wire the remote.
 - [x] **The `/concerto-studio` skill.** DONE 2026-08-21 — lives at
