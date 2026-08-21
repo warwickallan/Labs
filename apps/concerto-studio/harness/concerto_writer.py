@@ -42,7 +42,7 @@ import sys
 import time
 from pathlib import Path
 
-WRITER_VERSION = "0.2"
+WRITER_VERSION = "0.3"
 _CONFIG = Path(__file__).resolve().parent / "harness.config.json"
 
 # The server hot-reloads THIS module on every /execute so an operation fix
@@ -518,11 +518,244 @@ def set_user_selectable(session, op: dict, apply: bool = False) -> dict:
     return audit
 
 
+# --------------------------------------------------------------------------
+# create operations (writer 0.3) — the NEW-HELPDESK build path
+# --------------------------------------------------------------------------
+
+_ADD_LABELS = ["add new", "add", "new", "create", "+"]
+
+
+def _click_add(page) -> str | None:
+    """Click the tab's add-record control (JS-native, nbsp-folded). Returns
+    the label clicked, or None — the caller fails LOUDLY, never guesses."""
+    return page.evaluate(
+        """(labels) => {
+            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim().toLowerCase();
+            const cands = [...document.querySelectorAll('button,a,input[type=button]')]
+                .filter(b => b.offsetParent);
+            for (const want of labels) {
+                const hit = cands.find(b => norm(b.innerText || b.value) === want);
+                if (hit) { hit.click(); return want; }
+            }
+            return null;
+        }""",
+        _ADD_LABELS,
+    )
+
+
+def _set_input_by_label(page, label_re: str, value: str) -> bool:
+    """Set a text input identified by its LABEL (create forms are empty, so
+    the rename trick of finding a field by VALUE cannot work here)."""
+    return bool(page.evaluate(
+        """(args) => {
+            const [re, value] = args;
+            const rx = new RegExp(re, 'i');
+            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
+            for (const inp of document.querySelectorAll('input[type=text],input:not([type]),textarea')) {
+                let label = '';
+                if (inp.id) { const l = document.querySelector('label[for="' + inp.id + '"]'); if (l) label = norm(l.innerText); }
+                if (!label) { const w = inp.closest('label'); if (w) label = norm(w.innerText); }
+                if (!label) { const td = inp.closest('td,div'); if (td && td.previousElementSibling) label = norm(td.previousElementSibling.innerText); }
+                if (rx.test(label)) {
+                    inp.value = value;
+                    inp.dispatchEvent(new Event('input', {bubbles: true}));
+                    inp.dispatchEvent(new Event('change', {bubbles: true}));
+                    return true;
+                }
+            }
+            return false;
+        }""",
+        [label_re, value],
+    ))
+
+
+def _tick_by_label(page, label_re: str, on: bool) -> bool:
+    return bool(page.evaluate(
+        """(args) => {
+            const [re, on] = args;
+            const rx = new RegExp(re, 'i');
+            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
+            for (const cb of document.querySelectorAll('input[type=checkbox]')) {
+                let label = '';
+                if (cb.id) { const l = document.querySelector('label[for="' + cb.id + '"]'); if (l) label = norm(l.innerText); }
+                if (!label) { const w = cb.closest('label'); if (w) label = norm(w.innerText); }
+                if (!label) { const td = cb.closest('td,div'); if (td && td.previousElementSibling) label = norm(td.previousElementSibling.innerText); }
+                if (rx.test(label)) { if (cb.checked !== on) cb.click(); return true; }
+            }
+            return false;
+        }""",
+        [label_re, on],
+    ))
+
+
+def _select_by_label(page, label_re: str, option_text: str) -> bool:
+    return bool(page.evaluate(
+        """(args) => {
+            const [re, want] = args;
+            const rx = new RegExp(re, 'i');
+            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
+            for (const sel of document.querySelectorAll('select')) {
+                let label = '';
+                if (sel.id) { const l = document.querySelector('label[for="' + sel.id + '"]'); if (l) label = norm(l.innerText); }
+                if (!label) { const td = sel.closest('td,div'); if (td && td.previousElementSibling) label = norm(td.previousElementSibling.innerText); }
+                if (!rx.test(label)) continue;
+                const opt = [...sel.options].find(o => norm(o.text) === want);
+                if (!opt) return false;
+                sel.value = opt.value;
+                sel.dispatchEvent(new Event('change', {bubbles: true}));
+                return true;
+            }
+            return false;
+        }""",
+        [label_re, option_text],
+    ))
+
+
+def _grid_has_name(page, name: str) -> bool:
+    return bool(page.evaluate(
+        """(name) => {
+            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
+            return [...document.querySelectorAll('td')].some(td => norm(td.innerText) === name);
+        }""",
+        name,
+    ))
+
+
+def create_status(session, op: dict, apply: bool = False) -> dict:
+    """Create a NEW job status.
+    op = { name, types:[Reactive|Planned...], sortOrder, suppress, isDefaultFor:[...] }
+    Revert = delete the status (recorded as a recipe; delete_status is not a
+    writer op yet)."""
+    _require_enabled()
+    name = op["name"]
+    types = op.get("types") or ["Reactive"]
+
+    session.goto_admin("helpdesk_admin.aspx")
+    session.click_tab(("Job statuses", "Statuses", "Job status"))
+    session.page.wait_for_timeout(1200)
+
+    audit = {
+        "op": "create_status", "object": name,
+        "params": {k: op.get(k) for k in ("name", "types", "sortOrder", "suppress", "isDefaultFor")},
+        "revert": {"op": "delete_status", "note": "delete the created status (manual/recipe — no writer op yet)", "name": name},
+    }
+    if _grid_has_name(session.page, name):
+        audit["status"] = "FAILED"
+        audit["reason"] = f"a status named {name!r} already exists"
+        return audit
+    if not apply:
+        audit["status"] = "DRY-RUN"
+        return audit
+
+    clicked = _click_add(session.page)
+    if not clicked:
+        audit["status"] = "FAILED"
+        audit["reason"] = f"no add-record control found (tried {_ADD_LABELS}); page structure unknown — not guessing"
+        return audit
+    session.page.wait_for_timeout(1500)
+
+    filled = _set_input_by_label(session.page, r"^status\\b|^name\\b", name)
+    if not filled:
+        audit["status"] = "FAILED"
+        audit["reason"] = "could not find the name field on the create form"
+        session.cancel_form()
+        return audit
+    if op.get("sortOrder") is not None:
+        _set_input_by_label(session.page, r"sort|order", str(op["sortOrder"]))
+    for t in ("Reactive", "Planned"):
+        _tick_by_label(session.page, rf"^{t}\\b", t in types)
+    if op.get("suppress"):
+        _tick_by_label(session.page, r"suppress", True)
+    for t in op.get("isDefaultFor") or []:
+        _tick_by_label(session.page, r"default", True)
+
+    saved = _press_save(session.page)
+    if not saved:
+        audit["status"] = "FAILED"
+        audit["reason"] = "no SAVE control found; nothing was saved"
+        session.cancel_form()
+        return audit
+
+    session.click_tab(("Job statuses", "Statuses", "Job status"))
+    session.page.wait_for_timeout(1200)
+    ok = _grid_has_name(session.page, name)
+    audit["status"] = "APPLIED" if ok else "UNVERIFIED"
+    if not ok:
+        raise WriteFailed(f"create_status {name!r}: saved but the status is not in the grid")
+    return audit
+
+
+def create_action(session, op: dict, apply: bool = False) -> dict:
+    """Create a NEW helpdesk action (name + resulting status only — its
+    availability and user-selectable sections are then set through the
+    existing set_action_availability / set_user_selectable ops, so the whole
+    build composes from already-audited operations).
+    op = { name, resultingStatus, buttonGroup, mobileAvailable }"""
+    _require_enabled()
+    name = op["name"]
+
+    session.goto_admin("helpdesk_admin.aspx")
+    session.click_tab(("Actions",))
+    session.click_tab(("Full list",))
+    session.page.wait_for_timeout(1500)
+
+    audit = {
+        "op": "create_action", "object": name,
+        "params": {k: op.get(k) for k in ("name", "resultingStatus", "buttonGroup", "mobileAvailable")},
+        "revert": {"op": "delete_action", "action_name": name,
+                   "note": "delete_action needs the GUID — harvest it from the grid after creation"},
+    }
+    if _grid_has_name(session.page, name):
+        audit["status"] = "FAILED"
+        audit["reason"] = f"an action named {name!r} already exists"
+        return audit
+    if not apply:
+        audit["status"] = "DRY-RUN"
+        return audit
+
+    clicked = _click_add(session.page)
+    if not clicked:
+        audit["status"] = "FAILED"
+        audit["reason"] = f"no add-record control found (tried {_ADD_LABELS}); page structure unknown — not guessing"
+        return audit
+    session.page.wait_for_timeout(1500)
+
+    filled = _set_input_by_label(session.page, r"^action\\b|^name\\b|^title\\b", name)
+    if not filled:
+        audit["status"] = "FAILED"
+        audit["reason"] = "could not find the name field on the create form"
+        session.cancel_form()
+        return audit
+    if op.get("resultingStatus"):
+        set_ok = _select_by_label(session.page, r"resulting.*status|status.*result", op["resultingStatus"])
+        audit["resultingStatusSet"] = bool(set_ok)
+    if op.get("mobileAvailable"):
+        _tick_by_label(session.page, r"mobile", True)
+
+    saved = _press_save(session.page)
+    if not saved:
+        audit["status"] = "FAILED"
+        audit["reason"] = "no SAVE control found; nothing was saved"
+        session.cancel_form()
+        return audit
+
+    session.click_tab(("Actions",))
+    session.click_tab(("Full list",))
+    session.page.wait_for_timeout(1500)
+    ok = _grid_has_name(session.page, name)
+    audit["status"] = "APPLIED" if ok else "UNVERIFIED"
+    if not ok:
+        raise WriteFailed(f"create_action {name!r}: saved but the action is not in the Full list")
+    return audit
+
+
 OPERATIONS = {
     "set_action_availability": set_action_availability,
     "set_user_selectable": set_user_selectable,
     "delete_action": delete_action,
     "rename_status": rename_status,
+    "create_status": create_status,
+    "create_action": create_action,
 }
 
 

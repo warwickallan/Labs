@@ -47,11 +47,24 @@
   function fork(vanilla) {
     state.desired = editableSlice(vanilla);
     state.baseFingerprints = vanilla.meta.sourceFingerprints;
+    /* content fingerprint of the base AT FORK TIME — after a build lands,
+       the current configuration moves on and the fork goes STALE; the view
+       uses this to say so instead of showing reversed deviations. */
+    state.baseContentFp = S.fingerprint(vanilla.helpdesk);
     state.undoStack = [];
     state.redoStack = [];
     state.dirty = false;
     autosave();
     return state.desired;
+  }
+
+  /* TRUE when the base this fork was taken from no longer matches the base
+     being compared against (e.g. a work order was built in between). null =
+     unknown (fork predates staleness tracking). */
+  function staleAgainst(base) {
+    if (!state.desired || !base || !base.helpdesk) return false;
+    if (!state.baseContentFp) return null;
+    return S.fingerprint(base.helpdesk) !== state.baseContentFp;
   }
 
   function hasFork() { return !!state.desired; }
@@ -311,6 +324,7 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           formatVersion: FORMAT_VERSION,
           basedOnVanilla: state.baseFingerprints,
+          baseContentFp: state.baseContentFp || null,
           helpdesk: state.desired.helpdesk
         }));
       }
@@ -326,6 +340,7 @@
       state.desired = editableSlice(vanilla);
       state.desired.helpdesk = data.helpdesk;
       state.baseFingerprints = data.basedOnVanilla;
+      state.baseContentFp = data.baseContentFp || null;
       state.undoStack = [];
       state.redoStack = [];
       state.dirty = false;
@@ -335,6 +350,7 @@
 
   window.StudioModel = {
     fork: fork,
+    staleAgainst: staleAgainst,
     hasFork: hasFork,
     desired: desired,
     undo: undo,

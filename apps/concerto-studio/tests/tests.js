@@ -682,7 +682,7 @@
     });
   });
 
-  test('Design nests Edit / Compare / Findings / Build (Build is not a separate destination)', function () {
+  test('Design LEADS with Current and nests Proposed / New helpdesk / Compare / Findings / Build', function () {
     return loadedPromise.then(function (res) {
       var sb = document.getElementById('sandbox');
       while (sb.firstChild) sb.removeChild(sb.firstChild);
@@ -691,9 +691,11 @@
       M.discard(); M.fork(res.model);
       window.StudioDesign.render(sb, res.model);
       var tabLabels = Array.prototype.map.call(sb.querySelectorAll('.toolstrip .seg button'), function (b) { return b.textContent; });
-      assert(tabLabels.indexOf('Edit') !== -1 && tabLabels.indexOf('Compare') !== -1 &&
-        tabLabels.indexOf('Findings') !== -1 && tabLabels.indexOf('Build') !== -1,
-        'Design tabs = Edit/Compare/Findings/Build, got ' + tabLabels.join(','));
+      assert(tabLabels[0] === 'Current', 'Current is the FIRST tab (the page leads with ground truth), got ' + tabLabels.join(','));
+      assert(tabLabels.some(function (t) { return /^Proposed/.test(t); }) && tabLabels.indexOf('Compare') !== -1 &&
+        tabLabels.indexOf('Findings') !== -1 && tabLabels.indexOf('Build') !== -1 &&
+        tabLabels.indexOf('New helpdesk') !== -1,
+        'Design nests Proposed/New helpdesk/Compare/Findings/Build, got ' + tabLabels.join(','));
       M.discard();
     });
   });
@@ -2004,6 +2006,92 @@
         'exactly the evidence-driven set is in the document (' + want + ')');
       assert(/Status names shown are this instance/.test(doc), 'the document cites the instance-bound names');
     });
+  });
+
+  /* ---- new-helpdesk builder --------------------------------------------- */
+
+  test('hdbuilder: the minimal seed passes every workflow-logic check', function () {
+    var B = window.StudioHdBuilder;
+    var v = B.validate(B.seedMinimal('Test HD'));
+    assert(v.ok, 'seed must be valid, got: ' + JSON.stringify(v.issues));
+  });
+
+  test('hdbuilder: the checks catch the REAL defect classes found on NPL', function () {
+    var B = window.StudioHdBuilder;
+    /* hold without release — the RH08/RH09 lesson */
+    var s = B.seedMinimal('X');
+    s.actions = s.actions.filter(function (a) { return a.code !== 'NH05'; });
+    var v = B.validate(s);
+    assert(v.issues.some(function (i) { return i.severity === 'BLOCKER' && /never taken OFF/.test(i.issue); }),
+      'hold without release is a blocker');
+    /* unallocated user action — the PH04/PH05 lesson */
+    var s2 = B.seedMinimal('X');
+    s2.actions.push({ code: 'NH99', name: 'Orphan', types: ['Reactive'], availableIn: [] });
+    v = B.validate(s2);
+    assert(v.issues.some(function (i) { return /unreachable/.test(i.issue); }), 'unallocated action is a blocker');
+    /* duplicate code — the duplicate-RH02 lesson */
+    var s3 = B.seedMinimal('X');
+    s3.actions.push({ code: 'NH02', name: 'Dup', types: ['Reactive'], availableIn: ['With Helpdesk'] });
+    v = B.validate(s3);
+    assert(v.issues.some(function (i) { return /Duplicate action code/.test(i.issue); }), 'duplicate code is a blocker');
+    /* no default status */
+    var s4 = B.seedMinimal('X');
+    s4.statuses.forEach(function (st) { st.isDefaultFor = []; });
+    v = B.validate(s4);
+    assert(v.issues.some(function (i) { return /no DEFAULT status/.test(i.issue); }), 'missing default is a blocker');
+    /* dead end: reachable status with no exit */
+    var s5 = B.seedMinimal('X');
+    s5.actions = s5.actions.filter(function (a) { return a.code !== 'NH07'; });
+    s5.statuses.forEach(function (st) { if (st.name === 'Closed') st.terminal = false; });
+    v = B.validate(s5);
+    assert(v.issues.some(function (i) { return /dead end/.test(i.issue); }), 'work-complete with no exit is a dead end blocker');
+  });
+
+  test('hdbuilder: the draft previews through the same model pipeline as real instances', function () {
+    var B = window.StudioHdBuilder;
+    var m = window.StudioSchema.completeModel(B.toModel(B.seedMinimal('Test HD')));
+    assert(m.helpdesk.statuses.length === 7 && m.helpdesk.actions.length === 9, 'model carries the draft');
+    var out = window.StudioLifeFlow.render(m, 'Reactive');
+    assert(out && out.svg && out.svg.indexOf('svg') !== -1, 'life-of-a-job draws the draft');
+    assert(out.svg.indexOf('With Helpdesk') !== -1, 'draft statuses appear in the preview');
+  });
+
+  test('hdbuilder: the build plan is dependency-ordered and honest about executability', function () {
+    var B = window.StudioHdBuilder;
+    var plan = B.buildPlan(B.seedMinimal('Test HD'));
+    assert(plan.valid, 'plan from a valid draft is valid');
+    var byN = {}; plan.steps.forEach(function (s) { byN[s.n] = s; });
+    plan.steps.forEach(function (s) {
+      s.dependsOn.forEach(function (dep) {
+        assert(dep < s.n, 'step #' + s.n + ' depends on #' + dep + ' which must come first');
+        if (s.op === 'create_action') assert(byN[dep].op === 'create_status', 'action creation depends on status creation');
+        else assert(byN[dep].op === 'create_action', 'wiring depends on its action creation');
+      });
+    });
+    var creates = plan.steps.filter(function (s) { return s.op === 'create_status' || s.op === 'create_action'; });
+    assert(creates.every(function (s) { return s.executable; }), 'create ops are executable (writer 0.3)');
+    var wiring = plan.steps.filter(function (s) { return s.op === 'set_action_availability'; });
+    assert(wiring.length && wiring.every(function (s) { return s.executable && s.dependsOn.length; }),
+      'availability wiring is executable and depends on its action');
+    assert(plan.steps.some(function (s) { return !s.executable; }), 'job-type configuration is honestly STAGED');
+    /* an invalid draft refuses to pretend */
+    var bad = B.seedMinimal('X');
+    bad.actions = bad.actions.filter(function (a) { return a.code !== 'NH05'; });
+    assert(!B.buildPlan(bad).valid, 'a draft failing the checks yields an invalid plan');
+  });
+
+  test('design fork: staleness is detected when the base moves on (post-build)', function () {
+    var B = window.StudioHdBuilder;
+    var M = window.StudioModel;
+    var base = window.StudioSchema.completeModel(B.toModel(B.seedMinimal('Stale HD')));
+    base.meta = base.meta || {}; base.meta.sourceFingerprints = { t: 'x' };
+    M.discard();
+    M.fork(base);
+    assert(M.staleAgainst(base) === false, 'fresh fork is not stale');
+    /* the instance moves on (a build lands) */
+    base.helpdesk.statuses.push({ name: 'Brand New', types: ['Reactive'], isDefaultFor: [], ordering: {}, displayOrder: 99 });
+    assert(M.staleAgainst(base) === true, 'a changed base makes the fork stale');
+    M.discard();
   });
 
   /* ---- runner ---------------------------------------------------------- */

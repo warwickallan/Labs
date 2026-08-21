@@ -2,23 +2,30 @@
  *
  *   PROJECT CURRENT → DESIGN → PROJECT DESIRED
  *
+ * The page LEADS with CURRENT — the verified configuration as it stands —
+ * because that is the ground truth every proposal is measured against.
  * A design forks the project's CURRENT configuration, because a customer's
  * desired state is "what we change from where they are now" — not "what we
  * change from the standard product". Vanilla remains the comparison
  * baseline (Compare tab) and is never the parent of a customer design.
  * With no project open, the base IS Vanilla and the flow is unchanged.
  *
- *   CURRENT STATE → DESIRED STATE → DIFF → FINDINGS → BUILD PLAN →
+ *   CURRENT STATE → PROPOSED STATE → DIFF → FINDINGS → BUILD PLAN →
  *   PREVIEW → EXECUTE → VERIFY
  *
+ * STALENESS: a fork pins a content fingerprint of the base it was taken
+ * from. When a work order is built the current configuration moves on, and
+ * an old fork would show REVERSED deviations (built changes as "proposed").
+ * The view detects that and says so, instead of showing nonsense.
+ *
  * Build is a function of Design (the action that applies the design), not a
- * separate destination. The Deviation Schedule is computed live against the
- * base the design was forked from.
+ * separate destination. New helpdesk (the from-scratch builder) lives here
+ * too — see js/views/hdbuilder.js.
  */
 (function () {
   'use strict';
 
-  var panelState = { tab: 'edit', view: 'diagram', showSchedule: false, restoredChecked: false };
+  var panelState = { tab: 'current', view: 'diagram', showSchedule: false, restoredChecked: false };
 
   function promptNewAction(M, onDone) {
     var code = window.prompt('Action code (e.g. RH12):');
@@ -50,35 +57,10 @@
       if (M.restore(base)) { rerender(); return; }
     }
 
-    if (!M.hasFork()) {
-      container.appendChild(el('div', { class: 'page' }, [
-        el('div', { class: 'stub' }, [
-          el('h3', { text: project ? 'Design ' + project.name : 'Design against Vanilla' }),
-          el('p', { text: 'A design forks ' + baseName + ' into an editable desired state. ' +
-            (project ? 'It starts from where this customer actually is, not from the standard product — Vanilla stays available in Compare as the reference. ' : '') +
-            'The source is never modified: every change becomes an explicit deviation, computed live against the base it was forked from. Work the flow: Edit → Compare → Findings → Build.' }),
-          el('p', {}, [
-            el('button', { class: 'btn', style: 'font-weight:600', text: 'Fork ' + (project ? 'current configuration' : 'Vanilla') + ' → start designing', onclick: function () { M.fork(base); rerender(); } }),
-            document.createTextNode('  '),
-            el('button', { class: 'btn', text: 'Import CUSTOMER-DESIRED-STATE.json…', onclick: function () { document.getElementById('designImportFile').click(); } })
-          ]),
-          el('input', {
-            type: 'file', id: 'designImportFile', accept: '.json,application/json', hidden: 'hidden',
-            onchange: function (ev) {
-              var f = ev.target.files[0]; if (!f) return;
-              f.text().then(function (text) {
-                try { var w = M.importJson(text, base); if (w) window.alert(w); rerender(); }
-                catch (e) { window.alert('Import failed: ' + e.message); }
-              });
-            }
-          })
-        ])
-      ]));
-      return;
-    }
-
-    var desired = M.desired();
-    var diff = window.StudioDiff.compare(base, desired);
+    var hasFork = M.hasFork();
+    var desired = hasFork ? M.desired() : null;
+    var diff = hasFork ? window.StudioDiff.compare(base, desired) : null;
+    var stale = hasFork ? M.staleAgainst(base) : false;
     function onChange() { rerender(); }
 
     var page = el('div', { class: 'page wide' });
@@ -88,82 +70,162 @@
       return el('button', { class: panelState.tab === id ? 'on' : '', text: label, onclick: function () { panelState.tab = id; rerender(); } });
     }
 
+    var proposedLabel = hasFork
+      ? 'Proposed' + (diff && !diff.isEmpty ? ' (' + (diff.summary.added + diff.summary.removed + diff.summary.modified) + ')' : '')
+      : 'Proposed';
     page.appendChild(el('div', { class: 'toolstrip' }, [
-      el('span', { class: 'seg' }, [tabBtn('edit', 'Edit'), tabBtn('srd', 'SRD'), tabBtn('compare', 'Compare'), tabBtn('findings', 'Findings'), tabBtn('build', 'Build')]),
+      el('span', { class: 'seg' }, [
+        tabBtn('current', 'Current'),
+        tabBtn('edit', proposedLabel),
+        tabBtn('builder', 'New helpdesk'),
+        tabBtn('srd', 'SRD'),
+        tabBtn('compare', 'Compare'),
+        tabBtn('findings', 'Findings'),
+        tabBtn('build', 'Build')
+      ]),
       el('span', {
         class: 'src-chip',
-        html: diff.isEmpty ? 'No deviations from ' + (project ? 'current' : 'Vanilla') + ' yet'
+        html: !hasFork ? 'Showing: <b>current configuration</b> — no proposed design yet'
+          : stale ? '⚠ proposed design is <b>STALE</b> (forked before the last build)'
+          : diff.isEmpty ? 'No deviations from ' + (project ? 'current' : 'Vanilla') + ' yet'
           : '<b>' + diff.summary.added + '</b> added · <b>' + diff.summary.removed + '</b> removed · <b>' + diff.summary.modified + '</b> modified'
       }),
       el('span', { style: 'flex:1' }),
-      el('button', {
+      hasFork ? el('button', {
         class: 'btn', text: 'Export design JSON',
         onclick: function () {
           var blob = new Blob([M.exportJson()], { type: 'application/json' });
           var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
           a.download = 'CUSTOMER-DESIRED-STATE.json'; a.click(); URL.revokeObjectURL(a.href);
         }
-      }),
-      el('button', {
+      }) : null,
+      hasFork ? el('button', {
         class: 'btn', text: 'Discard design',
         onclick: function () {
-          if (window.confirm('Discard this design entirely? The Vanilla baseline is unaffected; this removes the fork and its autosave.')) { M.discard(); rerender(); }
+          if (window.confirm('Discard this design entirely? The base configuration is unaffected; this removes the fork and its autosave.')) { M.discard(); rerender(); }
         }
-      })
-    ]));
+      }) : null
+    ].filter(Boolean)));
 
     var body = el('div', { style: 'flex:1;display:flex;flex-direction:column;min-height:0;overflow:auto' });
     page.appendChild(body);
 
+    /* ---- Current tab: the verified configuration, read-only -------------- */
+    if (panelState.tab === 'current') {
+      var prov = project
+        ? 'CURRENT — ' + project.name + (project.lastCrawlAt ? ', last verified ' + project.lastCrawlAt : '') +
+          ((project.changeLog || []).length ? ' · ' + project.changeLog.length + ' recorded change(s)' : '')
+        : 'CURRENT — Vanilla baseline (immutable reference)';
+      body.appendChild(el('div', { class: 'toolstrip' }, [
+        el('span', { class: 'seg' }, [
+          el('button', { class: panelState.view === 'diagram' ? 'on' : '', text: 'Diagram', onclick: function () { panelState.view = 'diagram'; rerender(); } }),
+          el('button', { class: panelState.view === 'grid' ? 'on' : '', text: 'Grid', onclick: function () { panelState.view = 'grid'; rerender(); } })
+        ]),
+        el('span', { class: 'src-chip', text: prov }),
+        el('span', { style: 'flex:1' }),
+        el('span', { class: 'src-chip', text: 'Read-only — propose changes in the Proposed tab' })
+      ]));
+      var curHost = el('div', { style: 'flex:1;display:flex;flex-direction:column;min-height:0' });
+      body.appendChild(curHost);
+      if (panelState.view === 'grid') window.StudioGrid.render(curHost, base, { editable: false });
+      else window.StudioDiagram.render(curHost, base, { editable: false });
+      return;
+    }
+
+    /* ---- New helpdesk (from-scratch builder) ------------------------------ */
+    if (panelState.tab === 'builder') {
+      if (window.StudioHdBuilderView) {
+        window.StudioHdBuilderView.render(body, { vanilla: vanilla, base: base, project: project });
+      } else {
+        body.appendChild(el('div', { class: 'stub' }, [el('p', { text: 'Builder module not loaded.' })]));
+      }
+      return;
+    }
+
     if (panelState.tab === 'srd') { window.StudioSRDView.render(body, { vanilla: vanilla, base: base, project: project }); return; }
     if (panelState.tab === 'compare') { window.StudioCompare.render(body, vanilla, { base: base, project: project }); return; }
     if (panelState.tab === 'findings') { window.StudioFindings.render(body, base); return; }
+
+    /* ---- fork-dependent tabs: offer the fork when none exists ------------- */
+    if (!hasFork) {
+      body.appendChild(el('div', { class: 'stub' }, [
+        el('h3', { text: project ? 'Design ' + project.name : 'Design against Vanilla' }),
+        el('p', { text: 'A design forks ' + baseName + ' into an editable PROPOSED state. ' +
+          (project ? 'It starts from where this customer actually is, not from the standard product — Vanilla stays available in Compare as the reference. ' : '') +
+          'The source is never modified: every change becomes an explicit deviation, computed live against the base it was forked from.' }),
+        el('p', {}, [
+          el('button', { class: 'btn', style: 'font-weight:600', text: 'Fork ' + (project ? 'current configuration' : 'Vanilla') + ' → start designing', onclick: function () { M.fork(base); panelState.tab = 'edit'; rerender(); } }),
+          document.createTextNode('  '),
+          el('button', { class: 'btn', text: 'Import CUSTOMER-DESIRED-STATE.json…', onclick: function () { document.getElementById('designImportFile').click(); } })
+        ]),
+        el('input', {
+          type: 'file', id: 'designImportFile', accept: '.json,application/json', hidden: 'hidden',
+          onchange: function (ev) {
+            var f = ev.target.files[0]; if (!f) return;
+            f.text().then(function (text) {
+              try { var w = M.importJson(text, base); if (w) window.alert(w); rerender(); }
+              catch (e) { window.alert('Import failed: ' + e.message); }
+            });
+          }
+        })
+      ]));
+      return;
+    }
+
+    /* ---- stale-fork banner ------------------------------------------------ */
+    if (stale) {
+      body.appendChild(el('div', {
+        style: 'padding:12px 22px;background:#fdf3e2;border-bottom:1px solid #e8c37a;display:flex;gap:14px;align-items:center'
+      }, [
+        el('span', { html: '<b>⚠ This proposed design is stale.</b> It was forked before the current ' +
+          'configuration last changed (e.g. a work order was built), so its deviations no longer mean ' +
+          'what they say — built changes can appear as still-proposed, or reversed.' }),
+        el('span', { style: 'flex:1' }),
+        el('button', {
+          class: 'btn', style: 'font-weight:600',
+          text: 'Re-fork from current',
+          onclick: function () {
+            if (window.confirm('Discard the stale design and fork the CURRENT configuration afresh? Unbuilt proposals in the stale fork will be lost (export the design JSON first if you want to keep them).')) {
+              M.discard(); M.fork(base); rerender();
+            }
+          }
+        })
+      ]));
+    }
+
     if (panelState.tab === 'build') {
-      /* BUILD = a WORK ORDER for Claude: the grouped deviations become
-         numbered steps Claude executes against the instance (or stages,
-         when the platform blocks saving), each step tracked to done. */
+      var buildBox = el('div', {});
+      var engineFold = el('div', { style: 'flex:1;overflow:auto' });
       var grouped = (window.StudioDiff.groupDeviations || window.StudioDiff.deviationSchedule)(diff);
-      var proj = window.StudioProject && window.StudioProject.current();
-      body.appendChild(el('div', { class: 'tile', style: 'margin-bottom:12px' }, [
-        el('h3', { text: 'Work order' }),
-        el('p', { class: 'muted', style: 'margin-top:0', text: grouped.length
-          ? grouped.length + ' change' + (grouped.length > 1 ? 's' : '') + ' between CURRENT and this design. Create the work order and tell Claude to execute it.'
-          : 'No changes \u2014 the design matches the current instance.' }),
+      var proj = project;
+      engineFold.appendChild(el('div', { style: 'padding:14px 22px' }, [
         grouped.length && proj ? el('button', { class: 'btn', text: 'CREATE WORK ORDER', onclick: function () {
-          proj.workOrders = proj.workOrders || [];
-          var wo = { id: 'WO-' + ('00' + (proj.workOrders.length + 1)).slice(-3), at: new Date().toISOString(),
+          var wo = { id: 'WO-' + String((proj.workOrders || []).length + 1).padStart(3, '0'), createdAt: new Date().toISOString(),
             status: 'OPEN', steps: grouped.map(function (g, i) { return { n: i + 1, kind: g.kind, object: g.object, detail: g.detail, status: 'PENDING' }; }) };
+          proj.workOrders = proj.workOrders || [];
           proj.workOrders.push(wo);
-          window.StudioProject.save(proj.key, { workOrders: proj.workOrders });
-          if (window.StudioProject.persist) window.StudioProject.persist(proj.key);
+          if (window.StudioProjects && window.StudioProjects.save) window.StudioProjects.save(proj);
           rerender();
         } }) : null,
         proj && (proj.workOrders || []).length ? el('div', {}, proj.workOrders.slice().reverse().map(function (wo) {
-          return el('details', { style: 'margin:8px 0', open: wo.status === 'OPEN' ? 'open' : null }, [
-            el('summary', {}, [el('b', { text: wo.id + ' \u00b7 ' + wo.status }), el('span', { class: 'muted', text: ' \u00b7 ' + wo.at.slice(0, 16).replace('T', ' ') + ' \u00b7 ' + wo.steps.length + ' steps' })]),
+          return el('div', { style: 'margin:10px 0' }, [
+            el('h4', { text: wo.id + ' · ' + wo.status + ' · ' + wo.createdAt.slice(0, 16).replace('T', ' ') }),
             el('table', { class: 'list' }, [el('tbody', {}, wo.steps.map(function (st) {
               return el('tr', {}, [
-                el('td', { text: String(st.n) }),
-                el('td', {}, [el('span', { class: 'conf-chip', text: st.kind })]),
-                el('td', { text: st.detail, style: 'font-size:12px' }),
-                el('td', {}, [el('span', { class: 'conf-chip' + (st.status === 'DONE' ? ' observed' : ''), text: st.status })])
+                el('td', { text: '#' + st.n }), el('td', { text: st.kind }),
+                el('td', { text: st.object }), el('td', { text: st.detail }), el('td', { text: st.status })
               ]);
             }))])
           ]);
         })) : null
-      ]));
-      var engineFold = el('details', { class: 'tile cfg-sec', style: 'margin-bottom:12px' });
-      engineFold.appendChild(el('summary', { style: 'cursor:pointer;list-style:none' }, [
-        el('b', { text: 'Build engine (validate / compile the staged plan)' })
-      ]));
-      var buildBox = el('div', { style: 'padding-top:8px' });
+      ].filter(Boolean)));
       engineFold.appendChild(buildBox);
       body.appendChild(engineFold);
       window.StudioBuild.render(buildBox, base);
       return;
     }
 
-    /* ---- Edit tab ---- */
+    /* ---- Proposed (edit) tab ---------------------------------------------- */
     var schedule = (window.StudioDiff.groupDeviations || window.StudioDiff.deviationSchedule)(diff);
     body.appendChild(el('div', { class: 'toolstrip' }, [
       el('span', { class: 'seg' }, [
