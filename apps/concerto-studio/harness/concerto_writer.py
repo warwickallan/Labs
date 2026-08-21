@@ -749,6 +749,93 @@ def create_action(session, op: dict, apply: bool = False) -> dict:
     return audit
 
 
+def _read_select_by_label(page, label_re: str):
+    """Current selected-option text of the select whose LABEL matches."""
+    return page.evaluate(
+        """(re) => {
+            const rx = new RegExp(re, 'i');
+            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
+            for (const sel of document.querySelectorAll('select')) {
+                let label = '';
+                if (sel.id) { const l = document.querySelector('label[for="' + sel.id + '"]'); if (l) label = norm(l.innerText); }
+                if (!label) { const td = sel.closest('td,div'); if (td && td.previousElementSibling) label = norm(td.previousElementSibling.innerText); }
+                if (rx.test(label)) {
+                    const o = sel.options[sel.selectedIndex];
+                    return o ? norm(o.text) : null;
+                }
+            }
+            return null;
+        }""",
+        label_re,
+    )
+
+
+def set_response_category_priority(session, op: dict, apply: bool = False) -> dict:
+    """Point a response category at the RIGHT order priority (the NPL P1
+    Cleaning → Grounds anomaly class).
+    op = { category, from_priority, to_priority } — from_priority is the
+    expected current value; a mismatch aborts (the form is not in the state
+    the caller believes)."""
+    _require_enabled()
+    category = op["category"]
+    frm = op.get("from_priority")
+    to = op["to_priority"]
+
+    session.goto_admin("helpdesk_admin.aspx")
+    session.click_tab(("Response categories",))
+    session.page.wait_for_timeout(1500)
+    guids = session.harvest_grid_guids()
+    guid = guids.get(category)
+    audit = {
+        "op": "set_response_category_priority", "object": category,
+        "intended": {"from": frm, "to": to},
+    }
+    if not guid:
+        audit["status"] = "FAILED"
+        audit["reason"] = f"response category {category!r} not found in the grid; rows: {sorted(guids)[:20]}"
+        return audit
+
+    session.nav_form_view(guid, category)
+    session.page.wait_for_timeout(800)
+    label_re = r"order.*priority|priority.*order"
+    before = _read_select_by_label(session.page, label_re)
+    audit["before"] = before
+    audit["revert"] = {"op": "set_response_category_priority", "category": category,
+                       "from_priority": to, "to_priority": before}
+    if frm is not None and before != frm:
+        audit["status"] = "FAILED"
+        audit["reason"] = f"expected current priority {frm!r} but the form shows {before!r} — not changing a value the caller has not seen"
+        session.cancel_form()
+        return audit
+    if not apply:
+        audit["status"] = "DRY-RUN"
+        session.cancel_form()
+        return audit
+
+    if not _select_by_label(session.page, label_re, to):
+        audit["status"] = "FAILED"
+        audit["reason"] = f"could not select {to!r} on the order-priority select (option missing?)"
+        session.cancel_form()
+        return audit
+    if not _press_save(session.page):
+        audit["status"] = "FAILED"
+        audit["reason"] = "no SAVE control found; nothing was saved"
+        session.cancel_form()
+        return audit
+
+    session.click_tab(("Response categories",))
+    session.page.wait_for_timeout(1000)
+    session.nav_form_view(guid, category)
+    session.page.wait_for_timeout(800)
+    after = _read_select_by_label(session.page, label_re)
+    audit["after"] = after
+    audit["status"] = "APPLIED" if after == to else "UNVERIFIED"
+    session.cancel_form()
+    if after != to:
+        raise WriteFailed(f"{category}: priority change did not verify — form shows {after!r}")
+    return audit
+
+
 OPERATIONS = {
     "set_action_availability": set_action_availability,
     "set_user_selectable": set_user_selectable,
@@ -756,6 +843,7 @@ OPERATIONS = {
     "rename_status": rename_status,
     "create_status": create_status,
     "create_action": create_action,
+    "set_response_category_priority": set_response_category_priority,
 }
 
 

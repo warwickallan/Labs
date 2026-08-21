@@ -54,13 +54,19 @@ absolute. When an item is done, move it to the SESSION_LOG, don't just delete.
 - [ ] **NPL-F-008 (decision).** Auto-action **T07** routes jobs to
       **Business Case - R**, which is SUPPRESSED. Either unsuppress the status
       or rewire T07. Customer/consultant call.
-- [ ] **Response-category anomaly.** **P1 Cleaning** points at the **Grounds**
-      order priority. Fix via `set_status_field` writer op or by hand.
-- [ ] **NPL-D-001 (open).** Duplicate **RH02**: which GUID does the FixMY tag /
-      rules wiring fire? Rename or retire the other. Helpdesk-rules tab is
-      empty — check the tag/auto-action config or ask Concerto support.
-- [ ] **NPL-D-002 (open).** **RH03b Quote Ordered** — process-fired or
-      orphaned? Settle via Quote-processes config or a test quote.
+- [x] **Response-category anomaly — FIXED LIVE 2026-08-21.** P1 Cleaning now
+      points at the Cleaning order priority (writer 0.3
+      `set_response_category_priority`, dry-run then apply, verified;
+      changeLog IC-006 carries the revert).
+- [ ] **NPL-D-001 (DECISION-READY).** Re-crawl distinguished the twins:
+      Twin A (953bdd31…) unallocated but carries the default order project;
+      Twin B (3da71f2e…) live in 3 statuses + email, no project. FixMy fires
+      the separately-named FixMY action — neither twin. Customer call:
+      consolidate (set project on B, delete A — or reallocate A, delete B).
+- [ ] **NPL-D-002 (DECISION-READY).** RH03b is ORPHANED: hidden, unallocated,
+      all quote/trigger flags False, no routing, nothing references it
+      (all 45 forms scanned). Residual: Quote-processes family not yet
+      crawled. Deletion candidate — confirm with NPL.
 - [ ] **Tag hygiene proof.** Does tag **05. On hold** ever get REMOVED? Quick:
       read-only search of live jobs for tag 05 on jobs whose orders are NOT on
       hold. Longer: a ZZ-TEST hold/release experiment. Same question for
@@ -68,9 +74,10 @@ absolute. When an item is done, move it to the SESSION_LOG, don't just delete.
 - [ ] **Suppressed statuses — customer call.** Awaiting Order Approval - R and
       Quote Requested - R are suppressed with nothing routing to them —
       deletable candidates. Confirm with NPL then delete.
-- [ ] **Post-build re-crawl.** Model was synced from write-verification; an
-      independent fresh crawl proves it AND tests the crawler against the
-      renamed status + suppression capture.
+- [x] **Post-build re-crawl — DONE 2026-08-21** (snapshot d33a80c474da):
+      13 statuses + all 45 actions deterministic; 13/14 checks passed
+      (1 verifier parse artifact); suppression carry VERIFIED; T06 model
+      sync gap corrected (IC-005b-sync).
 
 ## KIRKLEES COUNCIL (parked — pick up when working this plan)
 
