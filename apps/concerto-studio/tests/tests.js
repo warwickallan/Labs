@@ -2047,6 +2047,30 @@
     assert(v.issues.some(function (i) { return /dead end/.test(i.issue); }), 'work-complete with no exit is a dead end blocker');
   });
 
+  test('hdbuilder: job types are RECORDS binding to a workflow — not a Reactive/Planned checkbox', function () {
+    var B = window.StudioHdBuilder;
+    var s = B.seedMinimal('X');
+    /* a second job type with its own name is legal (instances have many) */
+    s.jobTypes.push({ name: 'Cleaning request', workflow: 'Reactive', defaultAction: 'NH01',
+      defaultStatus: 'With Helpdesk', isDefaultType: false, showOnMobile: true, addButtonText: 'Raise job' });
+    assert(B.validate(s).ok, 'two job types sharing a workflow is valid: ' + JSON.stringify(B.validate(s).issues));
+    /* no entry action = nobody can raise the job */
+    var s2 = B.seedMinimal('X');
+    s2.jobTypes[0].defaultAction = null;
+    assert(B.validate(s2).issues.some(function (i) { return /no default \(entry\) action/.test(i.issue); }),
+      'a job type without an entry action is a blocker');
+    /* entry action must belong to the job type's workflow */
+    var s3 = B.seedMinimal('X');
+    s3.jobTypes[0].workflow = 'Planned';
+    assert(B.validate(s3).issues.some(function (i) { return /does not belong to the Planned workflow/.test(i.issue); }),
+      'workflow mismatch between job type and entry action is a blocker');
+    /* exactly one Default type */
+    var s4 = B.seedMinimal('X');
+    s4.jobTypes[0].isDefaultType = false;
+    assert(B.validate(s4).issues.some(function (i) { return /Default type/.test(i.issue); }),
+      'no default job type is a blocker');
+  });
+
   test('hdbuilder: the draft previews through the same model pipeline as real instances', function () {
     var B = window.StudioHdBuilder;
     var m = window.StudioSchema.completeModel(B.toModel(B.seedMinimal('Test HD')));
@@ -2065,15 +2089,21 @@
       s.dependsOn.forEach(function (dep) {
         assert(dep < s.n, 'step #' + s.n + ' depends on #' + dep + ' which must come first');
         if (s.op === 'create_action') assert(byN[dep].op === 'create_status', 'action creation depends on status creation');
+        else if (s.op === 'create_job_type') assert(/create_(action|status)/.test(byN[dep].op), 'job types build LAST, on top of their entry action and default status');
         else assert(byN[dep].op === 'create_action', 'wiring depends on its action creation');
       });
     });
+    var jts = plan.steps.filter(function (s) { return s.op === 'create_job_type'; });
+    assert(jts.length === 1 && !jts[0].executable && jts[0].dependsOn.length >= 2,
+      'the job-type record is planned (STAGED) and depends on its entry action + default status');
+    assert(jts[0].params.newPPM === false && jts[0].params.isDefaultType === true,
+      'job-type params carry the captured-form fields (New PPM, Default type)');
     var creates = plan.steps.filter(function (s) { return s.op === 'create_status' || s.op === 'create_action'; });
     assert(creates.every(function (s) { return s.executable; }), 'create ops are executable (writer 0.3)');
     var wiring = plan.steps.filter(function (s) { return s.op === 'set_action_availability'; });
     assert(wiring.length && wiring.every(function (s) { return s.executable && s.dependsOn.length; }),
       'availability wiring is executable and depends on its action');
-    assert(plan.steps.some(function (s) { return !s.executable; }), 'job-type configuration is honestly STAGED');
+    assert(plan.steps.some(function (s) { return !s.executable; }), 'job-type creation is honestly STAGED');
     /* an invalid draft refuses to pretend */
     var bad = B.seedMinimal('X');
     bad.actions = bad.actions.filter(function (a) { return a.code !== 'NH05'; });

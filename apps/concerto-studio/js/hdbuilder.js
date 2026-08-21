@@ -19,18 +19,38 @@
 (function () {
   'use strict';
 
-  var TYPES = ['Reactive', 'Planned'];
+  /* WORKFLOWS is the Reactive/Planned axis statuses and actions hang off.
+   * JOB TYPES are something else entirely — evidenced by the captured
+   * job-type forms (NPL 2026-08-21 crawl; Vanilla catalogues 57 fields):
+   * a job type is a RECORD with a free-text name (an instance can have any
+   * number — "Cleaning request", "Security incident"…), and it BINDS to a
+   * workflow through its entry action ("Default action when a user enters a
+   * helpdesk request"), its default status, and the "New PPM" flag. */
+  var WORKFLOWS = ['Reactive', 'Planned'];
+  var TYPES = WORKFLOWS; /* legacy alias used by status/action editors */
 
   /* ---- draft spec -------------------------------------------------------- */
 
   function blank(name) {
     return {
       name: name || 'New helpdesk',
-      jobTypes: [{ name: 'Reactive' }],
-      statuses: [],   /* {name, types[], isDefaultFor[], ordering, suppressed, terminal, mobileGate} */
+      jobTypes: [],   /* {name, workflow, defaultAction(code), fixMyAction(code),
+                         defaultStatus, isDefaultType, showOnMobile,
+                         externalHelpdesk, addButtonText, suppress,
+                         defaultForRemedials} */
+      statuses: [],   /* {name, types[], isDefaultFor[], ordering, suppressed, terminal} */
       actions: []     /* {code, name, types[], availableIn[], resultingStatus, userSelectable[],
-                         mobileAvailable, buttonGroup} */
+                         mobileAvailable, buttonGroup, machineFired} */
     };
+  }
+
+  function workflowsOf(spec) {
+    var out = [];
+    (spec.jobTypes || []).forEach(function (jt) {
+      var w = jt.workflow || 'Reactive';
+      if (out.indexOf(w) === -1) out.push(w);
+    });
+    return out;
   }
 
   /* Seed with the minimal viable journey Vanilla discovery proved: log →
@@ -38,6 +58,13 @@
    * a starting point to rename, not gospel. */
   function seedMinimal(name) {
     var s = blank(name);
+    s.jobTypes = [{
+      name: 'Reactive', workflow: 'Reactive',
+      defaultAction: 'NH01', fixMyAction: null,
+      defaultStatus: 'With Helpdesk',
+      isDefaultType: true, showOnMobile: true, externalHelpdesk: false,
+      addButtonText: 'Raise job', suppress: false, defaultForRemedials: false
+    }];
     s.statuses = [
       { name: 'With Helpdesk', types: ['Reactive'], isDefaultFor: ['Reactive'], ordering: 10 },
       { name: 'Assigned', types: ['Reactive'], isDefaultFor: [], ordering: 20 },
@@ -67,10 +94,41 @@
     var issues = [];
     function bad(sev, what) { issues.push({ severity: sev, issue: what }); }
 
-    var typeNames = (spec.jobTypes || []).map(function (t) { return t.name; });
-    if (!typeNames.length) bad('BLOCKER', 'No job types — a helpdesk needs at least one (Reactive or Planned).');
-    typeNames.forEach(function (t) {
-      if (TYPES.indexOf(t) === -1) bad('BLOCKER', 'Job type ' + t + ' is not a Concerto helpdesk type (Reactive/Planned).');
+    var typeNames = workflowsOf(spec);
+    var stByName0 = {};
+    (spec.statuses || []).forEach(function (st) { stByName0[st.name] = st; });
+    var actByCode = {};
+    (spec.actions || []).forEach(function (a) { actByCode[a.code] = a; });
+
+    /* job types: records, not a Reactive/Planned checkbox (the captured
+       job-type form is the evidence for every one of these checks) */
+    if (!(spec.jobTypes || []).length) bad('BLOCKER', 'No job types — a helpdesk needs at least one job-type record for anyone to raise a job.');
+    var jtNames = {};
+    var defaults = (spec.jobTypes || []).filter(function (j) { return j.isDefaultType && !j.suppress; });
+    if ((spec.jobTypes || []).length && !defaults.length) bad('BLOCKER', 'No job type is marked "Default type" — Concerto expects one.');
+    if (defaults.length > 1) bad('BLOCKER', 'More than one job type is marked "Default type" (' + defaults.map(function (j) { return j.name; }).join(', ') + ').');
+    (spec.jobTypes || []).forEach(function (jt) {
+      if (!jt.name || !jt.name.trim()) bad('BLOCKER', 'A job type has no name.');
+      if (jtNames[jt.name]) bad('BLOCKER', 'Duplicate job type name "' + jt.name + '".');
+      jtNames[jt.name] = true;
+      if (WORKFLOWS.indexOf(jt.workflow || 'Reactive') === -1) bad('BLOCKER', 'Job type "' + jt.name + '": workflow must be Reactive or Planned.');
+      if (!jt.defaultAction) {
+        bad('BLOCKER', 'Job type "' + jt.name + '": no default (entry) action — nobody could ever raise this job.');
+      } else if (!actByCode[jt.defaultAction]) {
+        bad('BLOCKER', 'Job type "' + jt.name + '": entry action ' + jt.defaultAction + ' does not exist in the draft.');
+      } else {
+        var ea = actByCode[jt.defaultAction];
+        if ((ea.types || []).indexOf(jt.workflow || 'Reactive') === -1) {
+          bad('BLOCKER', 'Job type "' + jt.name + '": entry action ' + jt.defaultAction + ' does not belong to the ' + (jt.workflow || 'Reactive') + ' workflow.');
+        }
+        if (!ea.resultingStatus) bad('WARN', 'Job type "' + jt.name + '": entry action ' + jt.defaultAction + ' sets no status — new jobs would land nowhere visible.');
+      }
+      if (jt.fixMyAction && !actByCode[jt.fixMyAction]) {
+        bad('BLOCKER', 'Job type "' + jt.name + '": FixMy entry action ' + jt.fixMyAction + ' does not exist in the draft.');
+      }
+      if (jt.defaultStatus && !stByName0[jt.defaultStatus]) {
+        bad('BLOCKER', 'Job type "' + jt.name + '": default status "' + jt.defaultStatus + '" does not exist in the draft.');
+      }
     });
 
     var stByName = {};
@@ -196,17 +254,18 @@
         });
       });
     });
-    var types = (spec.jobTypes || []).map(function (t) {
+    var types = workflowsOf(spec).map(function (w) {
       return {
-        name: t.name,
-        statuses: statuses.filter(function (s) { return s.types.indexOf(t.name) !== -1; }).map(function (s) { return s.name; }),
-        actions: actions.filter(function (a) { return a.types.indexOf(t.name) !== -1; }).map(function (a) { return a.name; })
+        name: w,
+        statuses: statuses.filter(function (s) { return s.types.indexOf(w) !== -1; }).map(function (s) { return s.name; }),
+        actions: actions.filter(function (a) { return a.types.indexOf(w) !== -1; }).map(function (a) { return a.name; })
       };
     });
     return {
       helpdesk: {
         types: types, statuses: statuses, actions: actions,
         availability: availability, results: results,
+        jobTypes: (spec.jobTypes || []).map(function (jt) { return JSON.parse(JSON.stringify(jt)); }),
         operativeStatuses: [], tags: [], responseCategories: []
       },
       orders: {}, crossDomain: {}, meta: { source: 'HD-BUILDER', name: spec.name }
@@ -234,10 +293,6 @@
       return n;
     }
 
-    (spec.jobTypes || []).forEach(function (t) {
-      step('configure_job_type', t.name, { name: t.name },
-        []);
-    });
     var statusStep = {};
     (spec.statuses || []).slice().sort(function (a, b) { return (a.ordering || 0) - (b.ordering || 0); })
       .forEach(function (st) {
@@ -264,6 +319,28 @@
       if ((a.userSelectable || []).length) {
         step('set_user_selectable', full, { action: full, statuses: (a.userSelectable || []).slice() }, [createN]);
       }
+    });
+
+    /* job types LAST: a job-type record binds to its entry action and
+       default status, so those must exist first. The op stays STAGED until
+       the writer learns the 57-field job-type form. */
+    var actionStep = {};
+    steps.forEach(function (s) { if (s.op === 'create_action') actionStep[s.params.code] = s.n; });
+    (spec.jobTypes || []).forEach(function (jt) {
+      var deps = [];
+      if (jt.defaultAction && actionStep[jt.defaultAction]) deps.push(actionStep[jt.defaultAction]);
+      if (jt.fixMyAction && actionStep[jt.fixMyAction]) deps.push(actionStep[jt.fixMyAction]);
+      if (jt.defaultStatus && statusStep[jt.defaultStatus]) deps.push(statusStep[jt.defaultStatus]);
+      step('create_job_type', jt.name, {
+        name: jt.name, workflow: jt.workflow || 'Reactive',
+        newPPM: (jt.workflow || 'Reactive') === 'Planned',
+        defaultAction: jt.defaultAction || null, fixMyAction: jt.fixMyAction || null,
+        defaultStatus: jt.defaultStatus || null,
+        isDefaultType: !!jt.isDefaultType, showOnMobile: !!jt.showOnMobile,
+        externalHelpdesk: !!jt.externalHelpdesk, suppress: !!jt.suppress,
+        defaultForRemedials: !!jt.defaultForRemedials,
+        addButtonText: jt.addButtonText || 'Raise job'
+      }, deps.sort(function (a, b) { return a - b; }));
     });
 
     return {

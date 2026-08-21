@@ -103,9 +103,14 @@
 
     if (state.tab === 'preview') {
       var model = window.StudioSchema.completeModel(B.toModel(d));
-      (d.jobTypes || []).forEach(function (t) {
-        var out = window.StudioLifeFlow.render(model, t.name);
-        body.appendChild(el('h4', { text: t.name + ' — life of a job' }));
+      var workflows = [];
+      (d.jobTypes || []).forEach(function (j) {
+        var w = j.workflow || 'Reactive';
+        if (workflows.indexOf(w) === -1) workflows.push(w);
+      });
+      workflows.forEach(function (w) {
+        var out = window.StudioLifeFlow.render(model, w);
+        body.appendChild(el('h4', { text: w + ' workflow — life of a job' }));
         body.appendChild(el('div', { class: 'flow-embed', html: out && out.svg ? out.svg : '<p class="muted">Nothing to draw yet.</p>' }));
       });
       return;
@@ -118,22 +123,58 @@
 
     /* ---- Design tab ------------------------------------------------------- */
 
-    /* job types */
-    body.appendChild(el('h4', { text: 'Job types' }));
-    body.appendChild(el('div', {}, TYPES.map(function (t) {
-      var onIt = (d.jobTypes || []).some(function (j) { return j.name === t; });
-      return el('label', { style: 'margin-right:18px' }, [
-        el('input', { type: 'checkbox', checked: onIt ? 'checked' : null, onchange: function (ev) {
-          if (ev.target.checked) d.jobTypes.push({ name: t });
-          else d.jobTypes = d.jobTypes.filter(function (j) { return j.name !== t; });
-          touch();
-        } }),
-        document.createTextNode(' ' + t)
-      ]);
-    })));
+    /* job types — RECORDS, not a Reactive/Planned checkbox. A job type is
+       what a user picks to raise a job; it binds to a workflow via its
+       entry action, default status and the New PPM flag (evidence: the
+       captured job-type forms — Vanilla catalogues 57 fields on this form,
+       these are the ones that shape the workflow). */
+    var actionCodes = d.actions.map(function (a) { return a.code; });
+    function codeSel(current, allowNone, onSet) {
+      return el('select', { onchange: function (ev) { onSet(ev.target.value || null); touch(); } },
+        (allowNone ? [el('option', { value: '', text: '(none)', selected: !current ? 'selected' : null })] : [])
+          .concat(actionCodes.map(function (c) { return el('option', { value: c, text: c, selected: current === c ? 'selected' : null }); })));
+    }
+    body.appendChild(el('h4', { text: 'Job types (' + d.jobTypes.length + ')' }));
+    body.appendChild(el('table', { class: 'list' }, [
+      el('thead', {}, [el('tr', {}, ['Name', 'Workflow', 'Entry action', 'FixMy action', 'Default status', 'Default type', 'Mobile', 'External', 'Suppress', 'Add-button text', ''].map(function (h) { return el('th', { text: h }); }))]),
+      el('tbody', {}, d.jobTypes.map(function (jt, i) {
+        return el('tr', {}, [
+          el('td', {}, [el('input', { value: jt.name || '', onchange: function (ev) { jt.name = ev.target.value; touch(); } })]),
+          el('td', {}, [el('select', { onchange: function (ev) { jt.workflow = ev.target.value; touch(); } },
+            TYPES.map(function (w) { return el('option', { value: w, text: w, selected: (jt.workflow || 'Reactive') === w ? 'selected' : null }); }))]),
+          el('td', {}, [codeSel(jt.defaultAction, true, function (v) { jt.defaultAction = v; })]),
+          el('td', {}, [codeSel(jt.fixMyAction, true, function (v) { jt.fixMyAction = v; })]),
+          el('td', {}, [el('select', { onchange: function (ev) { jt.defaultStatus = ev.target.value || null; touch(); } },
+            [el('option', { value: '', text: '(none)', selected: !jt.defaultStatus ? 'selected' : null })]
+              .concat(d.statuses.map(function (s) { return el('option', { value: s.name, text: s.name, selected: jt.defaultStatus === s.name ? 'selected' : null }); })))]),
+          el('td', {}, [el('input', { type: 'checkbox', checked: jt.isDefaultType ? 'checked' : null, onchange: function (ev) {
+            if (ev.target.checked) d.jobTypes.forEach(function (o) { o.isDefaultType = false; });
+            jt.isDefaultType = ev.target.checked; touch();
+          } })]),
+          el('td', {}, [el('input', { type: 'checkbox', checked: jt.showOnMobile ? 'checked' : null, onchange: function (ev) { jt.showOnMobile = ev.target.checked; touch(); } })]),
+          el('td', {}, [el('input', { type: 'checkbox', checked: jt.externalHelpdesk ? 'checked' : null, onchange: function (ev) { jt.externalHelpdesk = ev.target.checked; touch(); } })]),
+          el('td', {}, [el('input', { type: 'checkbox', checked: jt.suppress ? 'checked' : null, onchange: function (ev) { jt.suppress = ev.target.checked; touch(); } })]),
+          el('td', {}, [el('input', { value: jt.addButtonText || '', style: 'width:110px', onchange: function (ev) { jt.addButtonText = ev.target.value; touch(); } })]),
+          el('td', {}, [el('button', { class: 'btn', text: '✕', onclick: function () { d.jobTypes.splice(i, 1); touch(); } })])
+        ]);
+      }))
+    ]));
+    body.appendChild(el('button', { class: 'btn', text: '+ Job type', onclick: function () {
+      var name = window.prompt('Job type name (what the user picks to raise a job — e.g. "Cleaning request"):');
+      if (!name || !name.trim()) return;
+      d.jobTypes.push({ name: name.trim(), workflow: 'Reactive', defaultAction: null, fixMyAction: null,
+        defaultStatus: null, isDefaultType: !d.jobTypes.length, showOnMobile: true,
+        externalHelpdesk: false, addButtonText: 'Raise job', suppress: false, defaultForRemedials: false });
+      touch();
+    } }));
 
     /* statuses */
-    var activeTypes = (d.jobTypes || []).map(function (j) { return j.name; });
+    var activeTypes = [];
+    (d.jobTypes || []).forEach(function (j) {
+      var w = j.workflow || 'Reactive';
+      if (activeTypes.indexOf(w) === -1) activeTypes.push(w);
+    });
+    if (!activeTypes.length) activeTypes = ['Reactive'];
     body.appendChild(el('h4', { text: 'Statuses (' + d.statuses.length + ')' }));
     body.appendChild(el('table', { class: 'list' }, [
       el('thead', {}, [el('tr', {}, ['Name', 'Types', 'Default for', 'Order', 'Terminal', 'Suppressed', ''].map(function (h) { return el('th', { text: h }); }))]),

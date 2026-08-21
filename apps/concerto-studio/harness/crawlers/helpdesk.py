@@ -122,18 +122,31 @@ def _open_actions(session, raw: dict, initial: bool = False) -> None:
     re-entry (after a form CANCEL) a visible grid means the list survived
     the round-trip — clicking again would only reset NPL to the Diagram
     sub-view and cost the Full-list dance every record."""
+    def warn(msg):
+        # once per crawl — the re-entry path runs per record and the same
+        # benign message repeated 90 times buries the real warnings
+        if msg not in raw["warnings"]:
+            raw["warnings"].append(msg)
     if not initial and _wait_for_grid(session, 3):
         return
+    if not initial:
+        # Re-entry only restores page state between GUID navigations, and
+        # nav_form_view works from ANY page state — a missing tab strip here
+        # is routine (a form has replaced the page), not a finding.
+        _click_tab_js(session, TAB_ACTIONS)
+        session.page.wait_for_timeout(800)
+        _click_tab_js(session, TAB_ACTIONS_FULL_LIST)
+        return
     if _click_tab_js(session, TAB_ACTIONS) is None:
-        raw["warnings"].append("actions: no 'Actions' tab matched by JS click")
+        warn("actions: no 'Actions' tab matched by JS click")
     session.page.wait_for_timeout(800)
     if _wait_for_grid(session, 6):
         return
     if _click_tab_js(session, TAB_ACTIONS_FULL_LIST) is None:
         # No sub-tab = a plain-grid instance that is just slow; keep waiting.
-        raw["warnings"].append("actions: no grid after 6s and no 'Full list' sub-tab")
+        warn("actions: no grid after 6s and no 'Full list' sub-tab")
     if not _wait_for_grid(session, 20):
-        raw["warnings"].append("actions: GUID grid never rendered — harvest will be empty")
+        warn("actions: GUID grid never rendered — harvest will be empty")
 
 SECTIONED_CHECKBOXES_JS = """() => {
     const out = [];

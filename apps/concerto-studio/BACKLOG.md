@@ -19,9 +19,17 @@ absolute. When an item is done, move it to the SESSION_LOG, don't just delete.
 - [ ] **Writer ops to add:**
       - `set_status_field` / `set_action_field` (e.g. fix the response-category
         → order-priority mapping; unsuppress a status).
-      - `create_action` / `create_status` — makes deletes *executable* reverts,
-        not just recorded recipes.
-      - (`set_user_selectable` DONE 2026-08-20 — used to finish T06.)
+      - `delete_status`, `configure_job_type` (builder staged steps).
+      - (`set_user_selectable` DONE 2026-08-20; `create_status` /
+        `create_action` DONE 2026-08-21 in writer 0.3 — dry-run verified
+        shapes, but NOT yet proven live: the first real create needs
+        Warwick's go on an instance, and may need the add-button locator
+        tuned to what the page actually offers.)
+- [ ] **New-helpdesk builder — first live build.** The Design → New helpdesk
+      tab designs a full helpdesk (workflow-logic checks live, life-of-a-job
+      preview, dependency-ordered build plan, work-order creation). Executable
+      steps run via writer create+wire ops; `configure_job_type` is STAGED.
+      Prove the pipeline end-to-end on a sandbox with Warwick watching.
 - [ ] **Suppression on re-crawl.** The harness crawler now captures
       "Suppress status from use"; `completeModel` derives `suppressed` from
       flags. VERIFY the crawl→ingest→model path actually carries it on the next
