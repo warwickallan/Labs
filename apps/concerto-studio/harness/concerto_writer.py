@@ -42,8 +42,21 @@ import sys
 import time
 from pathlib import Path
 
-WRITER_VERSION = "0.1"
+WRITER_VERSION = "0.2"
 _CONFIG = Path(__file__).resolve().parent / "harness.config.json"
+
+# The server hot-reloads THIS module on every /execute so an operation fix
+# never costs a restart (= a re-login). Extend the same courtesy to the
+# crawlers: reload() mutates the module objects in place, so the server's
+# existing references pick up capture fixes too. (server.py also reloads
+# them per crawl from 0.3 — this covers servers started before that.)
+try:
+    import importlib as _importlib
+    from crawlers import helpdesk as _helpdesk_crawler, orders as _orders_crawler
+    _importlib.reload(_helpdesk_crawler)
+    _importlib.reload(_orders_crawler)
+except Exception:  # crawler reload is a convenience, never a write blocker
+    pass
 
 
 class WriteRefused(RuntimeError):

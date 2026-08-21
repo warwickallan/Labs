@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import re
 
-CRAWLER_VERSION = "0.1"
+CRAWLER_VERSION = "0.2"
 
 # Tab labels as evidenced (E-002). If Concerto renames them, click_tab
 # raises StructureError — loud, not quiet.
@@ -30,6 +30,110 @@ TAB_STATUSES = ("Job statuses", "Statuses", "Job status")
 TAB_ACTIONS = ("Actions",)
 TAB_OPERATIVE = ("Operative statuses", "Operative status")
 TAB_JOB_TYPES = ("Helpdesk job types", "Job types")
+# Some instances (NPL) open the Actions tab in a Diagram sub-view; the GUID
+# grid the harvest needs lives behind a 'Full list' sub-tab (nbsp label —
+# click_tab's key folding handles it).
+TAB_ACTIONS_FULL_LIST = ("Full list",)
+
+GRID_GUID_COUNT_JS = """() =>
+    Array.from(document.querySelectorAll('input[id^="pbl_form_"]'))
+        .filter(cb => /^pbl_form_[0-9a-f-]{36}_0$/i.test(cb.id)).length"""
+
+
+CLICK_TAB_JS = """(labels) => {
+    const norm = t => (t || '').replace(/\\u00a0/g, ' ').trim().toLowerCase();
+    const want = labels.map(norm);
+    const sel = '.nav-link, .nav-tabs a, .nav-tabs button, ul.nav a, [role=tab]';
+    for (const b of document.querySelectorAll(sel)) {
+        if (want.includes(norm(b.innerText))) { b.click(); return norm(b.innerText); }
+    }
+    return null;
+}"""
+
+
+def _click_tab_js(session, labels):
+    """Click a tab by DOM .click() inside ONE page evaluation. The adapter's
+    click_tab waits for Playwright actionability, and NPL's tab strip
+    re-renders continuously — the located button detaches mid-wait and the
+    click times out. A native click is atomic with its own query, so churn
+    between renders cannot strand it. Returns the folded label clicked, or
+    None if no tab matched (caller decides how loud to be)."""
+    return session.page.evaluate(CLICK_TAB_JS, list(labels))
+
+
+# Harvest action rows as an ordered LIST so duplicate display names survive
+# (NPL carries two 'RH02. Assign to Maintenance team' records — a dict keyed
+# by name silently drops one). Duplicates get a ' #n' suffix in the capture
+# key; the bare name is still used to verify the opened form.
+HARVEST_GRID_LIST_JS = """() => {
+    const out = [];
+    for (const cb of document.querySelectorAll('input[id^="pbl_form_"]')) {
+        const m = cb.id.match(/^pbl_form_([0-9a-f-]{36})_0$/i);
+        if (!m) continue;
+        const row = cb.closest('tr');
+        if (!row) continue;
+        const own = cb.closest('td');
+        const cells = Array.from(row.querySelectorAll('td'))
+            .filter(td => td !== own)
+            .map(td => td.innerText.trim());
+        const name = cells.find(c => c && c.length > 1 && !/^(select( record| all)?|options)$/i.test(c));
+        if (name) out.push({name: name, guid: m[1]});
+    }
+    return out;
+}"""
+
+
+def _harvest_guid_list(session) -> list[tuple[str, str, str]]:
+    """-> [(captureKey, bareName, guid)] with duplicate names suffixed."""
+    rows = session.page.evaluate(HARVEST_GRID_LIST_JS) or []
+    seen: dict[str, int] = {}
+    out = []
+    for r in rows:
+        name = r["name"]
+        seen[name] = seen.get(name, 0) + 1
+        key = name if seen[name] == 1 else f"{name} #{seen[name]}"
+        out.append((key, name, r["guid"]))
+    return out
+
+
+def _wait_for_grid(session, timeout_s: float) -> int:
+    """Wait until at least one GUID row-checkbox is rendered; return the
+    count (0 on timeout — the caller decides whether that is a finding).
+    Lives here, not on the adapter, so a crawler hot-reload is enough to
+    pick up a fix without restarting the harness (= no re-login)."""
+    waited = 0.0
+    while waited < timeout_s:
+        n = session.page.evaluate(GRID_GUID_COUNT_JS)
+        if n:
+            return n
+        session.page.wait_for_timeout(500)
+        waited += 0.5
+    return 0
+
+
+def _open_actions(session, raw: dict, initial: bool = False) -> None:
+    """Open the Actions tab AND make sure the GUID grid is on screen.
+    NPL renders Diagram | Simple list | Full list sub-views with Diagram
+    active by default — no grid, no row checkboxes, nothing to harvest.
+    Only the Full list sub-view carries the pbl_form_<guid>_0 checkboxes.
+
+    Tab clicks are JS-native (_click_tab_js): the adapter's actionability
+    wait times out against NPL's continuously re-rendering strip. On
+    re-entry (after a form CANCEL) a visible grid means the list survived
+    the round-trip — clicking again would only reset NPL to the Diagram
+    sub-view and cost the Full-list dance every record."""
+    if not initial and _wait_for_grid(session, 3):
+        return
+    if _click_tab_js(session, TAB_ACTIONS) is None:
+        raw["warnings"].append("actions: no 'Actions' tab matched by JS click")
+    session.page.wait_for_timeout(800)
+    if _wait_for_grid(session, 6):
+        return
+    if _click_tab_js(session, TAB_ACTIONS_FULL_LIST) is None:
+        # No sub-tab = a plain-grid instance that is just slow; keep waiting.
+        raw["warnings"].append("actions: no grid after 6s and no 'Full list' sub-tab")
+    if not _wait_for_grid(session, 20):
+        raw["warnings"].append("actions: GUID grid never rendered — harvest will be empty")
 
 SECTIONED_CHECKBOXES_JS = """() => {
     const out = [];
@@ -71,6 +175,7 @@ def capture(session, progress) -> dict:
 
     # ---- statuses: full grid + per-record form reads --------------------
     session.click_tab(TAB_STATUSES)
+    _wait_for_grid(session, 15)
     raw["statusHeaders"] = session.grid_headers()
     raw["statusRows"] = session.grid_rows()
     guids = session.harvest_grid_guids()
@@ -95,6 +200,7 @@ def capture(session, progress) -> dict:
 
     # ---- job types (2 records) -------------------------------------------
     session.click_tab(TAB_JOB_TYPES)
+    _wait_for_grid(session, 15)
     jt_guids = session.harvest_grid_guids()
     raw["jobTypeGuids"] = jt_guids
     raw["jobTypeForms"] = {}
@@ -110,30 +216,30 @@ def capture(session, progress) -> dict:
         progress("Helpdesk Job Types", i + 1, len(jt_guids))
 
     # ---- actions: list matrix + per-record Edit form + record VIEW ------
-    session.click_tab(TAB_ACTIONS)
+    _open_actions(session, raw, initial=True)
     raw["actionHeaders"] = session.grid_headers()
     raw["actionRows"] = session.grid_rows()
-    a_guids = session.harvest_grid_guids()
+    harvested = _harvest_guid_list(session)
+    a_guids = {key: guid for key, _bare, guid in harvested}
     raw["actionGuids"] = a_guids
     raw["actionForms"] = {}
     raw["actionViews"] = {}
-    names = list(a_guids.keys())
-    progress("Actions", 0, len(names))
-    for i, name in enumerate(names):
-        session.nav_form_view(a_guids[name], _bare_name(name))
-        raw["actionForms"][name] = {
+    progress("Actions", 0, len(harvested))
+    for i, (key, bare, guid) in enumerate(harvested):
+        session.nav_form_view(guid, _bare_name(bare))
+        raw["actionForms"][key] = {
             "fields": session.read_form_fields(),
             "sectioned": session.page.evaluate(SECTIONED_CHECKBOXES_JS),
         }
         session.cancel_form()
-        session.click_tab(TAB_ACTIONS)
+        _open_actions(session, raw)
         try:
-            session.nav_record_view(a_guids[name], _bare_name(name))
-            raw["actionViews"][name] = session.body_text()
+            session.nav_record_view(guid, _bare_name(bare))
+            raw["actionViews"][key] = session.body_text()
         except Exception as exc:  # record view optional in v1 — warn, not fail
-            raw["warnings"].append(f"action record view failed for {name}: {exc}")
-        session.click_tab(TAB_ACTIONS)
-        progress("Actions", i + 1, len(names))
+            raw["warnings"].append(f"action record view failed for {key}: {exc}")
+        _open_actions(session, raw)
+        progress("Actions", i + 1, len(harvested))
 
     return raw
 

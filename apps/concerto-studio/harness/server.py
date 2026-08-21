@@ -138,6 +138,11 @@ def worker() -> None:
                 SESSION.refresh_state()
                 job["done"](SESSION.status())
             elif kind == "crawl":
+                # Hot-reload the crawlers for the same reason as the writer:
+                # a capture fix must never cost a restart (= a re-login).
+                import importlib
+                importlib.reload(helpdesk_crawler)
+                importlib.reload(orders_crawler)
                 run_crawl(job["crawlId"], job["domains"])
             elif kind == "write":
                 # writes touch the Playwright page, which is thread-affine —

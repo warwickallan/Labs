@@ -1923,6 +1923,89 @@
     assert(cover['SRD-001'].fail === 0 && cover['SRD-002'].fail === 1, 'requirement coverage reflects the failing scenario');
   });
 
+  /* ---- process flows (workpackage-style, model-bound) ------------------- */
+
+  function procflowModel() {
+    return { helpdesk: {
+      statuses: [
+        { name: 'With Helpdesk', types: ['Reactive'] },
+        { name: 'With SMART - R', types: ['Reactive'] },
+        { name: 'With Contractor - R', types: ['Reactive'] },
+        { name: 'In Progress', types: ['Reactive', 'Planned'] },
+        { name: 'On Hold', types: ['Reactive', 'Planned'] },
+        { name: 'Work Complete', types: ['Reactive'] },
+        { name: 'With SMART', types: ['Planned'] },
+        { name: 'With Contractor', types: ['Planned'] },
+        { name: 'Ghost - R', types: ['Reactive'], suppressed: true }
+      ],
+      actions: [
+        { name: 'RH08. Place On Hold', types: ['Reactive'] },
+        { name: 'RH09. Take off hold', types: ['Reactive'] }
+      ]
+    } };
+  }
+
+  test('procflow: reactive flow binds THIS instance’s own status names into the callouts', function () {
+    var out = window.StudioProcFlow.reactive(procflowModel());
+    assert(out.svg.indexOf('<svg') === 0, 'renders svg');
+    assert(out.svg.indexOf('With SMART - R') !== -1, 'internal-team callout carries the instance name (With SMART - R, not With Maintenance Team)');
+    assert(out.svg.indexOf('With Contractor - R') !== -1, 'contractor callout bound');
+    assert(out.svg.indexOf('Ghost - R') === -1, 'suppressed statuses are never drawn');
+    var roles = out.bindings.map(function (b) { return b.role; });
+    assert(roles.indexOf('internal') !== -1 && roles.indexOf('holdBranch') !== -1, 'bindings are reported for the document to cite');
+  });
+
+  test('procflow: a role the instance does not have removes its branch — nothing invented', function () {
+    var m = procflowModel();
+    m.helpdesk.statuses = m.helpdesk.statuses.filter(function (s) { return s.name !== 'On Hold'; });
+    m.helpdesk.actions = [];
+    var out = window.StudioProcFlow.reactive(m);
+    assert(out.svg.indexOf('Place on hold') === -1, 'no hold action + no hold status = no hold branch');
+    assert(out.svg.indexOf('Follow-up') === -1, 'no follow-up status = no follow-up decision');
+  });
+
+  test('procflow: the diagram SET is evidence-driven — no supplier portal / remedials = fewer diagrams', function () {
+    var lean = window.StudioProcFlow.all(procflowModel());
+    assert(lean.length === 3, 'lean config: reactive + planned + internal completion only, got ' + lean.length);
+    assert(!lean.some(function (f) { return f.id === 'external-completion'; }), 'no supplier portal = no external completion diagram');
+    assert(!lean.some(function (f) { return f.id === 'remedial'; }), 'no remedial actions = no remedial diagram');
+    var m = procflowModel();
+    m.orders = { supplierActions: [{ name: 'SP01. Accept job' }, { name: 'SP07. PPM Complete - with remedials' }] };
+    m.helpdesk.actions.push({ name: 'PH07. PPM Complete - with remedials', types: ['Planned'] });
+    var full = window.StudioProcFlow.all(m);
+    assert(full.length === 5, 'supplier + remedial evidence brings the full set, got ' + full.length);
+    full.forEach(function (f) {
+      assert(f.svg.indexOf('<svg') === 0 && f.svg.indexOf('</svg>') !== -1, f.id + ' renders complete svg');
+    });
+    assert(full[1].svg.indexOf('With SMART') !== -1, 'planned flow binds the planned-type internal status');
+  });
+
+  test('procflow: step PRESENCE follows the instance’s actions — no RAMS/AFP/invoicing means none drawn', function () {
+    var m = procflowModel();
+    m.orders = { supplierActions: [{ name: 'SP01. Accept job' }] };
+    var r = window.StudioProcFlow.reactive(m);
+    assert(r.svg.indexOf('RAMS') === -1 && r.svg.indexOf('Start work') !== -1, 'no RAMS action = plain Start work');
+    assert(r.svg.indexOf('Acknowledge order') === -1, 'no acknowledge action = no acknowledge step');
+    assert(/Accept order/.test(r.svg), 'portal accept evidenced = portal accept step');
+    var x = window.StudioProcFlow.externalCompletion(m);
+    assert(x && x.svg.indexOf('AFP') === -1 && x.svg.indexOf('invoice') === -1 && x.svg.indexOf('Invoice') === -1,
+      'no AFP / invoice actions = no AFP branch or invoicing steps');
+  });
+
+  test('procflow: the customer Solution Design embeds the workpackage flows with a status-name note', function () {
+    return kirklees.then(function (f) {
+      var m = window.StudioSnapshots.currentModel(f.project);
+      var doc = window.StudioSolDesignCustomer.generate(m, {
+        project: f.project, vanilla: f.vanilla, deviations: []
+      });
+      assert(doc.indexOf('procflow-embed') !== -1, 'workpackage flows are embedded');
+      var want = window.StudioProcFlow.all(m).length;
+      assert((doc.match(/class="flow-embed procflow-embed"/g) || []).length === want,
+        'exactly the evidence-driven set is in the document (' + want + ')');
+      assert(/Status names shown are this instance/.test(doc), 'the document cites the instance-bound names');
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');

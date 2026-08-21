@@ -154,10 +154,24 @@
       if (plannedView.state !== 'UNKNOWN') h += statusTable(plannedView.model, 'Planned', plannedView.statuses);
       else h += '<p>Stages: ' + esc(plannedView.statuses.join(' · ')) + '</p>';
     }
-    if (window.StudioFlow && window.StudioFlow.factual) {
-      /* Flows are GENERATED from the model's own availability + results --
-         the same edges the Action Map shows. Nothing narrated, nothing
-         guessed; a missing side simply is not drawn. */
+    if (window.StudioProcFlow) {
+      /* Workpackage-style process flows (the customer-facing journey shape
+         from the Bellrock workpackage documents). The skeleton is the
+         standard product journey; every status callout is bound to THIS
+         instance's own statuses — a role the instance does not have simply
+         is not drawn. */
+      var flows = window.StudioProcFlow.all(model);
+      flows.forEach(function (f) {
+        h += '<h4>' + esc(f.title) + '</h4><div class="flow-embed procflow-embed">' + f.svg + '</div>';
+        var bound = (f.bindings || []).filter(function (x) { return x.status && x.role !== 'holdBranch'; });
+        if (bound.length) {
+          h += '<p class="flow-note">Status names shown are this instance’s own: ' +
+            esc(bound.map(function (x) { return x.status; }).join(' · ')) + '.</p>';
+        }
+      });
+    } else if (window.StudioFlow && window.StudioFlow.factual) {
+      /* Fallback: flows GENERATED from the model's own availability +
+         results — the same edges the Action Map shows. */
       [['Reactive', 'Reactive workflow'], ['Planned', 'Planned (PPM) workflow']].forEach(function (pair) {
         var out = window.StudioFlow.factual(model, pair[0]);
         if (!out.missing && out.edges) {
@@ -433,6 +447,8 @@
       '.more { color: #8aa39a; font-size: 11px; }' +
       '.flow-embed { margin: 14px 0; page-break-inside: avoid; }' +
       '.flow-embed svg { width: 100%; height: auto; border: 1px solid #e2e9e6; border-radius: 8px; }' +
+      '.procflow-embed svg { border: 1px solid #dde3e9; border-radius: 12px; }' +
+      '.flow-note { font-size: 0.82em; color: #68727d; margin: 4px 0 18px; }' +
       'table.dense th, table.dense td { font-size: 11px; padding: 4px 7px; }' +
       '.dense-list { font-size: 11.5px; color: #4a6a60; }' +
       'details.appendix-link summary { cursor: pointer; color: #4a6a60; font-size: 12.5px; }' +
