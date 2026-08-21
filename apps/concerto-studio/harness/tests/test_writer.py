@@ -103,5 +103,42 @@ with with_config({"writeEnabled": True}):
     CONFIG.write_text(json.dumps({"writeEnabled": False}), encoding="utf-8")
     check("revoked without restart reads false", writer.write_enabled() is False)
 
+# 6. the write SURFACE stays small and typed — every op is a named,
+#    understood configuration edit, and nothing else is reachable.
+EXPECTED_OPS = {
+    "set_action_availability", "set_user_selectable", "delete_action",
+    "rename_status", "create_status", "create_action",
+    "set_response_category_priority", "set_status_field",
+}
+check("the operation table is exactly the known typed ops",
+      set(writer.OPERATIONS) == EXPECTED_OPS)
+check("every operation is callable", all(callable(f) for f in writer.OPERATIONS.values()))
+
+# 7. set_status_field refuses fields it does not understand — a typed op,
+#    not a "set any field" hole in the write surface.
+with with_config({"writeEnabled": True}):
+    try:
+        writer.execute(DeadSession(),
+                       {"op": "set_status_field", "status": "X", "field": "anything", "value": 1},
+                       apply=True)
+        check("set_status_field refuses an unknown field", False)
+    except writer.WriteRefused as exc:
+        check("set_status_field refuses an unknown field", "does not understand" in str(exc))
+    except Exception:
+        check("set_status_field refuses an unknown field", False)
+
+# 8. every op still refuses when the human's switch is off, INCLUDING the
+#    newest ones (a new operation must never bypass the gate).
+with with_config({"writeEnabled": False}):
+    refused = 0
+    for name in sorted(writer.OPERATIONS):
+        try:
+            writer.execute(DeadSession(), {"op": name}, apply=True)
+        except writer.WriteRefused:
+            refused += 1
+        except Exception:
+            pass
+    check("every typed op refuses while the switch is off", refused == len(writer.OPERATIONS))
+
 print(f"\nPASS {PASS}/{PASS + FAIL}" if FAIL == 0 else f"\nFAIL {PASS}/{PASS + FAIL}")
 sys.exit(1 if FAIL else 0)

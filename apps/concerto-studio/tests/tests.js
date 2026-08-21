@@ -633,6 +633,23 @@
         var withInst = cardFor('ZZ With Instance');
         assert(withInst.querySelector('.proj-dev').textContent === '0', 'Vanilla-identical instance → 0 deviations');
         assert(/^\d+$/.test(withInst.querySelector('.proj-findings').textContent), 'findings computed live from the instance model');
+        /* declutter contract: the card LEADS with identity, health and the
+           one primary action; secondary detail and destructive actions live
+           behind a fold, not dumped at the top level */
+        var top = Array.prototype.map.call(withInst.querySelectorAll(':scope > div > button, :scope > div button'), function (b) { return b.textContent; });
+        var fold = withInst.querySelector('details.cfg-sec');
+        assert(fold, 'the card has a details fold for secondary information');
+        assert(/Domains|Opened|Build/.test(fold.textContent), 'domains/timestamps/build live inside the fold');
+        var foldButtons = Array.prototype.map.call(fold.querySelectorAll('button'), function (b) { return b.textContent; });
+        assert(foldButtons.indexOf('Delete') !== -1 && foldButtons.indexOf('Export JSON') !== -1,
+          'Delete and Export are behind the click, not on the face of the card');
+        var faceButtons = top.filter(function (t) { return foldButtons.indexOf(t) === -1; });
+        /* the face carries the primary action, plus an urgent recovery
+           action when the project's data is genuinely at risk (unsaved) —
+           and nothing else */
+        assert(faceButtons.indexOf('OPEN PROJECT') !== -1, 'OPEN PROJECT is on the face of the card');
+        assert(faceButtons.every(function (t) { return /OPEN PROJECT|Save now/.test(t); }),
+          'only the primary action and urgent recovery are on the face, got: ' + faceButtons.join(', '));
       } finally {
         localStorage.removeItem(PROJECTS_KEY);
       }

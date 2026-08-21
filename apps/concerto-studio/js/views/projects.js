@@ -120,14 +120,15 @@
             }
           })
         ]) : null,
+        /* TOP LEVEL answers only: which customer, is it healthy, open it.
+           Everything else is one click away — a card that dumps domains,
+           timestamps, build strings and four buttons hides the message. */
         el('div', { class: 'muted', text: rec.instanceUrl || '(no instance URL)' }),
-        el('div', { class: 'muted', text: 'Domains: ' + ((rec.domains || []).join(', ') || '—') }),
         el('div', { class: 'stat-row', style: 'margin-top:12px' }, [
           stat(dev === null ? '—' : String(dev), 'deviations vs Vanilla', 'proj-dev'),
           stat(fnd === null ? '—' : String(fnd), 'open findings', 'proj-findings'),
           stat(String((rec.changeLog || []).length), 'change log entries', 'proj-changes')
         ]),
-        el('div', { class: 'muted', style: 'margin-top:10px;font-size:12px', text: 'Opened ' + fmtWhen(rec.lastOpenedAt) + ' · crawled ' + fmtWhen(rec.lastCrawlAt) + (rec.concertoBuild ? ' · build ' + rec.concertoBuild : '') }),
         el('div', { style: 'margin-top:12px;display:flex;gap:8px;flex-wrap:wrap' }, [
           el('button', {
             class: 'btn', style: 'font-weight:600', text: 'OPEN PROJECT',
@@ -135,33 +136,41 @@
               P.open(rec.key);
               location.hash = '#diagram';
             }
-          }),
-          isCurrent ? el('button', {
-            class: 'btn', text: 'Save current context into project',
-            title: 'Stores the current instance snapshot, desired-state design and Vanilla fingerprints into this project',
-            onclick: function () { P.captureContext(); rerender(); }
-          }) : null,
-          el('button', {
-            class: 'btn', text: 'Export JSON',
-            onclick: function () {
-              var blob = new Blob([P.exportProject(rec.key)], { type: 'application/json' });
-              var a = document.createElement('a');
-              a.href = URL.createObjectURL(blob);
-              a.download = rec.key + '.project.json';
-              a.click();
-              URL.revokeObjectURL(a.href);
-            }
-          }),
-          el('button', {
-            class: 'btn', text: 'Delete',
-            onclick: function () {
-              if (window.confirm('Delete project "' + rec.name + '" from this browser? Any files persisted under apps/concerto-studio/projects/ are untouched.')) {
-                P.remove(rec.key);
-                rerender();
-              }
-            }
           })
-        ])
+        ]),
+        el('details', { class: 'cfg-sec', style: 'margin-top:10px' }, [
+          el('summary', { text: 'Details & actions' }),
+          el('div', { class: 'muted', style: 'font-size:12px', text: 'Domains: ' + ((rec.domains || []).join(', ') || '—') }),
+          el('div', { class: 'muted', style: 'font-size:12px', text: 'Opened ' + fmtWhen(rec.lastOpenedAt) + ' · crawled ' + fmtWhen(rec.lastCrawlAt) }),
+          rec.concertoBuild ? el('div', { class: 'muted', style: 'font-size:12px', text: 'Build ' + rec.concertoBuild }) : null,
+          el('div', { style: 'margin-top:10px;display:flex;gap:8px;flex-wrap:wrap' }, [
+            isCurrent ? el('button', {
+              class: 'btn', text: 'Save current context into project',
+              title: 'Stores the current instance snapshot, desired-state design and Vanilla fingerprints into this project',
+              onclick: function () { P.captureContext(); rerender(); }
+            }) : null,
+            el('button', {
+              class: 'btn', text: 'Export JSON',
+              onclick: function () {
+                var blob = new Blob([P.exportProject(rec.key)], { type: 'application/json' });
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = rec.key + '.project.json';
+                a.click();
+                URL.revokeObjectURL(a.href);
+              }
+            }),
+            el('button', {
+              class: 'btn', text: 'Delete',
+              onclick: function () {
+                if (window.confirm('Delete project "' + rec.name + '" from this browser? Any files persisted under apps/concerto-studio/projects/ are untouched.')) {
+                  P.remove(rec.key);
+                  rerender();
+                }
+              }
+            })
+          ].filter(Boolean))
+        ].filter(Boolean))
       ]);
     })));
   }

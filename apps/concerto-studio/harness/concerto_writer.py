@@ -836,6 +836,113 @@ def set_response_category_priority(session, op: dict, apply: bool = False) -> di
     return audit
 
 
+def _read_check_by_label(page, label_re: str):
+    """Current tick-state of the checkbox whose LABEL matches, or None."""
+    return page.evaluate(
+        """(re) => {
+            const rx = new RegExp(re, 'i');
+            const norm = t => (t||'').replace(/\\u00a0/g,' ').trim();
+            for (const cb of document.querySelectorAll('input[type=checkbox]')) {
+                let label = '';
+                if (cb.id) { const l = document.querySelector('label[for="' + cb.id + '"]'); if (l) label = norm(l.innerText); }
+                if (!label) { const w = cb.closest('label'); if (w) label = norm(w.innerText); }
+                if (!label) { const td = cb.closest('td,div'); if (td && td.previousElementSibling) label = norm(td.previousElementSibling.innerText); }
+                if (rx.test(label)) return cb.checked;
+            }
+            return null;
+        }""",
+        label_re,
+    )
+
+
+# Fields this op understands, by kind, with the label pattern that finds
+# them. Narrow ON PURPOSE: a typed op the caller can reason about, not a
+# "set any field" hole in the write surface.
+_STATUS_FIELDS = {
+    "suppressed": ("check", r"suppress"),
+    "sortOrder": ("input", r"sort|order"),
+    "isDefault": ("check", r"^default"),
+    "mobile": ("check", r"mobile"),
+}
+
+
+def set_status_field(session, op: dict, apply: bool = False) -> dict:
+    """Set ONE understood field on a job status (e.g. unsuppress a status —
+    the NPL F-008 decision path).
+    op = { status, field, value, expect_current? }"""
+    _require_enabled()
+    name = op["status"]
+    field = op["field"]
+    value = op["value"]
+    if field not in _STATUS_FIELDS:
+        raise WriteRefused(f"set_status_field does not understand {field!r}; known: {sorted(_STATUS_FIELDS)}")
+    kind, label_re = _STATUS_FIELDS[field]
+
+    session.goto_admin("helpdesk_admin.aspx")
+    session.click_tab(("Job statuses", "Statuses", "Job status"))
+    session.page.wait_for_timeout(1200)
+    guids = session.harvest_grid_guids()
+    guid = guids.get(name)
+    audit = {"op": "set_status_field", "object": name, "field": field, "intended": value}
+    if not guid:
+        audit["status"] = "FAILED"
+        audit["reason"] = f"status {name!r} not found in the grid"
+        return audit
+
+    session.nav_form_view(guid, name)
+    session.page.wait_for_timeout(800)
+    before = (_read_check_by_label(session.page, label_re) if kind == "check"
+              else _read_select_by_label(session.page, label_re))
+    audit["before"] = before
+    audit["revert"] = {"op": "set_status_field", "status": name, "field": field, "value": before}
+    if before is None:
+        audit["status"] = "FAILED"
+        audit["reason"] = f"could not find the {field!r} control on the status form — not guessing"
+        session.cancel_form()
+        return audit
+    expect = op.get("expect_current")
+    if expect is not None and before != expect:
+        audit["status"] = "FAILED"
+        audit["reason"] = f"expected current {field}={expect!r} but the form shows {before!r}"
+        session.cancel_form()
+        return audit
+    if before == value:
+        audit["status"] = "NO-CHANGE"
+        audit["reason"] = f"{field} is already {value!r}"
+        session.cancel_form()
+        return audit
+    if not apply:
+        audit["status"] = "DRY-RUN"
+        session.cancel_form()
+        return audit
+
+    ok_set = (_tick_by_label(session.page, label_re, bool(value)) if kind == "check"
+              else _set_input_by_label(session.page, label_re, str(value)))
+    if not ok_set:
+        audit["status"] = "FAILED"
+        audit["reason"] = f"could not set {field!r} on the form"
+        session.cancel_form()
+        return audit
+    if not _press_save(session.page):
+        audit["status"] = "FAILED"
+        audit["reason"] = "no SAVE control found; nothing was saved"
+        session.cancel_form()
+        return audit
+
+    session.click_tab(("Job statuses", "Statuses", "Job status"))
+    session.page.wait_for_timeout(1000)
+    session.nav_form_view(guid, name)
+    session.page.wait_for_timeout(800)
+    after = (_read_check_by_label(session.page, label_re) if kind == "check"
+             else _read_select_by_label(session.page, label_re))
+    audit["after"] = after
+    audit["status"] = "APPLIED" if after == value else "UNVERIFIED"
+    session.cancel_form()
+    if after != value:
+        raise WriteFailed(f"{name}: {field} did not verify — form shows {after!r}")
+    return audit
+
+
 OPERATIONS = {
     "set_action_availability": set_action_availability,
     "set_user_selectable": set_user_selectable,
@@ -844,6 +951,7 @@ OPERATIONS = {
     "create_status": create_status,
     "create_action": create_action,
     "set_response_category_priority": set_response_category_priority,
+    "set_status_field": set_status_field,
 }
 
 

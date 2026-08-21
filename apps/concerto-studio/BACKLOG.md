@@ -8,18 +8,27 @@ absolute. When an item is done, move it to the SESSION_LOG, don't just delete.
 
 ## ACROSS ALL PROJECTS (platform / Studio itself)
 
-- [ ] **UAT execution: browser / hybrid auto-run.** Guided-human execution is
-      live. Next: drive scenario steps against the instance through the harness
-      (read-back assertions), and a hybrid mode. Needs the write path's
-      read-back plus assertion evaluators.
+- [~] **UAT execution.** Guided-human execution + CONFIG PRE-FLIGHT are live
+      (`js/uatexec.js`, UAT > Pre-flight): every scenario is judged against
+      the model, CONFIG-FAIL ones are caught before a human runs them, and
+      runtime facts stay NEEDS-HUMAN. TRUE unattended execution still needs
+      harness JOB reads that do not exist: open a job record + press an
+      action, read a job's status / tags / linked orders, read an email log,
+      and a fixture service to create test jobs. That is the next real
+      harness capability (the Pre-flight tab lists it live).
 - [ ] **UAT test-data fixtures.** Scenarios reference `{{job}}` etc.; a fixture
       service to create/reuse/clean ZZ-TEST records for a run.
-- [ ] **SRD import: .docx / .pdf.** Text/markdown/CSV work now. Rich formats
-      need a converter (client-side or a small harness endpoint).
+- [x] **SRD import: .docx — DONE 2026-08-21** (`js/docx.js`, zero-library:
+      ZIP parse + native DecompressionStream + WordprocessingML to text,
+      table cells included). **.pdf still outstanding** — needs a different
+      approach (harness-side extraction is probably simplest).
 - [ ] **Writer ops to add:**
-      - `set_status_field` / `set_action_field` (e.g. fix the response-category
-        → order-priority mapping; unsuppress a status).
-      - `delete_status`, `configure_job_type` (builder staged steps).
+      - `set_action_field`; `delete_status`; `create_job_type` (the builder's
+        one staged step — needs the 57-field job-type form learned).
+      - (`set_status_field` DONE 2026-08-21: suppressed/sortOrder/isDefault/
+        mobile, typed and refusing unknown fields — NOT yet proven live, the
+        NPL dry-run could not run because the harness browser had closed.)
+      - (`set_response_category_priority` DONE + PROVEN LIVE 2026-08-21.)
       - (`set_user_selectable` DONE 2026-08-20; `create_status` /
         `create_action` DONE 2026-08-21 in writer 0.3 — dry-run verified
         shapes, but NOT yet proven live: the first real create needs
@@ -41,9 +50,10 @@ absolute. When an item is done, move it to the SESSION_LOG, don't just delete.
       Registers on next session start; invoke with `/concerto-studio` or it
       auto-triggers on Concerto engagement work. Keep it updated whenever the
       SOP itself changes (new writer op classes, new phases).
-- [ ] **UX declutter — remaining surfaces.** Configuration/Evidence/Settings/
-      Matrix/ActionMap/Design done. Projects page and deep receipt tables could
-      get the same summary-first fold if wanted everywhere.
+- [x] **UX declutter — Projects page DONE 2026-08-21**: cards lead with
+      identity, health stats and ONE primary action; domains, timestamps,
+      build, Export and Delete moved behind a fold (contract test-locked).
+      Deep receipt tables are the only surface left if wanted.
 
 ## NPL specifically
 
@@ -94,6 +104,10 @@ absolute. When an item is done, move it to the SESSION_LOG, don't just delete.
       work unless it drifts from the reference build.
 
 ## HOUSEKEEPING / NOTES
+
+- **The harness browser is CLOSED** (2026-08-21) — the Playwright session
+  ended with the side-panel logout. Live ops (dry-run or apply) need
+  `/session/connect` plus a human sign-in before they will run again.
 
 - `writeEnabled` is currently **true** on this machine
   (`harness/harness.config.json`). Delete the file or set false to revoke.
