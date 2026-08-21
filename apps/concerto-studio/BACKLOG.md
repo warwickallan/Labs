@@ -19,29 +19,30 @@ absolute. When an item is done, move it to the SESSION_LOG, don't just delete.
 - [ ] **Writer ops to add:**
       - `set_status_field` / `set_action_field` (e.g. fix the response-category
         → order-priority mapping; unsuppress a status).
-      - `untick_user_selectable_statuses` (to finish T06 — see NPL).
       - `create_action` / `create_status` — makes deletes *executable* reverts,
         not just recorded recipes.
+      - (`set_user_selectable` DONE 2026-08-20 — used to finish T06.)
 - [ ] **Suppression on re-crawl.** The harness crawler now captures
       "Suppress status from use"; `completeModel` derives `suppressed` from
       flags. VERIFY the crawl→ingest→model path actually carries it on the next
       real crawl (the ingest has more than one status path).
 - [ ] **Durable store off-machine remote.** Store is one-machine-only until
       Warwick creates a private GitHub repo; then wire the remote.
-- [ ] **The `/concerto-studio` skill.** NPL has proven the end-to-end method
-      (crawl → AI inspection → findings/decisions → design → work order → live
-      audited writes → docs → UAT). Distil it into a skill so any customer gets
-      its own thread running the same SOP. HIGH VALUE — do after NPL is fully
-      closed.
+- [x] **The `/concerto-studio` skill.** DONE 2026-08-21 — lives at
+      `C:\Bellrock Labs\.claude\skills\concerto-studio\SKILL.md` (project
+      scope, OUTSIDE the public repo so it can name the method freely).
+      Registers on next session start; invoke with `/concerto-studio` or it
+      auto-triggers on Concerto engagement work. Keep it updated whenever the
+      SOP itself changes (new writer op classes, new phases).
 - [ ] **UX declutter — remaining surfaces.** Configuration/Evidence/Settings/
       Matrix/ActionMap/Design done. Projects page and deep receipt tables could
       get the same summary-first fold if wanted everywhere.
 
 ## NPL specifically
 
-- [ ] **T06 — finish it.** The four Link-to-Statuses ticks are written; the
-      four WRONG ticks in "Select which statuses can be selected" still need
-      UNticking (needs the untick writer op above).
+- [x] **T06 — DONE 2026-08-20.** Link-to-Statuses ticks written AND the four
+      wrong user-selectable ticks cleared live (`set_user_selectable`,
+      IC-005b); verified, changeLog carries the revert.
 - [ ] **NPL-F-008 (decision).** Auto-action **T07** routes jobs to
       **Business Case - R**, which is SUPPRESSED. Either unsuppress the status
       or rewire T07. Customer/consultant call.

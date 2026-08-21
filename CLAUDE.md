@@ -162,6 +162,11 @@ estimated; if no reading exists, the value is the string `unavailable`.
 
 ## Instance work discipline (Studio engagements — standing, per Warwick 2026-08-20)
 
+> The full engagement SOP is packaged as the **`/concerto-studio` skill**
+> (`C:\Bellrock Labs\.claude\skills\concerto-studio\SKILL.md`, outside this
+> public repo). Invoke it for any customer engagement; the points below are
+> the durable contract it implements.
+
 1. **AI-led.** Claude runs each customer engagement as the implementation
    consultant from the chat, side-panel browser first; deterministic plumbing
    serves Claude and is repaired/extended from what Claude actually did.
