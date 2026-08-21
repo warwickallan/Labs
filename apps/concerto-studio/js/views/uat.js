@@ -73,7 +73,7 @@
           el('p', { class: 'muted', style: 'margin:2px 0 0;font-size:12.5px', text:
             'Target: DESIRED (' + (M && M.hasFork() ? 'agreed design' : 'current — no design forked yet') + ') · System under test: CURRENT instance · ' + total + ' scenarios generated' })
         ]),
-        el('span', { class: 'seg' }, ['library', 'requirements', 'suite', 'runs', 'results'].map(function (t) {
+        el('span', { class: 'seg' }, ['library', 'requirements', 'suite', 'preflight', 'runs', 'results'].map(function (t) {
           return el('button', { class: state.tab === t ? 'on' : '', text: t.charAt(0).toUpperCase() + t.slice(1),
             onclick: function () { state.tab = t; rerender(); } });
         }))
@@ -82,6 +82,7 @@
 
     if (state.tab === 'library') return libraryTab(page, el, packs, rerender);
     if (state.tab === 'suite') return suiteTab(page, el, packs, proj, rerender);
+    if (state.tab === 'preflight') return preflightTab(page, el, packs, current, rerender);
     if (state.tab === 'requirements') return requirementsTab(page, el, proj, rerender);
     if (state.tab === 'runs') return runsTab(page, el, proj, packs, rerender);
     if (state.tab === 'results') return resultsTab(page, el, proj, rerender);
@@ -176,6 +177,80 @@
           ]);
         }))
       ])
+    ]));
+  }
+
+  /* ---- pre-flight: which scenarios can the CONFIGURATION even permit? ---- */
+  function preflightTab(page, el, packs, current, rerender) {
+    var X = window.StudioUatExec;
+    var all = [];
+    Object.keys(packs).forEach(function (k) {
+      packs[k].forEach(function (sc) { if (all.map(function (x) { return x.id; }).indexOf(sc.id) === -1) all.push(sc); });
+    });
+    var out = X.preflightSuite(all, current);
+    var s = out.summary;
+
+    page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:12px' }, [
+      el('h3', { text: 'Pre-flight against the CURRENT configuration', style: 'margin-top:0' }),
+      el('p', { class: 'muted', style: 'font-size:12.5px', text:
+        'Checks what the configuration alone decides — is the action allocated where the scenario takes it, does it lead to the status the scenario expects. ' +
+        'It is NOT a test run: runtime facts (emails delivered, orders raised, engines firing) are marked NEEDS-HUMAN and never passed off as proof. ' +
+        'A CONFIG-FAIL scenario cannot pass on this instance today — fix the configuration or the scenario before anyone executes it.' }),
+      el('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;margin-top:8px' }, [
+        el('span', { class: 'conf-chip observed', text: s.configOk + ' config-OK' }),
+        el('span', { class: 'conf-chip', text: s.configFail + ' CONFIG-FAIL' }),
+        el('span', { class: 'conf-chip parsed', text: s.needsHuman + ' needs a human' }),
+        s.notEvaluated ? el('span', { class: 'conf-chip', text: s.notEvaluated + ' not evaluated' }) : null
+      ].filter(Boolean))
+    ]));
+
+    if (out.broken.length) {
+      page.appendChild(el('div', { class: 'tile', style: 'margin-bottom:12px' }, [
+        el('h4', { text: 'Broken before anyone starts (' + out.broken.length + ')', style: 'margin-top:0' }),
+        el('table', { class: 'list' }, [
+          el('thead', {}, [el('tr', {}, ['Scenario', 'Why the configuration forbids it'].map(function (h) { return el('th', { text: h }); }))]),
+          el('tbody', {}, out.broken.map(function (r) {
+            return el('tr', {}, [
+              el('td', {}, [el('b', { text: r.scenarioId }), el('div', { class: 'muted', style: 'font-size:11.5px', text: r.title })]),
+              el('td', { style: 'font-size:12px', text: r.blockers.join(' · ') })
+            ]);
+          }))
+        ])
+      ]));
+    }
+
+    page.appendChild(el('div', { class: 'tile' }, [
+      el('h4', { text: 'All scenarios', style: 'margin-top:0' }),
+      el('div', {}, out.results.map(function (r) {
+        var cls = r.verdict === X.VERDICT.OK ? 'observed' : r.verdict === X.VERDICT.HUMAN ? 'parsed' : '';
+        return el('details', { class: 'cfg-sec' }, [
+          el('summary', {}, [
+            el('span', { class: 'conf-chip ' + cls, text: r.verdict }),
+            document.createTextNode(' ' + r.scenarioId + ' — ' + r.title)
+          ]),
+          el('table', { class: 'list' }, [
+            el('tbody', {}, r.steps.map(function (st) {
+              return el('tr', {}, [
+                el('td', { style: 'width:70px', text: st.id }),
+                el('td', {}, st.checks.map(function (c) {
+                  return el('div', { style: 'font-size:12px' }, [
+                    el('span', { class: 'conf-chip ' + (c.verdict === X.VERDICT.OK ? 'observed' : c.verdict === X.VERDICT.HUMAN ? 'parsed' : ''), text: c.verdict }),
+                    document.createTextNode(' ' + c.what + ' — ' + c.why)
+                  ]);
+                }))
+              ]);
+            }))
+          ])
+        ]);
+      }))
+    ]));
+
+    var gaps = {};
+    all.forEach(function (sc) { X.harnessGap(sc).forEach(function (g) { gaps[g] = true; }); });
+    page.appendChild(el('div', { class: 'tile', style: 'margin-top:12px' }, [
+      el('h4', { text: 'What unattended execution would still need', style: 'margin-top:0' }),
+      el('p', { class: 'muted', style: 'font-size:12.5px', text: 'The harness can read configuration and make audited writes. It cannot yet read a live JOB. Until these exist, execution stays human-run with pre-flight in front of it:' }),
+      el('ul', {}, Object.keys(gaps).map(function (g) { return el('li', { style: 'font-size:12.5px', text: g }); }))
     ]));
   }
 

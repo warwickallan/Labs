@@ -2124,6 +2124,150 @@
     M.discard();
   });
 
+  /* ---- UAT pre-flight ---------------------------------------------------- */
+
+  function preflightModel() {
+    return window.StudioSchema.completeModel({ helpdesk: {
+      statuses: [
+        { name: 'With Helpdesk', types: ['Reactive'], isDefaultFor: ['Reactive'] },
+        { name: 'With Contractor', types: ['Reactive'] },
+        { name: 'Work Complete', types: ['Reactive'] },
+        { name: 'Ghost', types: ['Reactive'], suppressed: true }
+      ],
+      actions: [
+        { name: 'RH04. Assign to contractor', code: 'RH04', types: ['Reactive'],
+          availableIn: ['With Helpdesk'], resultingStatus: 'With Contractor', flags: ['email_supplier'] },
+        { name: 'RM01. Work Complete', code: 'RM01', types: ['Reactive'],
+          availableIn: ['With Contractor'], resultingStatus: 'Work Complete', flags: [] }
+      ],
+      availability: [], results: []
+    } });
+  }
+  function scen(steps) {
+    return { id: 'UAT-T1', title: 'Test scenario', module: 'Reactive Helpdesk', steps: steps,
+      preconditions: [{ keyword: 'REACTIVE_JOB_EXISTS', output: 'job' }] };
+  }
+
+  test('UAT pre-flight: a journey the configuration permits comes back CONFIG-OK', function () {
+    var X = window.StudioUatExec;
+    var r = X.preflight(scen([
+      { id: 'step-1', keyword: 'TAKE_ACTION', parameters: { action: 'RH04. Assign to contractor', fromStatus: 'With Helpdesk' },
+        assertions: [{ keyword: 'JOB_STATUS_EQUALS', value: 'With Contractor' }] },
+      { id: 'step-2', keyword: 'TAKE_ACTION', parameters: { action: 'RM01. Work Complete', fromStatus: 'With Contractor' },
+        assertions: [{ keyword: 'JOB_STATUS_EQUALS', value: 'Work Complete' }] }
+    ]), preflightModel());
+    assert(r.verdict === X.VERDICT.OK, 'expected CONFIG-OK, got ' + r.verdict + ' — ' + JSON.stringify(r.blockers));
+  });
+
+  test('UAT pre-flight: an action taken where it is NOT allocated is CONFIG-FAIL before anyone runs it', function () {
+    var X = window.StudioUatExec;
+    var r = X.preflight(scen([
+      { id: 'step-1', keyword: 'TAKE_ACTION', parameters: { action: 'RM01. Work Complete', fromStatus: 'With Helpdesk' },
+        assertions: [{ keyword: 'JOB_STATUS_EQUALS', value: 'Work Complete' }] }
+    ]), preflightModel());
+    assert(r.verdict === X.VERDICT.FAIL, 'expected CONFIG-FAIL, got ' + r.verdict);
+    assert(/NOT allocated/.test(r.blockers.join(' ')), 'the blocker names the allocation problem: ' + r.blockers.join(' '));
+  });
+
+  test('UAT pre-flight: expecting a status the action does not produce (or a suppressed one) fails', function () {
+    var X = window.StudioUatExec;
+    var wrong = X.preflight(scen([
+      { id: 'step-1', keyword: 'TAKE_ACTION', parameters: { action: 'RH04. Assign to contractor', fromStatus: 'With Helpdesk' },
+        assertions: [{ keyword: 'JOB_STATUS_EQUALS', value: 'Work Complete' }] }
+    ]), preflightModel());
+    assert(wrong.verdict === X.VERDICT.FAIL, 'wrong resulting status is CONFIG-FAIL');
+    var supp = X.preflight(scen([
+      { id: 'step-1', keyword: 'TAKE_ACTION', parameters: { action: 'RH04. Assign to contractor', fromStatus: 'With Helpdesk' },
+        assertions: [{ keyword: 'JOB_STATUS_EQUALS', value: 'Ghost' }] }
+    ]), preflightModel());
+    assert(/SUPPRESSED/.test(supp.blockers.join(' ')), 'routing to a suppressed status is called out: ' + supp.blockers.join(' '));
+  });
+
+  test('UAT pre-flight: runtime truth is NEVER passed off as proof', function () {
+    var X = window.StudioUatExec;
+    var r = X.preflight(scen([
+      { id: 'step-1', keyword: 'TAKE_ACTION', parameters: { action: 'RH04. Assign to contractor', fromStatus: 'With Helpdesk' },
+        assertions: [{ keyword: 'JOB_STATUS_EQUALS', value: 'With Contractor' },
+                     { keyword: 'NOTIFICATION_SENT', value: 'supplier' },
+                     { keyword: 'ORDER_RAISED_FOR_JOB' }] }
+    ]), preflightModel());
+    assert(r.verdict === X.VERDICT.HUMAN, 'a scenario asserting runtime effects needs a human, got ' + r.verdict);
+    var checks = r.steps[0].checks;
+    assert(checks.some(function (c) { return /ORDER_RAISED/.test(c.what) && c.verdict === X.VERDICT.HUMAN; }),
+      'order creation is NEEDS-HUMAN, never CONFIG-OK');
+    assert(/never asserts a runtime outcome/.test(r.note), 'the result states its own boundary');
+  });
+
+  test('UAT pre-flight: the suite splits runnable from broken, and names the missing harness reads', function () {
+    var X = window.StudioUatExec;
+    var good = scen([{ id: 'step-1', keyword: 'TAKE_ACTION', parameters: { action: 'RH04. Assign to contractor', fromStatus: 'With Helpdesk' },
+      assertions: [{ keyword: 'JOB_STATUS_EQUALS', value: 'With Contractor' }] }]);
+    var bad = JSON.parse(JSON.stringify(good)); bad.id = 'UAT-T2';
+    bad.steps[0].parameters.fromStatus = 'Work Complete';
+    var out = X.preflightSuite([good, bad], preflightModel());
+    assert(out.summary.total === 2 && out.summary.configFail === 1, 'one broken, one runnable');
+    assert(out.runnable.indexOf('UAT-T1') !== -1 && out.runnable.indexOf('UAT-T2') === -1, 'broken scenarios are not offered as runnable');
+    var gaps = X.harnessGap(good);
+    assert(gaps.some(function (g) { return /read a job/.test(g); }), 'the honest gap list names the reads the harness lacks: ' + gaps.join(' | '));
+  });
+
+  /* ---- .docx extraction (real ZIP, built in the test) --------------------- */
+
+  test('docx: text is extracted from a real .docx byte structure — no library', function () {
+    /* build a genuine (stored, uncompressed) ZIP containing word/document.xml */
+    var enc = new TextEncoder();
+    var xml = '<?xml version="1.0"?><w:document><w:body>' +
+      '<w:p><w:r><w:t>The system shall record every change.</w:t></w:r></w:p>' +
+      '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Jobs must be closed by the helpdesk.</w:t></w:r></w:p></w:tc></w:tr></w:tbl>' +
+      '</w:body></w:document>';
+    var name = 'word/document.xml';
+    var nameB = enc.encode(name), dataB = enc.encode(xml);
+    /* CRC32 (stored entries still carry one; readers we target ignore it, but be correct) */
+    var table = (function () {
+      var t = [];
+      for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+      return t;
+    })();
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < dataB.length; i++) crc = table[(crc ^ dataB[i]) & 0xFF] ^ (crc >>> 8);
+    crc = (crc ^ 0xFFFFFFFF) >>> 0;
+
+    var localLen = 30 + nameB.length + dataB.length;
+    var cdLen = 46 + nameB.length;
+    var buf = new ArrayBuffer(localLen + cdLen + 22);
+    var dv = new DataView(buf), u8 = new Uint8Array(buf), p = 0;
+    function w32(v) { dv.setUint32(p, v, true); p += 4; }
+    function w16(v) { dv.setUint16(p, v, true); p += 2; }
+    w32(0x04034b50); w16(20); w16(0); w16(0); w16(0); w16(0);
+    w32(crc); w32(dataB.length); w32(dataB.length); w16(nameB.length); w16(0);
+    u8.set(nameB, p); p += nameB.length;
+    u8.set(dataB, p); p += dataB.length;
+    var cdStart = p;
+    w32(0x02014b50); w16(20); w16(20); w16(0); w16(0); w16(0); w16(0);
+    w32(crc); w32(dataB.length); w32(dataB.length);
+    w16(nameB.length); w16(0); w16(0); w16(0); w16(0); w32(0); w32(0);
+    u8.set(nameB, p); p += nameB.length;
+    w32(0x06054b50); w16(0); w16(0); w16(1); w16(1); w32(cdLen); w32(cdStart); w16(0);
+
+    return window.StudioDocx.extractText(buf).then(function (text) {
+      assert(/shall record every change/.test(text), 'paragraph text extracted, got: ' + text.slice(0, 120));
+      assert(/must be closed by the helpdesk/.test(text), 'TABLE CELL text extracted too (SRD requirements live in tables)');
+      assert(text.indexOf('<w:') === -1, 'no XML tags survive into the text');
+      /* and it feeds the SRD parser end-to-end */
+      var reqs = window.StudioSRD.parseRequirements(text);
+      assert(reqs.length >= 2, 'both modal requirements parsed from the extracted text, got ' + reqs.length);
+    });
+  });
+
+  test('docx: a non-Word file fails LOUDLY with a reason, never as empty text', function () {
+    var junk = new TextEncoder().encode('this is not a zip at all, not even close');
+    return window.StudioDocx.extractText(junk.buffer).then(function () {
+      throw new Error('should have rejected');
+    }, function (e) {
+      assert(/not a ZIP|docx/i.test(e.message), 'the error explains what is wrong: ' + e.message);
+    });
+  });
+
   /* ---- runner ---------------------------------------------------------- */
 
   var ul = document.getElementById('results');

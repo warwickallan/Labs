@@ -59,6 +59,24 @@
 
     function readFile(file) {
       if (!file) return;
+      /* .docx is a ZIP of XML — extracted in-browser, no library. A failure
+         says WHY (and what to do instead); it never lands as empty text. */
+      if (/\.docx$/i.test(file.name) && window.StudioDocx) {
+        ta.value = 'Reading ' + file.name + '…';
+        window.StudioDocx.extractText(file).then(function (text) {
+          ta.value = text;
+          doAssess(text);
+        }).catch(function (e) {
+          ta.value = '';
+          window.alert('Could not read ' + file.name + ':\n\n' + e.message +
+            '\n\nSave it as .txt (or paste the text) and try again.');
+        });
+        return;
+      }
+      if (/\.docx?$/i.test(file.name) && !/\.docx$/i.test(file.name)) {
+        window.alert('Legacy .doc files are a binary format this cannot read. Save as .docx or .txt.');
+        return;
+      }
       var r = new FileReader();
       r.onload = function () { ta.value = String(r.result || ''); doAssess(ta.value); };
       r.readAsText(file);
